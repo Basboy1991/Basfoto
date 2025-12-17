@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { sanityClient } from "@/lib/sanity.client";
 import { pageBySlugQuery } from "@/lib/sanity.queries";
 import { PortableText } from "@portabletext/react";
