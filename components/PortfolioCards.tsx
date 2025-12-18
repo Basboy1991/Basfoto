@@ -12,9 +12,7 @@ type Card = {
     asset: {
       _id: string;
       url: string;
-      metadata?: {
-        lqip?: string;
-      };
+      metadata?: { lqip?: string };
     };
   };
 };
@@ -38,11 +36,8 @@ export default function PortfolioCards({ cards }: { cards: Card[] }) {
         </Link>
       </div>
 
-      {/* Featured (groot) */}
       <div className="grid gap-6">
         <CardItem card={featured} variant="featured" />
-
-        {/* 2 kleinere naast elkaar */}
         <div className="grid gap-6 md:grid-cols-2">
           {rest.map((c) => (
             <CardItem key={c.href} card={c} variant="small" />
@@ -76,8 +71,8 @@ function CardItem({ card, variant }: { card: Card; variant: "featured" | "small"
           .url();
 
   return (
-    <Link href={card.href} className="group block">
-      <div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+    <div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+      <Link href={card.href} className="group block">
         <div className={`relative ${aspect} overflow-hidden`}>
           <Image
             src={imgUrl}
@@ -89,17 +84,24 @@ function CardItem({ card, variant }: { card: Card; variant: "featured" | "small"
             blurDataURL={card.coverImage.asset.metadata?.lqip}
           />
         </div>
+      </Link>
 
-        <div className="p-5">
-          <h3 className="text-lg font-semibold text-[var(--text)]">{card.title}</h3>
+      <div className="p-5">
+        <h3 className="text-lg font-semibold text-[var(--text)]">{card.title}</h3>
 
-          {card.text && <p className="mt-1 text-sm text-[var(--text-soft)]">{card.text}</p>}
+        {card.text && <p className="mt-1 text-sm text-[var(--text-soft)]">{card.text}</p>}
 
-          <p className="mt-4 text-sm font-medium text-[var(--accent-strong)]">
-            {card.buttonLabel ?? "Bekijk"} →
-          </p>
+        <div className="mt-5">
+          <Link
+            href={card.href}
+            className="inline-flex items-center rounded-xl bg-white/70 px-4 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-white"
+            aria-label={`Bekijk ${card.title}`}
+          >
+            {card.buttonLabel ?? "Bekijk"}
+            <span className="ml-2">→</span>
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
