@@ -1,3 +1,4 @@
+import { urlFor } from "@/lib/sanity.image";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -23,11 +24,19 @@ export default function PortfolioCards({
       <div className={`relative ${ratio} overflow-hidden`}>
         {c.coverImage?.asset?.url && (
           <Image
-            src={c.coverImage.asset.url}
+            src={urlFor(c.coverImage.asset)
+              .width(1200)
+              .height(1500)
+              .fit("crop")
+              .auto("format")
+              .quality(80)
+              .url()}
             alt={c.title}
             fill
             className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.02]"
             sizes={sizes}
+            placeholder={c.coverImage.asset.metadata?.lqip ? "blur" : "empty"}
+            blurDataURL={c.coverImage.asset.metadata?.lqip}
           />
         )}
       </div>

@@ -7,7 +7,11 @@ export const pageBySlugQuery = `
     media[]{
       asset->{
         _id,
-        url
+        url,
+        metadata{
+          lqip,
+          dimensions{width,height,aspectRatio}
+        }
       }
     }
   }
@@ -21,7 +25,16 @@ export const homePageQuery = `
       subline,
       primaryCta{label, href},
       secondaryCta{label, href},
-      media[]{asset->{_id,url}}
+      media[]{
+        asset->{
+          _id,
+          url,
+          metadata{
+            lqip,
+            dimensions{width,height,aspectRatio}
+          }
+        }
+      }
     },
     intro,
     portfolioCards[]{
@@ -30,7 +43,16 @@ export const homePageQuery = `
       featured,
       buttonLabel,
       href,
-      coverImage{asset->{_id,url}}
+      coverImage{
+        asset->{
+          _id,
+          url,
+          metadata{
+            lqip,
+            dimensions{width,height,aspectRatio}
+          }
+        }
+      }
     },
     reviews[]{
       quote,
