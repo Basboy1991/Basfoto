@@ -2,6 +2,19 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { Inter, Playfair_Display } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -19,16 +32,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl">
-      <body className="min-h-screen bg-white text-zinc-900">
-        <header className="border-b">
+      <body
+        className={`${inter.variable} ${playfair.variable} min-h-screen bg-[var(--bg)] text-[var(--text)] antialiased`}
+      >
+        <header className="border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <Link href="/" className="font-semibold tracking-tight">
+            <Link
+              href="/"
+              className="font-semibold tracking-tight text-[var(--text)] hover:opacity-90"
+              style={{ fontFamily: "var(--font-serif)" }}
+            >
               {siteConfig.name}
             </Link>
 
             <nav className="hidden gap-6 md:flex">
               {siteConfig.nav.map((item) => (
-                <Link key={item.href} href={item.href} className="text-sm text-zinc-700 hover:text-zinc-900">
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm text-[var(--text-soft)] hover:text-[var(--text)] transition-colors"
+                >
                   {item.label}
                 </Link>
               ))}
@@ -38,10 +61,12 @@ export default function RootLayout({
 
         <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
 
-        <footer className="border-t">
-          <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-zinc-600">
-            <p className="font-medium text-zinc-800">{siteConfig.tagline}</p>
-            <p className="mt-2">© {new Date().getFullYear()} {siteConfig.name}</p>
+        <footer className="border-t border-[var(--border)]">
+          <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[var(--text-soft)]">
+            <p className="font-medium text-[var(--text)]">{siteConfig.tagline}</p>
+            <p className="mt-2">
+              © {new Date().getFullYear()} {siteConfig.name}
+            </p>
           </div>
         </footer>
       </body>
