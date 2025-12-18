@@ -4,7 +4,11 @@ export default defineType({
   name: "homePage",
   title: "Homepage",
   type: "document",
+
   fields: [
+    /* ---------------------------------------------------------------------
+     * HERO
+     * -------------------------------------------------------------------*/
     defineField({
       name: "hero",
       title: "Hero",
@@ -24,6 +28,7 @@ export default defineType({
           initialValue: "left",
           validation: (Rule) => Rule.required(),
         }),
+
         defineField({
           name: "media",
           title: "Hero afbeeldingen",
@@ -39,39 +44,62 @@ export default defineType({
           options: { layout: "grid" },
           validation: (Rule) => Rule.min(1).error("Voeg minimaal 1 hero-afbeelding toe."),
         }),
+
         defineField({
           name: "headline",
           title: "Kopregel",
           type: "string",
           validation: (Rule) => Rule.required(),
         }),
+
         defineField({
           name: "subline",
           title: "Subregel",
           type: "text",
           rows: 2,
         }),
+
         defineField({
           name: "primaryCta",
           title: "Primaire knop",
           type: "object",
           fields: [
-            defineField({ name: "label", title: "Tekst", type: "string" }),
-            defineField({ name: "href", title: "Link", type: "string" }),
+            defineField({
+              name: "label",
+              title: "Tekst",
+              type: "string",
+            }),
+            defineField({
+              name: "href",
+              title: "Link",
+              type: "string",
+            }),
           ],
         }),
+
         defineField({
           name: "secondaryCta",
           title: "Secundaire knop",
           type: "object",
           fields: [
-            defineField({ name: "label", title: "Tekst", type: "string" }),
-            defineField({ name: "href", title: "Link", type: "string" }),
+            defineField({
+              name: "label",
+              title: "Tekst",
+              type: "string",
+            }),
+            defineField({
+              name: "href",
+              title: "Link",
+              type: "string",
+            }),
           ],
         }),
       ],
     }),
 
+    /* ---------------------------------------------------------------------
+     * INTRO TEKST
+     * -------------------------------------------------------------------*/
     defineField({
       name: "intro",
       title: "Intro tekst",
@@ -95,6 +123,9 @@ export default defineType({
       validation: (Rule) => Rule.required().min(1),
     }),
 
+    /* ---------------------------------------------------------------------
+     * PORTFOLIO KAARTEN
+     * -------------------------------------------------------------------*/
     defineField({
       name: "portfolioCards",
       title: "Portfolio kaarten",
@@ -102,6 +133,8 @@ export default defineType({
       validation: (Rule) => Rule.max(3),
       of: [
         defineField({
+          name: "portfolioCard",
+          title: "Portfolio kaart",
           type: "object",
           fields: [
             defineField({
@@ -110,13 +143,20 @@ export default defineType({
               type: "string",
               validation: (Rule) => Rule.required(),
             }),
-            defineField({ name: "text", title: "Korte tekst", type: "string" }),
+
+            defineField({
+              name: "text",
+              title: "Korte tekst",
+              type: "string",
+            }),
+
             defineField({
               name: "featured",
               title: "Featured (groter tonen)",
               type: "boolean",
               initialValue: false,
             }),
+
             defineField({
               name: "coverImage",
               title: "Cover afbeelding",
@@ -124,12 +164,14 @@ export default defineType({
               options: { hotspot: true },
               validation: (Rule) => Rule.required(),
             }),
+
             defineField({
               name: "buttonLabel",
               title: "Knoptekst",
               type: "string",
-              initialValue: "Bekijk",
+              initialValue: "Bekijk portfolio",
             }),
+
             defineField({
               name: "href",
               title: "Link",
@@ -141,12 +183,18 @@ export default defineType({
       ],
     }),
 
+    /* ---------------------------------------------------------------------
+     * REVIEWS (UITGELICHT)
+     * -------------------------------------------------------------------*/
     defineField({
       name: "reviews",
       title: "Reviews (uitgelicht)",
       type: "array",
+      validation: (Rule) => Rule.max(6),
       of: [
         defineField({
+          name: "review",
+          title: "Review",
           type: "object",
           fields: [
             defineField({
@@ -156,16 +204,23 @@ export default defineType({
               rows: 3,
               validation: (Rule) => Rule.required(),
             }),
+
             defineField({
               name: "name",
               title: "Naam",
               type: "string",
               validation: (Rule) => Rule.required(),
             }),
-            defineField({ name: "location", title: "Plaats", type: "string" }),
+
+            defineField({
+              name: "location",
+              title: "Plaats",
+              type: "string",
+            }),
+
             defineField({
               name: "stars",
-              title: "Aantal sterren (1-5)",
+              title: "Aantal sterren (1–5)",
               type: "number",
               validation: (Rule) => Rule.min(1).max(5),
               initialValue: 5,
@@ -173,12 +228,14 @@ export default defineType({
           ],
         }),
       ],
-      validation: (Rule) => Rule.max(6),
     }),
 
+    /* ---------------------------------------------------------------------
+     * CTA – BOEK EEN SHOOT
+     * -------------------------------------------------------------------*/
     defineField({
       name: "cta",
-      title: "Boek een shoot kaart",
+      title: "Boek een shoot",
       type: "object",
       fields: [
         defineField({
@@ -187,18 +244,31 @@ export default defineType({
           type: "string",
           validation: (Rule) => Rule.required(),
         }),
-        defineField({ name: "text", title: "Tekst", type: "text", rows: 2 }),
+
+        defineField({
+          name: "text",
+          title: "Tekst",
+          type: "text",
+          rows: 2,
+        }),
+
         defineField({
           name: "whatsappNumber",
           title: "WhatsApp nummer (bijv. 31612345678)",
           type: "string",
         }),
+
         defineField({
           name: "phoneNumber",
           title: "Telefoonnummer (bijv. 0612345678)",
           type: "string",
         }),
-        defineField({ name: "email", title: "E-mail", type: "string" }),
+
+        defineField({
+          name: "email",
+          title: "E-mail",
+          type: "string",
+        }),
       ],
     }),
   ],
