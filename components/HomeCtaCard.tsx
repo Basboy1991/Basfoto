@@ -54,10 +54,10 @@ export default function HomeCtaCard({ cta }: { cta: CtaData }) {
 
   return (
     <section className="mt-16">
-      <div className="rounded-2xl border bg-white p-10 shadow-sm">
-        <h2 className="text-2xl font-semibold">{cta.title}</h2>
+      <div className="rounded-2xl bg-[var(--surface-2)] p-10">
+        <h2 className="text-2xl font-semibold text-[var(--text)]">{cta.title}</h2>
 
-        {cta.text && <p className="mt-3 max-w-2xl text-zinc-700">{cta.text}</p>}
+        {cta.text && <p className="mt-3 max-w-2xl text-[var(--text-soft)]">{cta.text}</p>}
 
         <div className="mt-6 flex flex-wrap gap-3">
           {actions.map((a) => (
@@ -68,7 +68,7 @@ export default function HomeCtaCard({ cta }: { cta: CtaData }) {
               rel={a.external ? "noreferrer" : undefined}
               aria-label={a.label}
               title={a.label}
-              className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition hover:bg-zinc-50"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/70 transition hover:bg-white"
             >
               {a.icon}
             </a>

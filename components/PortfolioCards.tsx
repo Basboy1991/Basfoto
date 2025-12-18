@@ -1,80 +1,105 @@
-import { urlFor } from "@/lib/sanity.image";
 import Image from "next/image";
 import Link from "next/link";
+import { urlFor } from "@/lib/sanity.image";
 
-export default function PortfolioCards({
-  cards,
-}: {
-  cards: {
-    title: string;
-    text?: string;
-    buttonLabel?: string;
-    href: string;
-    featured?: boolean;
-    coverImage?: { asset?: { url?: string } };
-  }[];
-}) {
+type Card = {
+  title: string;
+  text?: string;
+  featured?: boolean;
+  buttonLabel?: string;
+  href: string;
+  coverImage: {
+    asset: {
+      _id: string;
+      url: string;
+      metadata?: {
+        lqip?: string;
+      };
+    };
+  };
+};
+
+export default function PortfolioCards({ cards }: { cards: Card[] }) {
   if (!cards?.length) return null;
 
   const featured = cards.find((c) => c.featured) ?? cards[0];
   const rest = cards.filter((c) => c !== featured).slice(0, 2);
 
-  const Card = ({ c, ratio, sizes }: { c: any; ratio: string; sizes: string }) => (
-    <div className="group rounded-2xl border bg-white shadow-sm overflow-hidden transition-all duration-500 ease-out hover:-translate-y-[2px] hover:shadow-md">
-      <div className={`relative ${ratio} overflow-hidden`}>
-        {c.coverImage?.asset?.url && (
-          <Image
-            src={urlFor(c.coverImage.asset)
-              .width(1400)
-              .height(1750) // 4:5 exact
-              .fit("crop")
-              .auto("format")
-              .quality(80)
-              .url()}
-            alt={c.title}
-            fill
-            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.02]"
-            sizes={sizes}
-            placeholder={c.coverImage.asset.metadata?.lqip ? "blur" : "empty"}
-            blurDataURL={c.coverImage.asset.metadata?.lqip}
-          />
-        )}
-      </div>
-
-      <div className="p-5">
-        <h3 className="text-lg font-semibold">{c.title}</h3>
-        {c.text && <p className="mt-2 text-sm text-zinc-700">{c.text}</p>}
-
-        <Link
-          href={c.href}
-          className="mt-4 inline-flex rounded-xl border px-4 py-2 text-sm transition-all duration-300 group-hover:translate-x-[2px] hover:bg-zinc-50"
-        >
-          {c.buttonLabel ?? "Bekijk"}
-        </Link>
-      </div>
-    </div>
-  );
-
   return (
     <section className="mt-16">
       <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="text-2xl font-semibold">Portfolio</h2>
-        <Link href="/portfolio" className="text-sm text-zinc-700 hover:text-zinc-900">
+        <h2 className="text-2xl font-semibold text-[var(--text)]">Portfolio</h2>
+
+        <Link
+          href="/portfolio"
+          className="text-sm font-medium text-[var(--accent-strong)] hover:text-[var(--accent)]"
+        >
           Bekijk alles →
         </Link>
       </div>
 
-      {/* 1 grote kaart boven */}
-      <Card c={featured} ratio="aspect-[16/9]" sizes="(max-width: 1024px) 100vw, 100vw" />
+      {/* Featured (groot) */}
+      <div className="grid gap-6">
+        <CardItem card={featured} variant="featured" />
 
-      {/* 2 kleinere kaarten eronder naast elkaar */}
-      {rest.length > 0 && (
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
+        {/* 2 kleinere naast elkaar */}
+        <div className="grid gap-6 md:grid-cols-2">
           {rest.map((c) => (
-            <Card key={c.title} c={c} ratio="aspect-[4/5]" sizes="(max-width: 768px) 100vw, 50vw" />
+            <CardItem key={c.href} card={c} variant="small" />
           ))}
         </div>
-      )}
+      </div>
     </section>
+  );
+}
+
+function CardItem({ card, variant }: { card: Card; variant: "featured" | "small" }) {
+  const aspect = variant === "featured" ? "aspect-[16/9]" : "aspect-[4/5]";
+  const sizes =
+    variant === "featured" ? "(max-width: 768px) 100vw, 1024px" : "(max-width: 768px) 100vw, 520px";
+
+  const imgUrl =
+    variant === "featured"
+      ? urlFor(card.coverImage.asset)
+          .width(1800)
+          .height(1013)
+          .fit("crop")
+          .auto("format")
+          .quality(80)
+          .url()
+      : urlFor(card.coverImage.asset)
+          .width(1400)
+          .height(1750)
+          .fit("crop")
+          .auto("format")
+          .quality(80)
+          .url();
+
+  return (
+    <Link href={card.href} className="group block">
+      <div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+        <div className={`relative ${aspect} overflow-hidden`}>
+          <Image
+            src={imgUrl}
+            alt={card.title}
+            fill
+            sizes={sizes}
+            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.02]"
+            placeholder={card.coverImage.asset.metadata?.lqip ? "blur" : "empty"}
+            blurDataURL={card.coverImage.asset.metadata?.lqip}
+          />
+        </div>
+
+        <div className="p-5">
+          <h3 className="text-lg font-semibold text-[var(--text)]">{card.title}</h3>
+
+          {card.text && <p className="mt-1 text-sm text-[var(--text-soft)]">{card.text}</p>}
+
+          <p className="mt-4 text-sm font-medium text-[var(--accent-strong)]">
+            {card.buttonLabel ?? "Bekijk"} →
+          </p>
+        </div>
+      </div>
+    </Link>
   );
 }

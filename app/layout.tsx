@@ -25,11 +25,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="nl">
       <body
@@ -50,7 +46,7 @@ export default function RootLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-sm text-[var(--text-soft)] hover:text-[var(--text)] transition-colors"
+                  className="text-sm text-[var(--text-soft)] transition-colors hover:text-[var(--text)]"
                 >
                   {item.label}
                 </Link>

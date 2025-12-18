@@ -3,47 +3,43 @@
 import Link from "next/link";
 import PageMedia from "@/components/PageMedia";
 
-type HeroData = {
-  layout?: "left" | "right";
-  headline: string;
-  subline?: string;
-  primaryCta?: { label?: string; href?: string };
-  secondaryCta?: { label?: string; href?: string };
-  media?: any[];
-};
-
-export default function HeroSplit({ hero }: { hero: HeroData }) {
+export default function HeroSplit({
+  hero,
+}: {
+  hero: {
+    layout?: "left" | "right";
+    headline: string;
+    subline?: string;
+    primaryCta?: { label?: string; href?: string };
+    secondaryCta?: { label?: string; href?: string };
+    media?: any[];
+  };
+}) {
   const imageFirst = hero.layout !== "right";
 
   const ImageBlock = (
-    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)]">
+    <div className="overflow-hidden rounded-2xl">
       {hero.media && hero.media.length > 0 && <PageMedia media={hero.media} />}
     </div>
   );
 
   const TextCard = (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[var(--shadow-sm)] lg:p-10">
-      {/* Eyebrow */}
-      <p className="text-xs font-medium tracking-[0.14em] uppercase text-[var(--accent-strong)]">
-        Fotograaf Westland
-      </p>
+    <div className="rounded-2xl bg-[var(--surface-2)] p-8">
+      <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">Fotograaf Westland</p>
 
-      {/* Headline (editorial serif via globals) */}
-      <h2 className="mt-4 text-3xl leading-tight text-[var(--text)] sm:text-4xl">
+      <h2 className="mt-3 text-3xl font-semibold leading-tight text-[var(--text)]">
         {hero.headline}
       </h2>
 
-      {/* Subline */}
       {hero.subline && (
-        <p className="mt-4 max-w-prose text-[var(--text-soft)] leading-relaxed">{hero.subline}</p>
+        <p className="mt-4 max-w-prose leading-relaxed text-[var(--text-soft)]">{hero.subline}</p>
       )}
 
-      {/* CTA's */}
-      <div className="mt-7 flex flex-wrap items-center gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
         {hero.primaryCta?.href && (
           <Link
             href={hero.primaryCta.href}
-            className="rounded-xl bg-[var(--accent-strong)] px-5 py-3 text-sm font-medium text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--accent)]"
+            className="rounded-xl bg-[var(--accent-strong)] px-5 py-3 text-white transition-colors hover:bg-[var(--accent)]"
           >
             {hero.primaryCta.label ?? "Boek een shoot"}
           </Link>
@@ -52,17 +48,12 @@ export default function HeroSplit({ hero }: { hero: HeroData }) {
         {hero.secondaryCta?.href && (
           <Link
             href={hero.secondaryCta.href}
-            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-3 text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+            className="rounded-xl bg-white/60 px-5 py-3 text-[var(--text)] transition-colors hover:bg-white"
           >
             {hero.secondaryCta.label ?? "Bekijk portfolio"}
           </Link>
         )}
       </div>
-
-      {/* Subtle note (optioneel, maar vaak fijn) */}
-      <p className="mt-5 text-xs text-[var(--text-soft)]">
-        Persoonlijk, rustig en puur — met aandacht voor jouw moment.
-      </p>
     </div>
   );
 
