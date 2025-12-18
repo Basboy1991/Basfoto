@@ -35,7 +35,12 @@ export default function HeroSplit({
         <p className="mt-4 max-w-prose leading-relaxed text-[var(--text-soft)]">{hero.subline}</p>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      {/* Supporting line boven de knoppen (rustiger op mobiel) */}
+      <p className="mt-6 text-sm text-[var(--text-soft)]">
+        Persoonlijk, rustig en puur — met aandacht voor jouw moment.
+      </p>
+
+      <div className="mt-5 flex flex-wrap gap-3">
         {hero.primaryCta?.href && (
           <Link
             href={hero.primaryCta.href}
@@ -48,9 +53,9 @@ export default function HeroSplit({
         {hero.secondaryCta?.href && (
           <Link
             href={hero.secondaryCta.href}
-            className="rounded-xl bg-white/60 px-5 py-3 text-[var(--text)] transition-colors hover:bg-white"
+            className="rounded-xl border border-[var(--accent-strong)] px-5 py-3 text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)]"
           >
-            {hero.secondaryCta.label ?? "Bekijk portfolio"}
+            {hero.secondaryCta.label ?? "Portfolio"}
           </Link>
         )}
       </div>
