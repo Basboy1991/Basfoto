@@ -70,3 +70,53 @@ export const homePageQuery = `
     }
   }
 `;
+export const portfolioListQuery = `
+  *[_type == "portfolioItem"] | order(featured desc, _createdAt desc){
+    title,
+    slug,
+    category,
+    featured,
+    excerpt,
+    coverImage{
+      asset->{
+        _id,
+        url,
+        metadata{
+          lqip,
+          dimensions{width,height,aspectRatio}
+        }
+      }
+    }
+  }
+`;
+
+export const portfolioBySlugQuery = `
+  *[_type == "portfolioItem" && slug.current == $slug][0]{
+    title,
+    slug,
+    category,
+    featured,
+    excerpt,
+    body,
+    coverImage{
+      asset->{
+        _id,
+        url,
+        metadata{
+          lqip,
+          dimensions{width,height,aspectRatio}
+        }
+      }
+    },
+    gallery[]{
+      asset->{
+        _id,
+        url,
+        metadata{
+          lqip,
+          dimensions{width,height,aspectRatio}
+        }
+      }
+    }
+  }
+`;
