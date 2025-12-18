@@ -25,8 +25,8 @@ export default function PortfolioCards({
         {c.coverImage?.asset?.url && (
           <Image
             src={urlFor(c.coverImage.asset)
-              .width(1200)
-              .height(1500)
+              .width(1400)
+              .height(1750) // 4:5 exact
               .fit("crop")
               .auto("format")
               .quality(80)

@@ -25,18 +25,15 @@ function shuffle<T>(arr: T[]) {
 }
 
 export default function PageMedia({ media }: { media: MediaItem[] }) {
-  const items = useMemo(() => {
-    const clean = media.filter((m) => m?.asset?._id);
-    return clean;
-  }, [media]);
+  const items = useMemo(() => media.filter((m) => m?.asset?._id), [media]);
 
-  // Shuffle 1x per page load (jouw wens: willekeurige volgorde)
+  // Willekeurige volgorde per pageload
   const itemsRef = useRef<MediaItem[] | null>(null);
   if (!itemsRef.current) itemsRef.current = shuffle(items);
   const images = itemsRef.current;
 
-  const fadeMs = 2000;
-  const intervalMs = 9500;
+  const fadeMs = 2000; // rustige crossfade
+  const intervalMs = 9500; // iets langzamer
 
   const [current, setCurrent] = useState(0);
   const [showNext, setShowNext] = useState(false);
@@ -44,11 +41,17 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
 
   const next = images.length > 0 ? (current + 1) % images.length : 0;
 
-  // Bouw een "performance" URL (Sanity CDN -> auto format = WebP/AVIF)
+  // HERO: zachte crop (16:9-ish) + auto format (AVIF/WebP) + kwaliteit
   const getHeroUrl = (img: MediaItem) =>
-    urlFor(img.asset).width(1600).height(1066).fit("crop").auto("format").quality(80).url();
+    urlFor(img.asset)
+      .width(1800)
+      .height(1125) // ~16:10/16:9 gevoel, net wat editorial
+      .fit("crop")
+      .auto("format")
+      .quality(80)
+      .url();
 
-  // Preload next image (met dezelfde parameters als render)
+  // Preload volgende slide
   useEffect(() => {
     if (images.length <= 1) return;
     const preload = new window.Image();
@@ -87,12 +90,10 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
         src={currentSrc}
         alt=""
         fill
-        // ✅ LCP: alleen eerste render krijgt priority
+        // LCP: alleen eerste render priority
         priority={current === 0}
-        // ✅ voorkomt layout shift: sizes goed zetten
         sizes="(max-width: 1024px) 100vw, 50vw"
         className="object-cover kenburns"
-        // ✅ blur placeholder via Sanity lqip
         placeholder={currentItem.asset.metadata?.lqip ? "blur" : "empty"}
         blurDataURL={currentItem.asset.metadata?.lqip}
       />
