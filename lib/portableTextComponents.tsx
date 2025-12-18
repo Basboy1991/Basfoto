@@ -1,4 +1,4 @@
-import { PortableTextComponents } from "@portabletext/react";
+import type { PortableTextComponents } from "@portabletext/react";
 
 export const portableTextComponents: PortableTextComponents = {
   block: {

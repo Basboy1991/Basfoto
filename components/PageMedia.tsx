@@ -22,30 +22,25 @@ function shuffle<T>(arr: T[]) {
 export default function PageMedia({ media }: { media: MediaItem[] }) {
   const urls = useMemo(() => media.map((m) => m.asset?.url).filter(Boolean) as string[], [media]);
 
-  // Shuffle maar 1x per page load
-  const shuffledRef = useRef<string[] | null>(null);
-  if (!shuffledRef.current) {
-    shuffledRef.current = shuffle(urls);
-  }
-  const images = shuffledRef.current;
+  const imagesRef = useRef<string[] | null>(null);
+  if (!imagesRef.current) imagesRef.current = shuffle(urls);
+  const images = imagesRef.current;
 
   const fadeMs = 2200;
-  const intervalMs = 10000; // iets langer zodat de zoom rustig voelt
+  const intervalMs = 10000;
 
   const [current, setCurrent] = useState(0);
   const [showNext, setShowNext] = useState(false);
-  const [zoomKey, setZoomKey] = useState(0); // force re-start animation
+  const [zoomKey, setZoomKey] = useState(0);
 
   const next = images.length > 0 ? (current + 1) % images.length : 0;
 
-  // Preload volgende afbeelding
   useEffect(() => {
     if (images.length <= 1) return;
     const img = new window.Image();
     img.src = images[next];
   }, [images, next]);
 
-  // Slideshow loop
   useEffect(() => {
     if (images.length <= 1) return;
 
@@ -55,7 +50,7 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
       window.setTimeout(() => {
         setCurrent((prev) => (prev + 1) % images.length);
         setShowNext(false);
-        setZoomKey((k) => k + 1); // restart Ken Burns
+        setZoomKey((k) => k + 1);
       }, fadeMs);
     }, intervalMs);
 
@@ -65,8 +60,7 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
   if (images.length === 0) return null;
 
   return (
-    <div className="relative mb-10 h-[420px] w-full overflow-hidden rounded-2xl">
-      {/* Huidige afbeelding (met Ken Burns) */}
+    <div className="relative h-[520px] w-full overflow-hidden">
       <Image
         key={`current-${zoomKey}`}
         src={images[current]}
@@ -74,9 +68,9 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
         fill
         priority
         className="object-cover kenburns"
+        sizes="(max-width: 1024px) 100vw, 50vw"
       />
 
-      {/* Volgende afbeelding (crossfade + Ken Burns) */}
       {images.length > 1 && (
         <Image
           key={`next-${zoomKey}`}
@@ -88,6 +82,7 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
             opacity: showNext ? 1 : 0,
             transition: `opacity ${fadeMs}ms ease-in-out`,
           }}
+          sizes="(max-width: 1024px) 100vw, 50vw"
         />
       )}
     </div>
