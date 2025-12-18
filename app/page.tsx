@@ -40,4 +40,4 @@ export default async function HomePage() {
       <HomeCtaCard cta={home.cta} />
     </main>
   );
-}
+-
