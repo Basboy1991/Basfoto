@@ -23,6 +23,7 @@ export const homePageQuery = `
       layout,
       headline,
       subline,
+      supportingLine,
       primaryCta{label, href},
       secondaryCta{label, href},
       media[]{

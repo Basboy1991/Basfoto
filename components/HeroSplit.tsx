@@ -10,12 +10,18 @@ export default function HeroSplit({
     layout?: "left" | "right";
     headline: string;
     subline?: string;
+    supportingLine?: string;
     primaryCta?: { label?: string; href?: string };
     secondaryCta?: { label?: string; href?: string };
     media?: any[];
   };
 }) {
   const imageFirst = hero.layout !== "right";
+
+  const headlineLines = (hero.headline || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   const ImageBlock = (
     <div className="overflow-hidden rounded-2xl">
@@ -24,27 +30,34 @@ export default function HeroSplit({
   );
 
   const TextCard = (
-    <div className="rounded-2xl bg-[var(--surface-2)] p-8">
+    <div className="rounded-2xl bg-[var(--surface-2)] p-8 md:p-10">
       <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">Fotograaf Westland</p>
 
-      <h2 className="mt-3 text-3xl font-semibold leading-tight text-[var(--text)]">
-        {hero.headline}
-      </h2>
+      <h1 className="mt-3 text-3xl font-semibold leading-tight text-[var(--text)] md:text-4xl">
+        {headlineLines.length > 0
+          ? headlineLines.map((line, i) => (
+              <span key={i} className="block">
+                {line}
+              </span>
+            ))
+          : hero.headline}
+      </h1>
 
       {hero.subline && (
-        <p className="mt-4 max-w-prose leading-relaxed text-[var(--text-soft)]">{hero.subline}</p>
+        <p className="mt-4 max-w-prose text-base leading-relaxed text-[var(--text-soft)] md:text-[17px]">
+          {hero.subline}
+        </p>
       )}
 
-      {/* Supporting line boven de knoppen (rustiger op mobiel) */}
-      <p className="mt-6 text-sm text-[var(--text-soft)]">
-        Persoonlijk, rustig en puur — met aandacht voor jouw moment.
-      </p>
+      {hero.supportingLine && (
+        <p className="mt-6 text-sm text-[var(--text-soft)]">{hero.supportingLine}</p>
+      )}
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         {hero.primaryCta?.href && (
           <Link
             href={hero.primaryCta.href}
-            className="rounded-xl bg-[var(--accent-strong)] px-5 py-3 text-white transition-colors hover:bg-[var(--accent)]"
+            className="w-full rounded-xl bg-[var(--accent-strong)] px-5 py-3 text-center text-white transition-colors hover:bg-[var(--accent)] sm:w-auto"
           >
             {hero.primaryCta.label ?? "Boek een shoot"}
           </Link>
@@ -53,7 +66,7 @@ export default function HeroSplit({
         {hero.secondaryCta?.href && (
           <Link
             href={hero.secondaryCta.href}
-            className="rounded-xl border border-[var(--accent-strong)] px-5 py-3 text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)]"
+            className="w-full rounded-xl border border-[var(--accent-strong)] px-5 py-3 text-center text-[var(--text)] transition-colors hover:bg-[var(--accent-soft)] sm:w-auto"
           >
             {hero.secondaryCta.label ?? "Portfolio"}
           </Link>
