@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import type { ReactNode } from "react";
 import { Mail, Phone, MessageCircle } from "lucide-react";
 
 type CtaData = {
@@ -11,6 +11,13 @@ type CtaData = {
   email?: string;
 };
 
+type Action = {
+  label: string;
+  href: string;
+  icon: ReactNode;
+  external: boolean;
+};
+
 export default function HomeCtaCard({ cta }: { cta: CtaData }) {
   if (!cta?.title) return null;
 
@@ -18,7 +25,7 @@ export default function HomeCtaCard({ cta }: { cta: CtaData }) {
     "Hoi Bas, ik wil graag een shoot boeken in het Westland. Kun je me helpen?"
   );
 
-  const actions = [
+  const actions: Action[] = [
     cta.whatsappNumber
       ? {
           label: "WhatsApp",
@@ -43,12 +50,7 @@ export default function HomeCtaCard({ cta }: { cta: CtaData }) {
           external: false,
         }
       : null,
-  ].filter(Boolean) as {
-    label: string;
-    href: string;
-    icon: React.ReactNode;
-    external: boolean;
-  }[];
+  ].filter(Boolean) as Action[];
 
   return (
     <section className="mt-16">
