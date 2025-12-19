@@ -19,10 +19,10 @@ export type CloudImage = {
   width: number;
   height: number;
   created_at?: string;
-  context?: {
-    caption?: string;
-    alt?: string;
-  };
+
+  // ✅ voor lightbox + SEO
+  caption?: string;
+  alt?: string;
 };
 
 function normalize(resources: any[]): CloudImage[] {
@@ -32,13 +32,17 @@ function normalize(resources: any[]): CloudImage[] {
     width: r.width,
     height: r.height,
     created_at: r.created_at,
-    context: r.context || {},
+
+    // ✅ komt uit Cloudinary: context → custom
+    caption: r?.context?.custom?.caption,
+    alt: r?.context?.custom?.alt,
   }));
 }
 
 export async function listImagesByFolder(folder: string, maxResults = 80): Promise<CloudImage[]> {
   const res = await cloudinary.search
     .expression(`folder:${folder}/*`)
+    .with_field("context") // ✅ nodig om caption/alt mee te krijgen
     .sort_by("created_at", "desc")
     .max_results(maxResults)
     .execute();
