@@ -1,77 +1,193 @@
 import Image from "next/image";
+import Link from "next/link";
+
 import { sanityClient } from "@/lib/sanity.client";
 import { albumBySlugQuery } from "@/lib/sanity.queries";
 import { cloudinaryImg, listImagesByFolder } from "@/lib/cloudinary";
 
 export const revalidate = 60;
 
-type Params = { slug?: string };
+type Album = {
+  title: string;
+  slug: string;
+  description?: string;
+  cloudinaryFolder?: string;
+};
 
-export default async function AlbumPage({ params }: { params: Promise<Params> }) {
-  // ✅ Next 16: params is een Promise → unwrap met await
+type ParamsShape = { slug: string };
+
+// ✅ Next.js 16: params kan een Promise zijn → daarom awaiten we params
+export default async function PortfolioDetailPage({ params }: { params: Promise<ParamsShape> }) {
   const { slug } = await params;
 
-  const safeSlug = typeof slug === "string" ? slug : "";
-
-  if (!safeSlug) {
+  // 1) Guard: slug moet bestaan
+  if (!slug) {
     return (
-      <div className="py-16">
-        <h1 className="text-2xl font-semibold">Slug ontbreekt</h1>
-        <p className="mt-2 text-zinc-600">
+      <section className="py-16">
+        <h1 className="text-2xl font-semibold text-[var(--text)]">Slug ontbreekt</h1>
+        <p className="mt-2 text-[var(--text-soft)]">
           Deze pagina verwacht een URL zoals <code>/portfolio/huisdieren</code>.
         </p>
-      </div>
+        <Link
+          href="/portfolio"
+          className="mt-6 inline-flex items-center rounded-full border border-[var(--border)] bg-white/60 px-6 py-3 text-sm font-medium text-[var(--text)] hover:bg-white"
+        >
+          ← Terug naar portfolio
+        </Link>
+      </section>
     );
   }
 
-  const album = await sanityClient.fetch(albumBySlugQuery, { slug: safeSlug });
+  // 2) Album ophalen uit Sanity
+  const album = (await sanityClient.fetch(albumBySlugQuery, { slug })) as Album | null;
 
   if (!album) {
     return (
-      <div className="py-16">
-        <h1 className="text-2xl font-semibold">Album niet gevonden</h1>
-        <p className="mt-2 text-zinc-600">
-          Gezochte slug: <strong>{safeSlug}</strong>
+      <section className="py-16">
+        <h1 className="text-2xl font-semibold text-[var(--text)]">Album niet gevonden</h1>
+        <p className="mt-2 text-[var(--text-soft)]">
+          Gezochte slug: <strong>{slug}</strong>
         </p>
-        <p className="mt-2 text-sm text-zinc-500">
-          Check in Sanity Studio: is het album gepubliceerd en is de slug exact hetzelfde?
+        <p className="mt-2 text-sm text-[var(--text-soft)]">
+          Check in Sanity Studio of het album <strong>gepubliceerd</strong> is en of de slug exact
+          klopt.
         </p>
-      </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/portfolio"
+            className="inline-flex items-center rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--accent-strong)]"
+          >
+            Naar portfolio
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center rounded-full border border-[var(--border)] bg-white/60 px-6 py-3 text-sm font-medium text-[var(--text)] hover:bg-white"
+          >
+            Naar homepage
+          </Link>
+        </div>
+      </section>
     );
   }
 
-  const images = await listImagesByFolder(album.cloudinaryFolder, 120);
+  // 3) Cloudinary folder guard
+  const folder = (album.cloudinaryFolder || "").trim();
+  if (!folder) {
+    return (
+      <section className="py-16">
+        <div
+          className="rounded-3xl bg-[var(--surface-2)] p-10 text-center"
+          style={{ border: "1px solid var(--border)" }}
+        >
+          <h1 className="text-2xl font-semibold text-[var(--text)]">{album.title}</h1>
+          {album.description && (
+            <p className="mx-auto mt-3 max-w-2xl text-[var(--text-soft)]">{album.description}</p>
+          )}
+          <p className="mt-6 text-sm text-[var(--text-soft)]">
+            Dit album heeft nog geen <strong>Cloudinary folder</strong>. Voeg in Sanity bij dit
+            album het veld <code>cloudinaryFolder</code> toe (bijv.{" "}
+            <code>Portfolio/huisdieren</code>).
+          </p>
+
+          <Link
+            href="/portfolio"
+            className="mt-8 inline-flex items-center rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--accent-strong)]"
+          >
+            ← Terug naar portfolio
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  // 4) Images ophalen uit Cloudinary
+  const images = await listImagesByFolder(folder, 120);
 
   return (
     <article>
+      {/* Header */}
       <header className="mb-10">
-        <h1 className="text-3xl font-semibold text-[var(--text)]">{album.title}</h1>
+        <Link
+          href="/portfolio"
+          className="inline-flex items-center text-sm font-medium text-[var(--accent-strong)] hover:text-[var(--accent)]"
+        >
+          ← Terug naar portfolio
+        </Link>
+
+        <h1 className="mt-4 text-3xl font-semibold text-[var(--text)]">{album.title}</h1>
+
         {album.description && (
-          <p className="mt-3 max-w-2xl text-[var(--text-soft)]">{album.description}</p>
+          <p className="mt-3 max-w-3xl leading-relaxed text-[var(--text-soft)]">
+            {album.description}
+          </p>
         )}
       </header>
 
+      {/* Empty state */}
       {images.length === 0 ? (
-        <p className="text-[var(--text-soft)]">
-          Geen foto’s gevonden in Cloudinary folder: <strong>{album.cloudinaryFolder}</strong>
-        </p>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {images.map((img: any, idx: number) => (
-            <div key={img.public_id} className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
-              <div className="relative aspect-[4/5]">
-                <Image
-                  src={cloudinaryImg(img.public_id, 1200, 1500)}
-                  alt={album.title}
-                  fill
-                  priority={idx < 2}
-                  sizes="(max-width: 768px) 100vw, 420px"
-                  className="object-cover transition-transform duration-[900ms] ease-out hover:scale-[1.02]"
-                />
-              </div>
-            </div>
-          ))}
+        <div
+          className="rounded-3xl bg-[var(--surface-2)] p-10 text-center"
+          style={{ border: "1px solid var(--border)" }}
+        >
+          <p className="text-[var(--text-soft)]">
+            Geen foto’s gevonden in Cloudinary folder: <strong>{folder}</strong>
+          </p>
+          <p className="mt-2 text-sm text-[var(--text-soft)]">
+            Check in Cloudinary of de foldernaam exact overeenkomt (hoofdletters / slashes).
+          </p>
         </div>
+      ) : (
+        <>
+          {/* Grid: mobiel 1 kolom, md 2, lg 3 */}
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {images.map((img) => (
+              <figure
+                key={img.public_id}
+                className="group relative overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                {/* CLS fix: vaste ratio 4:5 */}
+                <div className="relative aspect-[4/5]">
+                  <Image
+                    src={cloudinaryImg(img.public_id, 1400, 1750)}
+                    alt={album.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                  />
+                </div>
+              </figure>
+            ))}
+          </div>
+
+          {/* Onder info / CTA */}
+          <div
+            className="mt-12 rounded-3xl bg-[var(--surface-2)] p-10 text-center"
+            style={{ border: "1px solid var(--border)" }}
+          >
+            <h2 className="text-xl font-semibold text-[var(--text)]">Ook zo’n shoot?</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-[var(--text-soft)]">
+              Stuur me gerust een bericht. Dan plannen we iets dat bij jou past — ontspannen en
+              zonder gedoe.
+            </p>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/boek-een-shoot"
+                className="inline-flex items-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-medium text-white hover:bg-[var(--accent-strong)]"
+              >
+                Boek een shoot
+              </Link>
+              <Link
+                href="/portfolio"
+                className="inline-flex items-center rounded-full border border-[var(--border)] bg-white/60 px-7 py-3 text-sm font-medium text-[var(--text)] hover:bg-white"
+              >
+                Bekijk meer albums
+              </Link>
+            </div>
+          </div>
+        </>
       )}
     </article>
   );

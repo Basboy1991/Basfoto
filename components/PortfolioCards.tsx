@@ -24,25 +24,32 @@ export default function PortfolioCards({ cards }: { cards: Card[] }) {
   const rest = cards.filter((c) => c !== featured).slice(0, 2);
 
   return (
-    <section className="mt-16">
-      <div className="mb-6 flex items-end justify-between gap-4">
+    <section className="mt-20">
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between gap-4">
         <h2 className="text-2xl font-semibold text-[var(--text)]">Portfolio</h2>
 
+        {/* Bekijk alles knop */}
         <Link
           href="/portfolio"
-          className="text-sm font-medium text-[var(--accent-strong)] hover:text-[var(--accent)]"
+          className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-[var(--accent-soft)]"
         >
-          Bekijk alles →
+          Bekijk alles
+          <span className="ml-2">→</span>
         </Link>
       </div>
 
+      {/* Cards */}
       <div className="grid gap-6">
         <CardItem card={featured} variant="featured" />
-        <div className="grid gap-6 md:grid-cols-2">
-          {rest.map((c) => (
-            <CardItem key={c.href} card={c} variant="small" />
-          ))}
-        </div>
+
+        {rest.length > 0 && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {rest.map((c) => (
+              <CardItem key={c.href} card={c} variant="small" />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -71,7 +78,10 @@ function CardItem({ card, variant }: { card: Card; variant: "featured" | "small"
           .url();
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+    <article
+      className="overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]"
+      style={{ border: "1px solid var(--border)" }}
+    >
       <Link href={card.href} className="group block">
         <div className={`relative ${aspect} overflow-hidden`}>
           <Image
@@ -84,24 +94,32 @@ function CardItem({ card, variant }: { card: Card; variant: "featured" | "small"
             blurDataURL={card.coverImage.asset.metadata?.lqip}
           />
         </div>
-      </Link>
 
-      <div className="p-5">
-        <h3 className="text-lg font-semibold text-[var(--text)]">{card.title}</h3>
-
-        {card.text && <p className="mt-1 text-sm text-[var(--text-soft)]">{card.text}</p>}
-
-        <div className="mt-5">
-          <Link
-            href={card.href}
-            className="inline-flex items-center rounded-xl bg-white/70 px-4 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-white"
-            aria-label={`Bekijk ${card.title}`}
+        {/* Content */}
+        <div className="px-6 py-7 text-center">
+          <h3
+            className={`font-semibold text-[var(--text)] ${
+              variant === "featured" ? "text-2xl" : "text-xl"
+            }`}
           >
-            {card.buttonLabel ?? "Bekijk"}
-            <span className="ml-2">→</span>
-          </Link>
+            {card.title}
+          </h3>
+
+          {card.text && (
+            <p className="mx-auto mt-2 max-w-[34ch] text-sm leading-relaxed text-[var(--text-soft)]">
+              {card.text}
+            </p>
+          )}
+
+          {/* Kaart knop */}
+          <div className="mt-5 flex justify-center">
+            <span className="inline-flex items-center rounded-full bg-[var(--accent-strong)] px-6 py-2 text-sm font-medium text-white transition-colors group-hover:bg-[var(--accent)]">
+              {card.buttonLabel ?? "Bekijk"}
+              <span className="ml-2">→</span>
+            </span>
+          </div>
         </div>
-      </div>
-    </div>
+      </Link>
+    </article>
   );
 }

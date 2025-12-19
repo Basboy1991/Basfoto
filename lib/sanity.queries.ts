@@ -18,24 +18,14 @@ export const pageBySlugQuery = `
 `;
 
 export const homePageQuery = `
-  *[_type == "homePage"] | order(_updatedAt desc)[0]{
+  *[_type == "homePage"][0]{
     hero{
       layout,
       headline,
       subline,
-      supportingLine,
       primaryCta{label, href},
       secondaryCta{label, href},
-      media[]{
-        asset->{
-          _id,
-          url,
-          metadata{
-            lqip,
-            dimensions{width,height,aspectRatio}
-          }
-        }
-      }
+      media[]{asset->{_id, url, metadata{lqip, dimensions}}}
     },
     intro,
     portfolioCards[]{
@@ -45,14 +35,7 @@ export const homePageQuery = `
       buttonLabel,
       href,
       coverImage{
-        asset->{
-          _id,
-          url,
-          metadata{
-            lqip,
-            dimensions{width,height,aspectRatio}
-          }
-        }
+        asset->{_id, url, metadata{lqip, dimensions}}
       }
     },
     reviews[]{
@@ -70,6 +53,7 @@ export const homePageQuery = `
     }
   }
 `;
+
 export const portfolioListQuery = `
   *[_type == "portfolioItem"] | order(featured desc, _createdAt desc){
     title,
@@ -135,7 +119,6 @@ export const albumBySlugQuery = `
     title,
     "slug": slug.current,
     description,
-    cloudinaryFolder,
-    coverPublicId
+    cloudinaryFolder
   }
 `;

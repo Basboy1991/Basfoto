@@ -81,9 +81,11 @@ a:hover {
 .prose {
   max-width: none;
 }
+
 .prose p {
   color: var(--text-soft);
 }
+
 .prose h1,
 .prose h2,
 .prose h3 {
@@ -108,9 +110,38 @@ a:hover {
 }
 
 /* =========================
-   Kleine helpers
+   Helpers (premium consistentie)
    ========================= */
+
+/* Zachte kaartstijl (gebruik je op portfolio/reviews/sections) */
 .soft-card {
   background: var(--surface-2);
-  border-radius: 1.25rem; /* 20px */
+  border: 1px solid var(--border);
+  border-radius: 1.5rem; /* 24px */
+  box-shadow: var(--shadow-sm);
+}
+
+/* Primary button (optioneel, handig als utility) */
+.button-primary {
+  background: var(--accent);
+  color: white;
+  border-radius: 9999px;
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.button-primary:hover {
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Subtiele focus ring (toegankelijk + premium) */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(143, 174, 160, 0.35);
+  border-radius: 0.75rem;
 }
