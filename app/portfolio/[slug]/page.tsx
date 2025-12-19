@@ -5,23 +5,15 @@ import { cloudinaryImg, listImagesByFolder } from "@/lib/cloudinary";
 
 export const revalidate = 60;
 
-type ParamsShape = { slug?: string };
+type Params = { slug?: string };
 
-function isPromise<T>(v: any): v is Promise<T> {
-  return v && typeof v.then === "function";
-}
+export default async function AlbumPage({ params }: { params: Promise<Params> }) {
+  // ✅ Next 16: params is een Promise → unwrap met await
+  const { slug } = await params;
 
-export default async function AlbumPage({
-  params,
-}: {
-  params: Promise<ParamsShape> | ParamsShape;
-}) {
-  // ✅ Next.js 16: params kan een Promise zijn → unwrap veilig
-  const p = isPromise<ParamsShape>(params) ? await params : params;
+  const safeSlug = typeof slug === "string" ? slug : "";
 
-  const slug = typeof p?.slug === "string" ? p.slug : "";
-
-  if (!slug) {
+  if (!safeSlug) {
     return (
       <div className="py-16">
         <h1 className="text-2xl font-semibold">Slug ontbreekt</h1>
@@ -32,14 +24,14 @@ export default async function AlbumPage({
     );
   }
 
-  const album = await sanityClient.fetch(albumBySlugQuery, { slug });
+  const album = await sanityClient.fetch(albumBySlugQuery, { slug: safeSlug });
 
   if (!album) {
     return (
       <div className="py-16">
         <h1 className="text-2xl font-semibold">Album niet gevonden</h1>
         <p className="mt-2 text-zinc-600">
-          Gezochte slug: <strong>{slug}</strong>
+          Gezochte slug: <strong>{safeSlug}</strong>
         </p>
         <p className="mt-2 text-sm text-zinc-500">
           Check in Sanity Studio: is het album gepubliceerd en is de slug exact hetzelfde?
