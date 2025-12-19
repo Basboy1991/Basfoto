@@ -78,3 +78,4 @@ export default async function PortfolioPage() {
     </div>
   );
 }
+// lib/sanity.queries.ts
