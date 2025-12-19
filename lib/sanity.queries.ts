@@ -123,10 +123,16 @@ export const albumBySlugQuery = `
   }
 `;
 export const albumsQuery = `
-  *[_type == "album"] | order(_createdAt desc) {
+  *[_type == "album" && defined(slug.current)] | order(_createdAt desc) {
     title,
     "slug": slug.current,
     description,
-    coverImage
+    coverImage{
+      asset->{
+        _id,
+        url,
+        metadata{lqip, dimensions}
+      }
+    }
   }
 `;

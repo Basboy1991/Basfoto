@@ -52,7 +52,7 @@ export default async function PortfolioPage() {
               style={{ border: "1px solid var(--border)" }}
             >
               <div className="relative aspect-[4/5] overflow-hidden">
-                {a.coverImage ? (
+                {a.coverImage?.asset ? (
                   <Image
                     src={urlFor(a.coverImage)
                       .width(1200)
