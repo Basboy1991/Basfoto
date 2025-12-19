@@ -1,95 +1,86 @@
 import Image from "next/image";
-import { notFound } from "next/navigation";
 import { sanityClient } from "@/lib/sanity.client";
-import { portfolioBySlugQuery } from "@/lib/sanity.queries";
-import { urlFor } from "@/lib/sanity.image";
-import { PortableText } from "@portabletext/react";
+import { albumBySlugQuery } from "@/lib/sanity.queries";
+import { cloudinaryImg, listImagesByFolder } from "@/lib/cloudinary";
 
 export const revalidate = 60;
 
-type PageProps = { params: { slug: string } };
+type ParamsShape = { slug?: string };
 
-export default async function PortfolioDetailPage({ params }: PageProps) {
-  const item = await sanityClient.fetch(portfolioBySlugQuery, {
-    slug: params.slug,
-  });
+function isPromise<T>(v: any): v is Promise<T> {
+  return v && typeof v.then === "function";
+}
 
-  if (!item) return notFound();
+export default async function AlbumPage({
+  params,
+}: {
+  params: Promise<ParamsShape> | ParamsShape;
+}) {
+  // ✅ Next.js 16: params kan een Promise zijn → unwrap veilig
+  const p = isPromise<ParamsShape>(params) ? await params : params;
 
-  const coverUrl = urlFor(item.coverImage.asset)
-    .width(2000)
-    .height(1200)
-    .fit("crop")
-    .auto("format")
-    .quality(82)
-    .url();
+  const slug = typeof p?.slug === "string" ? p.slug : "";
+
+  if (!slug) {
+    return (
+      <div className="py-16">
+        <h1 className="text-2xl font-semibold">Slug ontbreekt</h1>
+        <p className="mt-2 text-zinc-600">
+          Deze pagina verwacht een URL zoals <code>/portfolio/huisdieren</code>.
+        </p>
+      </div>
+    );
+  }
+
+  const album = await sanityClient.fetch(albumBySlugQuery, { slug });
+
+  if (!album) {
+    return (
+      <div className="py-16">
+        <h1 className="text-2xl font-semibold">Album niet gevonden</h1>
+        <p className="mt-2 text-zinc-600">
+          Gezochte slug: <strong>{slug}</strong>
+        </p>
+        <p className="mt-2 text-sm text-zinc-500">
+          Check in Sanity Studio: is het album gepubliceerd en is de slug exact hetzelfde?
+        </p>
+      </div>
+    );
+  }
+
+  const images = await listImagesByFolder(album.cloudinaryFolder, 120);
 
   return (
     <article>
       <header className="mb-10">
-        <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">{item.category}</p>
-
-        <h1 className="mt-2 text-3xl font-semibold text-[var(--text)] md:text-4xl">{item.title}</h1>
-
-        {item.excerpt && <p className="mt-3 max-w-2xl text-[var(--text-soft)]">{item.excerpt}</p>}
+        <h1 className="text-3xl font-semibold text-[var(--text)]">{album.title}</h1>
+        {album.description && (
+          <p className="mt-3 max-w-2xl text-[var(--text-soft)]">{album.description}</p>
+        )}
       </header>
 
-      <div className="overflow-hidden rounded-2xl">
-        <div className="relative aspect-[16/9]">
-          <Image
-            src={coverUrl}
-            alt={item.title}
-            fill
-            priority
-            sizes="(max-width: 1024px) 100vw, 1024px"
-            className="object-cover"
-            placeholder={item.coverImage.asset.metadata?.lqip ? "blur" : "empty"}
-            blurDataURL={item.coverImage.asset.metadata?.lqip}
-          />
-        </div>
-      </div>
-
-      {item.body?.length ? (
-        <div className="prose mt-10 prose-p:text-[var(--text-soft)] prose-headings:text-[var(--text)]">
-          <PortableText value={item.body} />
-        </div>
-      ) : null}
-
-      {/* Gallery */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-semibold text-[var(--text)]">Galerij</h2>
-
-        <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {item.gallery?.map((img: any) => {
-            const url = urlFor(img.asset)
-              .width(1400)
-              .height(1750)
-              .fit("crop")
-              .auto("format")
-              .quality(80)
-              .url();
-
-            return (
-              <div
-                key={img.asset._id}
-                className="overflow-hidden rounded-2xl bg-[var(--surface-2)]"
-              >
-                <div className="relative aspect-[4/5]">
-                  <Image
-                    src={url}
-                    alt={item.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 420px"
-                    className="object-cover transition-transform duration-[900ms] ease-out hover:scale-[1.02]"
-                    placeholder={img.asset.metadata?.lqip ? "blur" : "empty"}
-                    blurDataURL={img.asset.metadata?.lqip}
-                  />
-                </div>
+      {images.length === 0 ? (
+        <p className="text-[var(--text-soft)]">
+          Geen foto’s gevonden in Cloudinary folder: <strong>{album.cloudinaryFolder}</strong>
+        </p>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {images.map((img: any, idx: number) => (
+            <div key={img.public_id} className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+              <div className="relative aspect-[4/5]">
+                <Image
+                  src={cloudinaryImg(img.public_id, 1200, 1500)}
+                  alt={album.title}
+                  fill
+                  priority={idx < 2}
+                  sizes="(max-width: 768px) 100vw, 420px"
+                  className="object-cover transition-transform duration-[900ms] ease-out hover:scale-[1.02]"
+                />
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
-      </section>
+      )}
     </article>
   );
 }

@@ -6,7 +6,6 @@ function mustEnv(name: string) {
   return v;
 }
 
-// Config (server-only)
 cloudinary.config({
   cloud_name: mustEnv("CLOUDINARY_CLOUD_NAME"),
   api_key: mustEnv("CLOUDINARY_API_KEY"),
@@ -31,16 +30,10 @@ function normalize(resources: any[]): CloudImage[] {
   }));
 }
 
-/**
- * Haal afbeeldingen op uit een Cloudinary folder.
- * - Probeert eerst Search API (folder:..), daarna fallback op Admin API prefix (prefix:..)
- * - Dit maakt het robuust bij "folder UI vs public_id" verschillen.
- */
 export async function listImagesByFolder(folder: string, maxResults = 80): Promise<CloudImage[]> {
-  // 1) Search API (vaak het best)
+  // 1) Search API
   try {
     const res1 = await cloudinary.search
-      // beide varianten proberen: sommige accounts werken beter met folder:PATH dan folder:PATH/*
       .expression(`folder:${folder}`)
       .sort_by("created_at", "desc")
       .max_results(maxResults)
@@ -58,11 +51,10 @@ export async function listImagesByFolder(folder: string, maxResults = 80): Promi
     const imgs1b = normalize((res1b as any)?.resources);
     if (imgs1b.length > 0) return imgs1b;
   } catch {
-    // negeren en door naar fallback
+    // fallback hieronder
   }
 
-  // 2) Fallback: Admin API prefix (werkt als public_id het folderpad bevat)
-  // Let op: prefix moet eindigen op /
+  // 2) Fallback: Admin API prefix
   const prefix = folder.endsWith("/") ? folder : `${folder}/`;
 
   const res2 = await cloudinary.api.resources({
@@ -74,22 +66,7 @@ export async function listImagesByFolder(folder: string, maxResults = 80): Promi
   return normalize((res2 as any)?.resources);
 }
 
-/**
- * Cloudinary URL builder voor snelle, moderne formaten:
- * - f_auto: AVIF/WebP automatisch
- * - q_auto:eco: nette kwaliteit / performance
- * - c_fill + vaste w/h => geen CLS (layout blijft stabiel)
- */
 export function cloudinaryImg(publicId: string, w: number, h: number) {
   const cloudName = mustEnv("CLOUDINARY_CLOUD_NAME");
   return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto:eco,c_fill,w_${w},h_${h}/${publicId}`;
-}
-
-/**
- * Variant voor "contain" (geen croppen, wel letterboxing)
- * handig voor sommige portfolio beelden als je niets wil afsnijden.
- */
-export function cloudinaryImgContain(publicId: string, w: number, h: number) {
-  const cloudName = mustEnv("CLOUDINARY_CLOUD_NAME");
-  return `https://res.cloudinary.com/${cloudName}/image/upload/f_auto,q_auto:eco,c_contain,w_${w},h_${h}/${publicId}`;
 }

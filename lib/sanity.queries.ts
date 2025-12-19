@@ -120,3 +120,22 @@ export const portfolioBySlugQuery = `
     }
   }
 `;
+export const albumListQuery = `
+  *[_type == "album"] | order(_createdAt desc){
+    title,
+    "slug": slug.current,
+    description,
+    cloudinaryFolder,
+    coverPublicId
+  }
+`;
+
+export const albumBySlugQuery = `
+  *[_type == "album" && slug.current == $slug][0]{
+    title,
+    "slug": slug.current,
+    description,
+    cloudinaryFolder,
+    coverPublicId
+  }
+`;

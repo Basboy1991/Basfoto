@@ -1,81 +1,79 @@
 import Link from "next/link";
 import Image from "next/image";
 import { sanityClient } from "@/lib/sanity.client";
-import { portfolioListQuery } from "@/lib/sanity.queries";
-import { urlFor } from "@/lib/sanity.image";
+import { albumListQuery } from "@/lib/sanity.queries";
+import { cloudinaryImg } from "@/lib/cloudinary";
 
 export const revalidate = 60;
 
-type Item = {
+type Album = {
   title: string;
-  slug: { current: string };
-  category: string;
-  excerpt?: string;
-  coverImage: { asset: { _id: string; metadata?: { lqip?: string } } };
+  slug: string;
+  description?: string;
+  cloudinaryFolder: string;
+  coverPublicId?: string;
 };
 
 export default async function PortfolioPage() {
-  const items: Item[] = await sanityClient.fetch(portfolioListQuery);
+  const albums: Album[] = await sanityClient.fetch(albumListQuery);
 
   return (
     <div>
       <header className="mb-10">
         <h1 className="text-3xl font-semibold text-[var(--text)] md:text-4xl">Portfolio</h1>
         <p className="mt-3 max-w-2xl text-[var(--text-soft)]">
-          Een selectie van gezinnen, huisdieren en portretten – puur en persoonlijk vastgelegd in
-          het Westland.
+          Albums met gezinnen, kinderen en huisdieren — puur en persoonlijk in het Westland.
         </p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => {
-          const href = `/portfolio/${item.slug.current}`;
-          const imgUrl = urlFor(item.coverImage.asset)
-            .width(1400)
-            .height(1750) // 4:5
-            .fit("crop")
-            .auto("format")
-            .quality(80)
-            .url();
+      {albums.length === 0 ? (
+        <p className="text-[var(--text-soft)]">
+          Nog geen albums gevonden. Voeg een album toe in Sanity Studio en publiceer het.
+        </p>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {albums.map((a) => {
+            const href = `/portfolio/${a.slug}`;
+            const coverUrl = a.coverPublicId ? cloudinaryImg(a.coverPublicId, 1200, 1500) : null;
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="group overflow-hidden rounded-2xl bg-[var(--surface-2)]"
-            >
-              <div className="relative aspect-[4/5] overflow-hidden">
-                <Image
-                  src={imgUrl}
-                  alt={item.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 420px"
-                  className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.02]"
-                  placeholder={item.coverImage.asset.metadata?.lqip ? "blur" : "empty"}
-                  blurDataURL={item.coverImage.asset.metadata?.lqip}
-                />
-              </div>
+            return (
+              <article key={a.slug} className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+                <Link href={href} className="group block">
+                  <div className="relative aspect-[4/5] overflow-hidden">
+                    {coverUrl ? (
+                      <Image
+                        src={coverUrl}
+                        alt={a.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 420px"
+                        className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.02]"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-[var(--text-soft)]">
+                        Geen cover ingesteld
+                      </div>
+                    )}
+                  </div>
 
-              <div className="p-5">
-                <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">
-                  {item.category}
-                </p>
-                <h2 className="mt-2 text-lg font-semibold text-[var(--text)]">{item.title}</h2>
-                {item.excerpt && (
-                  <p className="mt-2 text-sm text-[var(--text-soft)]">{item.excerpt}</p>
-                )}
-                <div className="mt-5">
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] transition group-hover:bg-white group-hover:ring-[var(--accent)]">
-                    Bekijk
-                    <span aria-hidden="true">→</span>
-                  </span>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+                  <div className="p-5">
+                    <h2 className="text-lg font-semibold text-[var(--text)]">{a.title}</h2>
+
+                    {a.description ? (
+                      <p className="mt-2 text-sm text-[var(--text-soft)]">{a.description}</p>
+                    ) : null}
+
+                    <div className="mt-5">
+                      <span className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] transition group-hover:bg-white group-hover:ring-[var(--accent)]">
+                        Bekijk album <span aria-hidden="true">→</span>
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
-// lib/sanity.queries.ts
