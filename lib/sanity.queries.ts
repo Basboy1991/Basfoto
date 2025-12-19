@@ -122,3 +122,11 @@ export const albumBySlugQuery = `
     cloudinaryFolder
   }
 `;
+export const albumsQuery = `
+  *[_type == "album"] | order(_createdAt desc) {
+    title,
+    "slug": slug.current,
+    description,
+    coverImage
+  }
+`;

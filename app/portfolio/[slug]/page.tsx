@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { albumBySlugQuery } from "@/lib/sanity.queries";
-import { cloudinaryImg, listImagesByFolder } from "@/lib/cloudinary";
+import { listImagesByFolder } from "@/lib/cloudinary.server";
+import LightboxGallery from "@/components/LightboxGallery";
 
 export const revalidate = 60;
 
@@ -101,7 +101,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
     );
   }
 
-  // 4) Images ophalen uit Cloudinary
+  // 4) Images ophalen uit Cloudinary (nu inclusief caption/alt via context)
   const images = await listImagesByFolder(folder, 120);
 
   return (
@@ -139,27 +139,8 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
         </div>
       ) : (
         <>
-          {/* Grid: mobiel 1 kolom, md 2, lg 3 */}
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {images.map((img) => (
-              <figure
-                key={img.public_id}
-                className="group relative overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]"
-                style={{ border: "1px solid var(--border)" }}
-              >
-                {/* CLS fix: vaste ratio 4:5 */}
-                <div className="relative aspect-[4/5]">
-                  <Image
-                    src={cloudinaryImg(img.public_id, 1400, 1750)}
-                    alt={album.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                  />
-                </div>
-              </figure>
-            ))}
-          </div>
+          {/* ✅ Lightbox gallery (klik = groot) */}
+          <LightboxGallery images={images} titleFallback={album.title} />
 
           {/* Onder info / CTA */}
           <div
