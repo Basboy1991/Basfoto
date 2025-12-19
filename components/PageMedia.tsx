@@ -24,7 +24,13 @@ function shuffle<T>(arr: T[]) {
   return a;
 }
 
-export default function PageMedia({ media }: { media: MediaItem[] }) {
+export default function PageMedia({
+  media,
+  priority = false,
+}: {
+  media: MediaItem[];
+  priority?: boolean;
+}) {
   const items = useMemo(() => media.filter((m) => m?.asset?._id), [media]);
 
   // Willekeurige volgorde per pageload
@@ -41,15 +47,9 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
 
   const next = images.length > 0 ? (current + 1) % images.length : 0;
 
-  // HERO: zachte crop (16:9-ish) + auto format (AVIF/WebP) + kwaliteit
+  // HERO: zachte crop + auto format (AVIF/WebP) + kwaliteit
   const getHeroUrl = (img: MediaItem) =>
-    urlFor(img.asset)
-      .width(1800)
-      .height(1125) // ~16:10/16:9 gevoel, net wat editorial
-      .fit("crop")
-      .auto("format")
-      .quality(80)
-      .url();
+    urlFor(img.asset).width(1800).height(1125).fit("crop").auto("format").quality(80).url();
 
   // Preload volgende slide
   useEffect(() => {
@@ -83,6 +83,9 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
   const currentSrc = getHeroUrl(currentItem);
   const nextSrc = getHeroUrl(nextItem);
 
+  // ✅ LCP: als priority prop aan staat, maak de eerste render priority
+  const isPriority = priority ? current === 0 : current === 0;
+
   return (
     <div className="relative h-[520px] w-full overflow-hidden">
       <Image
@@ -90,8 +93,7 @@ export default function PageMedia({ media }: { media: MediaItem[] }) {
         src={currentSrc}
         alt=""
         fill
-        // LCP: alleen eerste render priority
-        priority={current === 0}
+        priority={isPriority}
         sizes="(max-width: 1024px) 100vw, 50vw"
         className="object-cover kenburns"
         placeholder={currentItem.asset.metadata?.lqip ? "blur" : "empty"}
