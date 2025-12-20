@@ -129,9 +129,7 @@ export default function SiteHeader() {
                 Boek een shoot
               </Link>
 
-              <p className="mt-2 text-center text-xs text-[var(--text-soft)]">
-                Meestal reactie dezelfde dag
-              </p>
+              
             </div>
           </div>
         </div>
