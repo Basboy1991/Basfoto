@@ -47,9 +47,18 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
+
+          {/* Desktop CTA (optioneel maar premium) */}
+          <Link
+            href="/boek-een-shoot"
+            className="ml-2 inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold text-white transition"
+            style={{ background: "var(--accent-strong)" }}
+          >
+            Boek een shoot
+          </Link>
         </nav>
 
-        {/* MOBILE BUTTON (ALTIJD ZICHTBAAR OP < md) */}
+        {/* MOBILE BUTTON */}
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -110,14 +119,19 @@ export default function SiteHeader() {
               ))}
             </nav>
 
+            {/* ✅ Mobiele CTA: NIET portfolio, maar boeking */}
             <div className="mt-6">
               <Link
-                href="/portfolio"
-                className="inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-medium text-white"
+                href="/boek-een-shoot"
+                className="inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white"
                 style={{ background: "var(--accent-strong)" }}
               >
-                Bekijk portfolio
+                Boek een shoot
               </Link>
+
+              <p className="mt-2 text-center text-xs text-[var(--text-soft)]">
+                Meestal reactie dezelfde dag
+              </p>
             </div>
           </div>
         </div>
