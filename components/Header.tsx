@@ -53,15 +53,15 @@ export default function Header() {
         </nav>
 
         {/* Mobile hamburger */}
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/60 md:hidden"
-          style={{ border: "1px solid var(--border)" }}
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-        >
-          <Menu size={20} />
-        </button>
+        button
+  type="button"
+  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/60 md:hidden"
+  style={{ border: "1px solid var(--border)" }}
+  onClick={() => setOpen(true)}
+  aria-label="Open menu"
+>
+  <Menu size={20} />
+</button>
       </div>
 
       {/* Mobile overlay */}
