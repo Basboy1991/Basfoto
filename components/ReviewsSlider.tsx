@@ -1,140 +1,133 @@
-"use client";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { Star, Quote } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+/**
+ * @typedef {Object} Review
+ * @property {string} quote
+ * @property {string} name
+ * @property {string} [location]
+ * @property {number} [stars]
+ */
 
-type Review = {
-  quote: string;
-  name: string;
-  location?: string;
-  stars?: number;
-};
-
-function clampStars(n?: number) {
-  const v = typeof n === "number" ? n : 5;
-  return Math.min(5, Math.max(1, Math.round(v)));
-}
-
-function StarRow({ count }: { count: number }) {
-  // Groot + goud (met iets warmere tint, maar nog steeds premium)
+const StarRating = ({ count = 5 }) => {
   return (
-    <div
-      className="flex items-center justify-center gap-1"
-      aria-label={`${count} van 5 sterren`}
-      title={`${count} van 5 sterren`}
-    >
-      {Array.from({ length: 5 }).map((_, i) => {
-        const filled = i < count;
-        return (
-          <span
-            key={i}
-            className="text-[22px] leading-none sm:text-[24px]"
-            style={{
-              color: filled ? "#D4A62A" : "rgba(0,0,0,0.12)",
-              filter: filled ? "drop-shadow(0 1px 0 rgba(0,0,0,0.06))" : "none",
-            }}
-            aria-hidden
-          >
-            ★
-          </span>
-        );
-      })}
+    <div className="flex items-center gap-1" aria-hidden="true">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          size={16}
+          className={`${
+            i < Math.round(count) 
+              ? "fill-amber-400 text-amber-400" 
+              : "text-slate-200 fill-slate-100"
+          }`}
+        />
+      ))}
     </div>
   );
-}
+};
 
-export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
-  const items = useMemo(() => (reviews ?? []).filter((r) => r?.quote && r?.name), [reviews]);
+export default function ReviewsSlider({ reviews = [] }) {
+  const items = useMemo(() => 
+    (reviews || []).filter((r) => r?.quote && r?.name), 
+  [reviews]);
 
   const [index, setIndex] = useState(0);
-  const [fadeIn, setFadeIn] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
 
-  const intervalMs = 9500; // rustig
-  const fadeMs = 450;
+  const intervalMs = 8000;
+
+  const nextSlide = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => {
+      setIndex((prev) => (prev + 1) % items.length);
+      setIsVisible(true);
+    }, 600); // Tijd voor fade-out
+  }, [items.length]);
 
   useEffect(() => {
     if (items.length <= 1) return;
+    const timer = setInterval(nextSlide, intervalMs);
+    return () => clearInterval(timer);
+  }, [items.length, nextSlide]);
 
-    const timer = window.setInterval(() => {
-      // fade out -> switch -> fade in
-      setFadeIn(false);
-      window.setTimeout(() => {
-        setIndex((i) => (i + 1) % items.length);
-        setFadeIn(true);
-      }, fadeMs);
-    }, intervalMs);
+  if (!items || items.length === 0) return null;
 
-    return () => window.clearInterval(timer);
-  }, [items.length]);
-
-  if (!items.length) return null;
-
-  const r = items[index];
-  const stars = clampStars(r.stars);
+  const currentReview = items[index];
 
   return (
-    <section className="mt-16">
-      <header className="mb-6 text-center">
-        <p className="text-xs uppercase tracking-[0.22em] text-[var(--text-soft)]">Reviews</p>
-        <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">Wat klanten zeggen</h2>
-      </header>
-
-      <div className="mx-auto max-w-3xl">
-        <div
-          className="relative overflow-hidden rounded-3xl bg-[var(--accent-soft)] px-6 py-10 sm:px-10"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          {/* Grote quotation marks */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute left-5 top-4 select-none font-serif"
-            style={{
-              fontSize: "88px", // ✅ groter
-              lineHeight: 1,
-              color: "rgba(0,0,0,0.08)",
-            }}
-          >
-            “
+    <section className="py-24 px-6">
+      <div className="max-w-3xl mx-auto">
+        {/* Subtiele Header */}
+        <div className="text-center mb-16">
+          <span className="text-[11px] font-bold tracking-[0.3em] text-slate-400 uppercase">
+            Reviews
           </span>
+          <h2 className="text-2xl md:text-3xl font-serif text-slate-800 mt-3">
+            Onze klantervaringen
+          </h2>
+        </div>
 
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-2 right-6 select-none font-serif"
-            style={{
-              fontSize: "88px", // ✅ groter
-              lineHeight: 1,
-              color: "rgba(0,0,0,0.08)",
-            }}
+        {/* Review Container */}
+        <div className="relative min-h-[300px] flex flex-col items-center">
+          {/* Decoratief Quote Icoon */}
+          <Quote 
+            className="text-slate-100 absolute -top-12 left-1/2 -translate-x-1/2" 
+            size={80} 
+            strokeWidth={1} 
+          />
+
+          <div 
+            className={`
+              flex flex-col items-center text-center transition-all duration-1000 ease-in-out
+              ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+            `}
           >
-            ”
-          </span>
+            <div className="mb-10">
+              <StarRating count={currentReview.stars || 5} />
+            </div>
 
-          {/* Content (adaptive hoogte, gecentreerd) */}
-          <div
-            className="relative mx-auto flex max-w-2xl flex-col items-center text-center"
-            style={{
-              opacity: fadeIn ? 1 : 0,
-              transform: fadeIn ? "translateY(0px)" : "translateY(6px)",
-              transition: `opacity ${fadeMs}ms ease, transform ${fadeMs}ms ease`,
-            }}
-          >
-            <StarRow count={stars} />
+            <blockquote className="max-w-2xl">
+              <p className="text-xl md:text-2xl leading-relaxed text-slate-700 font-serif italic">
+                "{currentReview.quote}"
+              </p>
+            </blockquote>
 
-            {/* Quote — groter, en NIET meer naar onder gedrukt */}
-            <p
-              className="mt-5 text-[15px] italic text-[var(--text)] sm:text-[16px]"
-              style={{ fontWeight: 500 }}
-            >
-              {r.quote}
-            </p>
-
-            {/* Naam/plaats altijd zichtbaar */}
-            <p className="mt-5 text-[12px] text-[var(--text-soft)]">
-              <span className="font-medium text-[var(--text)]">{r.name}</span>
-              {r.location ? <span className="text-[var(--text-soft)]"> · {r.location}</span> : null}
-            </p>
+            <div className="mt-10 flex flex-col items-center">
+              <div className="h-px w-12 bg-amber-200 mb-6" />
+              <p className="text-base font-semibold text-slate-900 tracking-tight">
+                {currentReview.name}
+              </p>
+              {currentReview.location && (
+                <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">
+                  {currentReview.location}
+                </p>
+              )}
+            </div>
           </div>
+
+          {/* Subtiele voortgangsbalk (optioneel, zeer discreet) */}
+          {items.length > 1 && (
+            <div className="absolute bottom-0 w-full max-w-[100px] h-[2px] bg-slate-100 overflow-hidden">
+              <div 
+                key={index}
+                className="h-full bg-amber-400/30 transition-all"
+                style={{ 
+                  animation: isVisible ? `progress ${intervalMs}ms linear forwards` : 'none'
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </section>
   );
 }
+
