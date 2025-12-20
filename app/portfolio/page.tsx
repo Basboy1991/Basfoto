@@ -14,10 +14,16 @@ type AlbumCard = {
   slug: string;
   description?: string;
   coverImage?: {
-    asset?: { _ref?: string };
+    asset?: {
+      _id?: string;
+      url?: string;
+      metadata?: {
+        lqip?: string;
+        dimensions?: { width: number; height: number; aspectRatio: number };
+      };
+    };
     crop?: any;
     hotspot?: any;
-    lqip?: string;
   };
 };
 
@@ -34,9 +40,9 @@ type HomeData = {
 function CoverPlaceholder({ title }: { title: string }) {
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* subtiele gradient + ruis (premium placeholder) */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-soft)] via-white/40 to-[var(--surface-2)]" />
-      <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px]" />
+      {/* saliegroene premium placeholder */}
+      <div className="absolute inset-0 bg-[var(--accent-soft)]" />
+      <div className="absolute inset-0 opacity-[0.08] [background-image:radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px]" />
 
       <div className="relative flex h-full w-full flex-col items-center justify-center px-6 text-center">
         <div
@@ -87,10 +93,10 @@ export default async function PortfolioPage() {
         </div>
       ) : (
         <>
-          {/* Grid */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {albums.map((a) => {
-              const hasCover = Boolean(a.coverImage?.asset?._ref);
+              // ✅ jouw query levert asset->{_id,url,metadata...} dus check op _id
+              const hasCover = Boolean(a.coverImage?.asset?._id);
 
               const coverUrl = hasCover
                 ? urlFor(a.coverImage!)
@@ -101,6 +107,8 @@ export default async function PortfolioPage() {
                     .quality(80)
                     .url()
                 : null;
+
+              const lqip = a.coverImage?.asset?.metadata?.lqip;
 
               return (
                 <Link
@@ -117,8 +125,8 @@ export default async function PortfolioPage() {
                         fill
                         sizes="(max-width: 768px) 100vw, 33vw"
                         className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                        placeholder={a.coverImage?.lqip ? "blur" : "empty"}
-                        blurDataURL={a.coverImage?.lqip}
+                        placeholder={lqip ? "blur" : "empty"}
+                        blurDataURL={lqip}
                       />
                     ) : (
                       <CoverPlaceholder title={a.title} />
@@ -146,10 +154,8 @@ export default async function PortfolioPage() {
             })}
           </div>
 
-          {/* CTA onderaan – uit Sanity (home.cta) */}
           {home?.cta?.title ? <HomeCtaCard cta={home.cta} /> : null}
 
-          {/* Extra zachte “brug” terug naar homepage (optioneel maar premium) */}
           <div className="mt-12 text-center">
             <Link
               href="/"

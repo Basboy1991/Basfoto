@@ -122,10 +122,14 @@ export const albumsQuery = `
     "slug": slug.current,
     description,
     coverImage{
-      asset,
-      crop,
-      hotspot,
-      "lqip": asset->metadata.lqip
+      asset->{
+        _id,
+        url,
+        metadata{
+          lqip,
+          dimensions{width,height,aspectRatio}
+        }
+      }
     }
   }
 `;
