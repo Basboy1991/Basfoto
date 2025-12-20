@@ -50,10 +50,10 @@ export default async function PortfolioPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {albums.map((a) => {
-            const hasCoverRef = Boolean(a.coverImage?.asset?._ref);
+            const hasCover = Boolean(a.coverImage?.asset?._ref);
 
-            const coverUrl = hasCoverRef
-              ? urlFor(a.coverImage)
+            const coverUrl = hasCover
+              ? urlFor(a.coverImage!)
                   .width(1200)
                   .height(1500)
                   .fit("crop")

@@ -1,5 +1,4 @@
 import { defineField, defineType } from "sanity";
-import CloudinaryFolderInput from "../components/CloudinaryFolderInput";
 
 export default defineType({
   name: "album",
@@ -29,29 +28,27 @@ export default defineType({
     }),
 
     defineField({
+      name: "coverImage",
+      title: "Cover afbeelding (voor portfolio overzicht)",
+      type: "image",
+      options: { hotspot: true },
+      description: "Deze afbeelding zie je op /portfolio als cover van dit album.",
+    }),
+
+    defineField({
       name: "cloudinaryFolder",
       title: "Cloudinary folder",
       type: "string",
       description: "Bijv: Portfolio/huisdieren (exact overnemen uit Cloudinary).",
       validation: (Rule) => Rule.required(),
-      components: {
-        input: CloudinaryFolderInput,
-      },
     }),
 
     defineField({
       name: "coverPublicId",
-      title: "Cover public_id (optioneel)",
+      title: "Optioneel: Cloudinary cover public_id",
       type: "string",
       description:
-        "Optioneel: zet hier de public_id van de coverfoto. Laat leeg om de eerste foto uit de folder te gebruiken.",
+        "Alleen als je de cover liever uit Cloudinary wil laden (laat leeg als je coverImage gebruikt).",
     }),
   ],
-
-  preview: {
-    select: {
-      title: "title",
-      subtitle: "cloudinaryFolder",
-    },
-  },
 });

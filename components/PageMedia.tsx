@@ -31,7 +31,7 @@ export default function PageMedia({
   media: MediaItem[];
   priority?: boolean;
 }) {
-  const items = useMemo(() => media.filter((m) => m?.asset?._id), [media]);
+  const items = useMemo(() => media.filter((m: any) => m?.asset?._ref || m?.asset?._id), [media]);
 
   // Willekeurige volgorde per pageload
   const itemsRef = useRef<MediaItem[] | null>(null);
