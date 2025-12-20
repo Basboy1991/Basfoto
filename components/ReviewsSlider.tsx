@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Review = {
   quote: string;
@@ -9,128 +9,130 @@ type Review = {
   stars?: number;
 };
 
-export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
-  const [index, setIndex] = useState(0);
-  const current = reviews[index];
+function clampStars(n?: number) {
+  const v = typeof n === "number" ? n : 5;
+  return Math.min(5, Math.max(1, Math.round(v)));
+}
 
-  // fade
+function StarRow({ count }: { count: number }) {
+  // Groot + goud (met iets warmere tint, maar nog steeds premium)
+  return (
+    <div
+      className="flex items-center justify-center gap-1"
+      aria-label={`${count} van 5 sterren`}
+      title={`${count} van 5 sterren`}
+    >
+      {Array.from({ length: 5 }).map((_, i) => {
+        const filled = i < count;
+        return (
+          <span
+            key={i}
+            className="text-[22px] leading-none sm:text-[24px]"
+            style={{
+              color: filled ? "#D4A62A" : "rgba(0,0,0,0.12)",
+              filter: filled ? "drop-shadow(0 1px 0 rgba(0,0,0,0.06))" : "none",
+            }}
+            aria-hidden
+          >
+            ★
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
+  const items = useMemo(() => (reviews ?? []).filter((r) => r?.quote && r?.name), [reviews]);
+
+  const [index, setIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
 
-  // adaptive height (meet ALLES: content + dots)
-  const innerRef = useRef<HTMLDivElement | null>(null);
-  const [h, setH] = useState<number>(0);
+  const intervalMs = 9500; // rustig
+  const fadeMs = 450;
 
-  // auto-rotate
   useEffect(() => {
-    if (reviews.length <= 1) return;
+    if (items.length <= 1) return;
 
-    const t = window.setInterval(() => {
+    const timer = window.setInterval(() => {
+      // fade out -> switch -> fade in
       setFadeIn(false);
       window.setTimeout(() => {
-        setIndex((i) => (i + 1) % reviews.length);
+        setIndex((i) => (i + 1) % items.length);
         setFadeIn(true);
-      }, 240);
-    }, 9000);
+      }, fadeMs);
+    }, intervalMs);
 
-    return () => window.clearInterval(t);
-  }, [reviews.length]);
+    return () => window.clearInterval(timer);
+  }, [items.length]);
 
-  // height measure (smooth)
-  useLayoutEffect(() => {
-    const el = innerRef.current;
-    if (!el) return;
+  if (!items.length) return null;
 
-    const measure = () => setH(el.scrollHeight + 1);
-    measure();
-
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(el);
-
-    return () => ro.disconnect();
-  }, [current?.quote, current?.name, current?.location, current?.stars, reviews.length]);
-
-  const stars = useMemo(() => {
-    const s = Math.max(0, Math.min(5, current?.stars ?? 0));
-    if (!s) return null;
-    return Array.from({ length: s }).map((_, i) => <span key={i}>★</span>);
-  }, [current?.stars]);
-
-  if (!reviews?.length) return null;
+  const r = items[index];
+  const stars = clampStars(r.stars);
 
   return (
-    <section className="mt-20">
-      <header className="mb-10 text-center">
-        <p className="text-sm font-medium text-[var(--accent-strong)]">Reviews</p>
+    <section className="mt-16">
+      <header className="mb-6 text-center">
+        <p className="text-xs uppercase tracking-[0.22em] text-[var(--text-soft)]">Reviews</p>
         <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">Wat klanten zeggen</h2>
       </header>
 
-      <div
-        className="relative mx-auto max-w-3xl rounded-3xl bg-[var(--accent-soft)] px-8 py-10 text-center"
-        style={{
-          border: "1px solid var(--border)",
-          height: h ? `${h}px` : undefined,
-          transition: "height 320ms ease",
-        }}
-      >
-        {/* quotation marks (decoratief) */}
-        <span
-          className="pointer-events-none absolute left-6 top-6 select-none text-7xl font-serif"
-          style={{ color: "rgba(143,174,160,0.25)" }}
-          aria-hidden
+      <div className="mx-auto max-w-3xl">
+        <div
+          className="relative overflow-hidden rounded-3xl bg-[var(--accent-soft)] px-6 py-10 sm:px-10"
+          style={{ border: "1px solid var(--border)" }}
         >
-          “
-        </span>
-        <span
-          className="pointer-events-none absolute bottom-6 right-6 select-none text-7xl font-serif"
-          style={{ color: "rgba(143,174,160,0.25)" }}
-          aria-hidden
-        >
-          ”
-        </span>
-
-        {/* ✅ Alles wat hoogte bepaalt zit in deze wrapper */}
-        <div ref={innerRef} className="relative">
-          {/* Fade wrapper */}
-          <div
+          {/* Grote quotation marks */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-5 top-4 select-none font-serif"
             style={{
-              opacity: fadeIn ? 1 : 0,
-              transform: fadeIn ? "translateY(0px)" : "translateY(4px)",
-              transition: "opacity 260ms ease, transform 260ms ease",
+              fontSize: "88px", // ✅ groter
+              lineHeight: 1,
+              color: "rgba(0,0,0,0.08)",
             }}
           >
-            {/* sterren (groter) */}
-            {stars && (
-              <div className="mb-5 flex justify-center gap-1 text-4xl text-[#D4AF37]">
-                {stars}
-              </div>
-            )}
+            “
+          </span>
 
-            {/* quote */}
-            <blockquote className="mx-auto max-w-xl text-[1.125rem] italic leading-relaxed text-[var(--text)]">
-              {current.quote}
-            </blockquote>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-2 right-6 select-none font-serif"
+            style={{
+              fontSize: "88px", // ✅ groter
+              lineHeight: 1,
+              color: "rgba(0,0,0,0.08)",
+            }}
+          >
+            ”
+          </span>
 
-            {/* naam */}
-            <p className="mt-6 text-sm font-medium text-[var(--text)]">
-              {current.name}
-              {current.location && (
-                <span className="text-xs text-[var(--text-soft)]"> · {current.location}</span>
-              )}
+          {/* Content (adaptive hoogte, gecentreerd) */}
+          <div
+            className="relative mx-auto flex max-w-2xl flex-col items-center text-center"
+            style={{
+              opacity: fadeIn ? 1 : 0,
+              transform: fadeIn ? "translateY(0px)" : "translateY(6px)",
+              transition: `opacity ${fadeMs}ms ease, transform ${fadeMs}ms ease`,
+            }}
+          >
+            <StarRow count={stars} />
+
+            {/* Quote — groter, en NIET meer naar onder gedrukt */}
+            <p
+              className="mt-5 text-[15px] italic text-[var(--text)] sm:text-[16px]"
+              style={{ fontWeight: 500 }}
+            >
+              {r.quote}
+            </p>
+
+            {/* Naam/plaats altijd zichtbaar */}
+            <p className="mt-5 text-[12px] text-[var(--text-soft)]">
+              <span className="font-medium text-[var(--text)]">{r.name}</span>
+              {r.location ? <span className="text-[var(--text-soft)]"> · {r.location}</span> : null}
             </p>
           </div>
-
-                           aria-label={`Ga naar review ${i + 1}`}
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      background: active ? "var(--accent-strong)" : "rgba(0,0,0,0.12)",
-                      transform: active ? "scale(1.08)" : "scale(1)",
-                      transition: "transform 200ms ease, background 200ms ease",
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </section>
