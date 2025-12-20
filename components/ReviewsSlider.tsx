@@ -10,7 +10,7 @@ type Review = {
 };
 
 /**
- * StarIcon met expliciete types voor Vercel/TypeScript
+ * StarIcon met strikte types voor Vercel
  */
 function StarIcon({ filled }: { filled: boolean }) {
   return (
@@ -69,34 +69,33 @@ export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
   const stars = typeof r.stars === "number" ? Math.min(5, Math.max(1, Math.round(r.stars))) : 5;
 
   /**
-   * Bepaalt de tekstgrootte op basis van de lengte van de quote
-   * Zo voorkomen we dat de box onnodig groot wordt bij lange reviews.
+   * Dynamische font-size op basis van tekstlengte
    */
   const getFontSizeClass = (text: string) => {
-    if (text.length > 200) return "text-[14px] sm:text-[15px]";
-    if (text.length > 120) return "text-[16px] sm:text-[17px]";
-    return "text-[18px] sm:text-[20px]";
+    if (text.length > 200) return "text-[15px] sm:text-[16px]";
+    if (text.length > 120) return "text-[17px] sm:text-[18px]";
+    return "text-[19px] sm:text-[21px]";
   };
 
   return (
     <section className="mt-20 w-full overflow-hidden">
-      <header className="mb-8 text-center px-4">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-soft)] opacity-70 font-bold">
-          Wat anderen ervaren
+      <header className="mb-10 text-center px-4">
+        <p className="text-[10px] uppercase tracking-[0.4em] text-[var(--text-soft)] opacity-70 font-bold">
+          Reviews
         </p>
         <h2 className="mt-2 text-2xl font-semibold text-[var(--text)] tracking-tight">
-          Recensies
+          Wat klanten zeggen
         </h2>
       </header>
 
       <div className="mx-auto max-w-3xl px-6">
         <div
-          className="relative flex min-h-[380px] sm:min-h-[340px] flex-col justify-center rounded-[2.5rem] bg-[var(--accent-soft)] px-8 py-14 sm:px-20 border border-[var(--border)]"
+          className="relative flex min-h-[400px] sm:min-h-[350px] flex-col justify-center rounded-[2.5rem] bg-[var(--accent-soft)] px-8 py-14 sm:px-20 border border-[var(--border)]"
         >
-          {/* Grote Quotation Marks (Nu echt op hun plek zoals origineel) */}
+          {/* Quotation Marks - Teruggeplaatst met correcte styling */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute left-6 top-6 select-none font-serif text-[100px] leading-none opacity-10"
+            className="pointer-events-none absolute left-8 top-8 select-none font-serif text-[120px] leading-none opacity-10"
             style={{ color: 'var(--text)' }}
           >
             “
@@ -104,30 +103,32 @@ export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
 
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-4 right-8 select-none font-serif text-[100px] leading-none opacity-10"
+            className="pointer-events-none absolute bottom-4 right-10 select-none font-serif text-[120px] leading-none opacity-10"
             style={{ color: 'var(--text)' }}
           >
             ”
           </span>
 
-          {/* De Content met animatie */}
+          {/* De Content */}
           <div
             className="relative flex flex-col items-center text-center z-10"
             style={{
               opacity: fadeIn ? 1 : 0,
-              transform: fadeIn ? "translateY(0px)" : "translateY(4px)",
+              transform: fadeIn ? "translateY(0px)" : "translateY(5px)",
               transition: `opacity ${fadeMs}ms ease, transform ${fadeMs}ms ease`,
             }}
           >
-            <StarRow count={stars} />
+            <div className="mb-8 scale-110">
+              <StarRow count={stars} />
+            </div>
 
-            <div className="mt-8 mb-6">
+            <div className="mb-8">
               <p 
-                className={`font-medium italic text-[var(--text)] leading-relaxed transition-all duration-300 ${getFontSizeClass(r.quote)}`}
+                className={`font-medium italic text-[var(--text)] leading-relaxed ${getFontSizeClass(r.quote)}`}
                 style={{ 
                   display: '-webkit-box',
-                  WebkitLineClamp: 7, // Maximaal 7 regels om de box-grootte stabiel te houden
-                  WebkitBoxOrient: vertical,
+                  WebkitLineClamp: 7, 
+                  WebkitBoxOrient: 'vertical', // Nu correct als string voor TypeScript
                   overflow: 'hidden'
                 }}
               >
@@ -135,13 +136,13 @@ export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
               </p>
             </div>
 
-            <div className="flex flex-col items-center">
-              <div className="h-px w-6 bg-[var(--border)] mb-5" />
-              <span className="text-[14px] font-bold text-[var(--text)] tracking-tight">
+            <div className="flex flex-col items-center mt-auto">
+              <div className="h-px w-10 bg-[var(--border)] mb-5 opacity-60" />
+              <span className="text-[15px] font-bold text-[var(--text)] tracking-tight">
                 {r.name}
               </span>
               {r.location && (
-                <span className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--text-soft)]">
+                <span className="mt-1 text-[10px] uppercase tracking-[0.25em] text-[var(--text-soft)] font-medium">
                   {r.location}
                 </span>
               )}
