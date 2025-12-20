@@ -119,23 +119,7 @@ export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
             </p>
           </div>
 
-          {/* dots */}
-          {reviews.length > 1 && (
-            <div className="mt-8 flex justify-center gap-2">
-              {reviews.map((_, i) => {
-                const active = i === index;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setFadeIn(false);
-                      window.setTimeout(() => {
-                        setIndex(i);
-                        setFadeIn(true);
-                      }, 140);
-                    }}
-                    aria-label={`Ga naar review ${i + 1}`}
+                           aria-label={`Ga naar review ${i + 1}`}
                     className="h-2.5 w-2.5 rounded-full"
                     style={{
                       background: active ? "var(--accent-strong)" : "rgba(0,0,0,0.12)",
