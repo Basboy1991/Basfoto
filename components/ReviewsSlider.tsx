@@ -10,60 +10,89 @@ type Review = {
 };
 
 export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
-  if (!reviews?.length) return null;
-
   const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState<"in" | "out">("in");
-
-  const durationMs = 9000; // hoe lang een review blijft staan
-  const animMs = 450; // fade/slide snelheid
+  const current = reviews[index];
 
   useEffect(() => {
     if (reviews.length <= 1) return;
-
-    const timer = window.setInterval(() => {
-      setPhase("out");
-
-      window.setTimeout(() => {
-        setIndex((prev) => (prev + 1) % reviews.length);
-        setPhase("in");
-      }, animMs);
-    }, durationMs);
-
-    return () => window.clearInterval(timer);
+    const t = setInterval(() => {
+      setIndex((i) => (i + 1) % reviews.length);
+    }, 9000);
+    return () => clearInterval(t);
   }, [reviews.length]);
 
-  const r = reviews[index];
-  const stars = Math.min(5, Math.max(1, r.stars ?? 5));
+  if (!reviews?.length) return null;
 
   return (
-    <section className="mt-16">
-      <div className="mx-auto max-w-3xl rounded-2xl bg-[var(--accent-soft)] px-8 py-10 text-center">
-        <div
-          className="transition-all"
-          style={{
-            opacity: phase === "in" ? 1 : 0,
-            transform: phase === "in" ? "translateY(0px)" : "translateY(6px)",
-            transitionDuration: `${animMs}ms`,
-            transitionTimingFunction: "ease",
-          }}
+    <section className="mt-20">
+      <header className="mb-10 text-center">
+        <p className="text-sm font-medium text-[var(--accent-strong)]">Reviews</p>
+        <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">
+          Wat klanten zeggen
+        </h2>
+      </header>
+
+      <div
+        className="relative mx-auto max-w-3xl rounded-3xl bg-[var(--accent-soft)] px-8 py-12 text-center"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        {/* Quotation marks */}
+        <span
+          className="absolute left-6 top-6 select-none text-7xl font-serif"
+          style={{ color: "rgba(143,174,160,0.25)" }}
+          aria-hidden
         >
-          {/* Sterren (groter + geel) */}
-          <div className="mb-5 flex justify-center gap-1 text-[22px] text-amber-500">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span key={i} aria-hidden="true">
-                {i < stars ? "★" : "☆"}
-              </span>
+          “
+        </span>
+        <span
+          className="absolute bottom-6 right-6 select-none text-7xl font-serif"
+          style={{ color: "rgba(143,174,160,0.25)" }}
+          aria-hidden
+        >
+          ”
+        </span>
+
+        {/* ⭐ Sterren */}
+        {current.stars && (
+          <div className="mb-5 flex justify-center gap-1 text-2xl text-[#D4AF37]">
+            {Array.from({ length: current.stars }).map((_, i) => (
+              <span key={i}>★</span>
             ))}
           </div>
+        )}
 
-          <blockquote className="text-lg italic text-[var(--text)]">“{r.quote}”</blockquote>
+        {/* Quote */}
+        <blockquote className="mx-auto max-w-xl text-[1.125rem] md:text-[1.25rem] italic leading-relaxed text-[var(--text)]">
+          {current.quote}
+        </blockquote>
 
-          <p className="mt-4 text-sm text-[var(--text-soft)]">
-            {r.name}
-            {r.location ? ` · ${r.location}` : ""}
-          </p>
-        </div>
+        {/* Naam */}
+        <p className="mt-6 text-sm font-medium text-[var(--text)]">
+          {current.name}
+          {current.location && (
+            <span className="text-xs text-[var(--text-soft)]"> · {current.location}</span>
+          )}
+        </p>
+
+        {/* Navigatie */}
+        {reviews.length > 1 && (
+          <div className="mt-6 flex justify-center gap-3">
+            <button
+              onClick={() =>
+                setIndex((i) => (i - 1 + reviews.length) % reviews.length)
+              }
+              className="rounded-full border border-[var(--border)] bg-white/60 px-4 py-2 text-sm hover:bg-white"
+            >
+              ←
+            </button>
+            <button
+              onClick={() => setIndex((i) => (i + 1) % reviews.length)}
+              className="rounded-full border border-[var(--border)] bg-white/60 px-4 py-2 text-sm hover:bg-white"
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
