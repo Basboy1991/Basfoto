@@ -53,14 +53,17 @@ export default function Header() {
         </nav>
 
         {/* Mobile hamburger */}
-        button
+        <button
   type="button"
-  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/60 md:hidden"
-  style={{ border: "1px solid var(--border)" }}
   onClick={() => setOpen(true)}
   aria-label="Open menu"
+  className="inline-flex h-11 w-11 items-center justify-center rounded-xl md:hidden"
+  style={{
+    background: "rgba(255,255,255,0.7)",
+    border: "1px solid var(--border)",
+  }}
 >
-  <Menu size={20} />
+  <Menu size={22} color="var(--text)" />
 </button>
       </div>
 
