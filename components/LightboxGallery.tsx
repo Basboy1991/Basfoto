@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import type { CloudImage } from "@/lib/cloudinary.server";
+import type { CloudImage } from "@/lib/cloudinary.types";
 import { cloudinaryImg } from "@/lib/cloudinary.client";
 
 export default function LightboxGallery({
@@ -44,6 +44,7 @@ export default function LightboxGallery({
     () => (images.length ? (index + 1) % images.length : 0),
     [index, images.length]
   );
+
   useEffect(() => {
     if (!open || images.length <= 1) return;
     const preload = new window.Image();
@@ -66,7 +67,7 @@ export default function LightboxGallery({
             }}
             className="group relative overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)] text-left"
             style={{ border: "1px solid var(--border)" }}
-            aria-label="Open foto"
+            aria-label={`Open foto ${img.caption ?? titleFallback}`}
           >
             <div className="relative aspect-[4/5]">
               <Image
@@ -77,6 +78,14 @@ export default function LightboxGallery({
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
               />
             </div>
+
+            {/* subtiele caption overlay (alleen als aanwezig) */}
+            {(img.caption || img.alt) && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-3">
+                {img.caption && <p className="text-sm font-medium text-white">{img.caption}</p>}
+                {img.alt && <p className="mt-0.5 text-xs text-white/85 line-clamp-1">{img.alt}</p>}
+              </div>
+            )}
           </button>
         ))}
       </div>

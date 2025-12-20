@@ -11,7 +11,12 @@ type AlbumCard = {
   title: string;
   slug: string;
   description?: string;
-  coverImage?: any;
+  coverImage?: {
+    asset?: { _ref?: string };
+    crop?: any;
+    hotspot?: any;
+    lqip?: string;
+  };
 };
 
 export default async function PortfolioPage() {
@@ -44,52 +49,63 @@ export default async function PortfolioPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {albums.map((a) => (
-            <Link
-              key={a.slug}
-              href={`/portfolio/${a.slug}`}
-              className="group overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]"
-              style={{ border: "1px solid var(--border)" }}
-            >
-              <div className="relative aspect-[4/5] overflow-hidden">
-                {a.coverImage?.asset ? (
-                  <Image
-                    src={urlFor(a.coverImage)
-                      .width(1200)
-                      .height(1500)
-                      .fit("crop")
-                      .auto("format")
-                      .quality(80)
-                      .url()}
-                    alt={a.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-[var(--text-soft)]">
-                    Geen cover ingesteld
-                  </div>
-                )}
-              </div>
+          {albums.map((a) => {
+            const hasCoverRef = Boolean(a.coverImage?.asset?._ref);
 
-              <div className="p-6 text-center">
-                <h2 className="text-lg font-semibold text-[var(--text)]">{a.title}</h2>
-                {a.description && (
-                  <p className="mt-2 text-sm text-[var(--text-soft)] line-clamp-2">
-                    {a.description}
-                  </p>
-                )}
+            const coverUrl = hasCoverRef
+              ? urlFor(a.coverImage)
+                  .width(1200)
+                  .height(1500)
+                  .fit("crop")
+                  .auto("format")
+                  .quality(80)
+                  .url()
+              : null;
 
-                <div className="mt-5 flex justify-center">
-                  <span className="inline-flex items-center rounded-full bg-white/70 px-6 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-white">
-                    Bekijk
-                    <span className="ml-2">→</span>
-                  </span>
+            return (
+              <Link
+                key={a.slug}
+                href={`/portfolio/${a.slug}`}
+                className="group overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <div className="relative aspect-[4/5] overflow-hidden">
+                  {coverUrl ? (
+                    <Image
+                      src={coverUrl}
+                      alt={a.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                      placeholder={a.coverImage?.lqip ? "blur" : "empty"}
+                      blurDataURL={a.coverImage?.lqip}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm text-[var(--text-soft)]">
+                      Geen cover ingesteld
+                    </div>
+                  )}
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                <div className="p-6 text-center">
+                  <h2 className="text-lg font-semibold text-[var(--text)]">{a.title}</h2>
+
+                  {a.description && (
+                    <p className="mt-2 text-sm text-[var(--text-soft)] line-clamp-2">
+                      {a.description}
+                    </p>
+                  )}
+
+                  <div className="mt-5 flex justify-center">
+                    <span className="inline-flex items-center rounded-full bg-white/70 px-6 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-white">
+                      Bekijk
+                      <span className="ml-2">→</span>
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </>

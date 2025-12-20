@@ -1,5 +1,6 @@
 import "server-only";
 import { v2 as cloudinary } from "cloudinary";
+import type { CloudImage } from "@/lib/cloudinary.types";
 
 function mustEnv(name: string) {
   const v = process.env[name];
@@ -13,36 +14,28 @@ cloudinary.config({
   api_secret: mustEnv("CLOUDINARY_API_SECRET"),
 });
 
-export type CloudImage = {
-  public_id: string;
-  secure_url: string;
-  width: number;
-  height: number;
-  created_at?: string;
-
-  // ✅ voor lightbox + SEO
-  caption?: string;
-  alt?: string;
-};
-
 function normalize(resources: any[]): CloudImage[] {
-  return (resources ?? []).map((r: any) => ({
-    public_id: r.public_id,
-    secure_url: r.secure_url,
-    width: r.width,
-    height: r.height,
-    created_at: r.created_at,
+  return (resources ?? []).map((r: any) => {
+    const ctx = r?.context ?? {};
+    const custom = ctx?.custom ?? {};
 
-    // ✅ komt uit Cloudinary: context → custom
-    caption: r?.context?.custom?.caption,
-    alt: r?.context?.custom?.alt,
-  }));
+    return {
+      public_id: r.public_id,
+      secure_url: r.secure_url,
+      width: r.width,
+      height: r.height,
+      created_at: r.created_at,
+
+      caption: custom.caption ?? ctx.caption ?? r.caption,
+      alt: custom.alt ?? ctx.alt ?? r.alt,
+    };
+  });
 }
 
 export async function listImagesByFolder(folder: string, maxResults = 80): Promise<CloudImage[]> {
   const res = await cloudinary.search
     .expression(`folder:${folder}/*`)
-    .with_field("context") // ✅ nodig om caption/alt mee te krijgen
+    .with_field("context") // ✅ nodig om context/custom mee te krijgen
     .sort_by("created_at", "desc")
     .max_results(maxResults)
     .execute();

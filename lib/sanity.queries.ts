@@ -5,14 +5,10 @@ export const pageBySlugQuery = `
     seoDescription,
     content,
     media[]{
-      asset->{
-        _id,
-        url,
-        metadata{
-          lqip,
-          dimensions{width,height,aspectRatio}
-        }
-      }
+      asset,
+      crop,
+      hotspot,
+      "lqip": asset->metadata.lqip
     }
   }
 `;
@@ -25,7 +21,12 @@ export const homePageQuery = `
       subline,
       primaryCta{label, href},
       secondaryCta{label, href},
-      media[]{asset->{_id, url, metadata{lqip, dimensions}}}
+      media[]{
+        asset,
+        crop,
+        hotspot,
+        "lqip": asset->metadata.lqip
+      }
     },
     intro,
     portfolioCards[]{
@@ -35,7 +36,10 @@ export const homePageQuery = `
       buttonLabel,
       href,
       coverImage{
-        asset->{_id, url, metadata{lqip, dimensions}}
+        asset,
+        crop,
+        hotspot,
+        "lqip": asset->metadata.lqip
       }
     },
     reviews[]{
@@ -57,19 +61,15 @@ export const homePageQuery = `
 export const portfolioListQuery = `
   *[_type == "portfolioItem"] | order(featured desc, _createdAt desc){
     title,
-    slug,
+    "slug": slug.current,
     category,
     featured,
     excerpt,
     coverImage{
-      asset->{
-        _id,
-        url,
-        metadata{
-          lqip,
-          dimensions{width,height,aspectRatio}
-        }
-      }
+      asset,
+      crop,
+      hotspot,
+      "lqip": asset->metadata.lqip
     }
   }
 `;
@@ -77,33 +77,26 @@ export const portfolioListQuery = `
 export const portfolioBySlugQuery = `
   *[_type == "portfolioItem" && slug.current == $slug][0]{
     title,
-    slug,
+    "slug": slug.current,
     category,
     featured,
     excerpt,
     body,
     coverImage{
-      asset->{
-        _id,
-        url,
-        metadata{
-          lqip,
-          dimensions{width,height,aspectRatio}
-        }
-      }
+      asset,
+      crop,
+      hotspot,
+      "lqip": asset->metadata.lqip
     },
     gallery[]{
-      asset->{
-        _id,
-        url,
-        metadata{
-          lqip,
-          dimensions{width,height,aspectRatio}
-        }
-      }
+      asset,
+      crop,
+      hotspot,
+      "lqip": asset->metadata.lqip
     }
   }
 `;
+
 export const albumListQuery = `
   *[_type == "album"] | order(_createdAt desc){
     title,
@@ -122,17 +115,17 @@ export const albumBySlugQuery = `
     cloudinaryFolder
   }
 `;
+
 export const albumsQuery = `
   *[_type == "album" && defined(slug.current)] | order(_createdAt desc) {
     title,
     "slug": slug.current,
     description,
     coverImage{
-      asset->{
-        _id,
-        url,
-        metadata{lqip, dimensions}
-      }
+      asset,
+      crop,
+      hotspot,
+      "lqip": asset->metadata.lqip
     }
   }
 `;
