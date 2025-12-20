@@ -2,15 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-/**
- * @typedef {Object} Review
- * @property {string} quote
- * @property {string} name
- * @property {string} [location]
- * @property {number} [stars]
- */
+type Review = {
+  quote: string;
+  name: string;
+  location?: string;
+  stars?: number;
+};
 
-function StarIcon({ filled }) {
+function StarIcon({ filled }: { filled: boolean }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -28,17 +27,17 @@ function StarIcon({ filled }) {
   );
 }
 
-function StarRow({ count }) {
+function StarRow({ count }: { count: number }) {
   return (
     <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
-      {[...Array(5)].map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <StarIcon key={i} filled={i < count} />
       ))}
     </div>
   );
 }
 
-export default function ReviewsSlider({ reviews }) {
+export default function ReviewsSlider({ reviews }: { reviews: Review[] }) {
   const items = useMemo(() => (reviews ?? []).filter((r) => r?.quote && r?.name), [reviews]);
 
   const [index, setIndex] = useState(0);
@@ -82,14 +81,12 @@ export default function ReviewsSlider({ reviews }) {
           className="relative overflow-hidden rounded-[2.5rem] bg-[var(--accent-soft)] px-8 py-16 sm:px-16"
           style={{ border: "1px solid var(--border)" }}
         >
-          {/* Subtiel Quote symbool boven de tekst */}
+          {/* Subtiel decoratief element */}
           <div 
-            className="mb-8 flex justify-center opacity-10 pointer-events-none" 
-            style={{ color: 'var(--text)' }}
+            className="mb-8 flex justify-center opacity-10 pointer-events-none text-[40px] leading-none" 
+            style={{ color: 'var(--text)', fontFamily: 'serif' }}
           >
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V12C14.017 12.5523 13.5693 13 13.017 13H12.017V4H21.017V15C21.017 18.3137 18.3307 21 15.017 21H14.017ZM3.0166 21L3.0166 18C3.0166 16.8954 3.91203 16 5.0166 16H8.0166C8.56888 16 9.0166 15.5523 9.0166 15V9C9.0166 8.44772 8.56888 8 8.0166 8H4.0166C3.46432 8 3.0166 8.44772 3.0166 9V12C3.0166 12.5523 2.56888 13 2.0166 13H1.0166V4H10.0166V15C10.0166 18.3137 7.33031 21 4.0166 21H3.0166Z" />
-            </svg>
+            “
           </div>
 
           <div
@@ -104,11 +101,12 @@ export default function ReviewsSlider({ reviews }) {
 
             <blockquote className="mt-8 max-w-lg">
               <p className="text-lg md:text-xl font-medium leading-relaxed italic text-[var(--text)]">
-                "{r.quote}"
+                {r.quote}
               </p>
             </blockquote>
 
-            <div className="mt-8 flex flex-col items-center">
+            <div className="mt-10 flex flex-col items-center">
+              <div className="h-px w-8 bg-[var(--border)] mb-6 opacity-50" />
               <span className="text-sm font-bold text-[var(--text)] tracking-tight">
                 {r.name}
               </span>
