@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Star, Quote } from "lucide-react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 
 /**
  * @typedef {Object} Review
@@ -9,124 +10,117 @@ import { Star, Quote } from "lucide-react";
  * @property {number} [stars]
  */
 
-const StarRating = ({ count = 5 }) => {
+function StarIcon({ filled }) {
   return (
-    <div className="flex items-center gap-1" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill={filled ? "#D4A62A" : "none"}
+      stroke={filled ? "#D4A62A" : "var(--border)"}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'inline-block' }}
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function StarRow({ count }) {
+  return (
+    <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
       {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          size={16}
-          className={`${
-            i < Math.round(count) 
-              ? "fill-amber-400 text-amber-400" 
-              : "text-slate-200 fill-slate-100"
-          }`}
-        />
+        <StarIcon key={i} filled={i < count} />
       ))}
     </div>
   );
-};
+}
 
-export default function ReviewsSlider({ reviews = [] }) {
-  const items = useMemo(() => 
-    (reviews || []).filter((r) => r?.quote && r?.name), 
-  [reviews]);
+export default function ReviewsSlider({ reviews }) {
+  const items = useMemo(() => (reviews ?? []).filter((r) => r?.quote && r?.name), [reviews]);
 
   const [index, setIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+  const [fadeIn, setFadeIn] = useState(true);
 
-  const intervalMs = 8000;
-
-  const nextSlide = useCallback(() => {
-    setIsVisible(false);
-    setTimeout(() => {
-      setIndex((prev) => (prev + 1) % items.length);
-      setIsVisible(true);
-    }, 600); // Tijd voor fade-out
-  }, [items.length]);
+  const intervalMs = 9000;
+  const fadeMs = 600;
 
   useEffect(() => {
     if (items.length <= 1) return;
-    const timer = setInterval(nextSlide, intervalMs);
-    return () => clearInterval(timer);
-  }, [items.length, nextSlide]);
 
-  if (!items || items.length === 0) return null;
+    const timer = window.setInterval(() => {
+      setFadeIn(false);
+      window.setTimeout(() => {
+        setIndex((i) => (i + 1) % items.length);
+        setFadeIn(true);
+      }, fadeMs);
+    }, intervalMs);
 
-  const currentReview = items[index];
+    return () => window.clearInterval(timer);
+  }, [items.length]);
+
+  if (!items.length) return null;
+
+  const r = items[index];
+  const stars = typeof r.stars === "number" ? Math.min(5, Math.max(1, Math.round(r.stars))) : 5;
 
   return (
-    <section className="py-24 px-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Subtiele Header */}
-        <div className="text-center mb-16">
-          <span className="text-[11px] font-bold tracking-[0.3em] text-slate-400 uppercase">
-            Reviews
-          </span>
-          <h2 className="text-2xl md:text-3xl font-serif text-slate-800 mt-3">
-            Onze klantervaringen
-          </h2>
-        </div>
+    <section className="mt-16 w-full">
+      <header className="mb-10 text-center">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--text-soft)] opacity-80">
+          Reviews
+        </p>
+        <h2 className="mt-3 text-2xl font-semibold text-[var(--text)] tracking-tight">
+          Wat klanten zeggen
+        </h2>
+      </header>
 
-        {/* Review Container */}
-        <div className="relative min-h-[300px] flex flex-col items-center">
-          {/* Decoratief Quote Icoon */}
-          <Quote 
-            className="text-slate-100 absolute -top-12 left-1/2 -translate-x-1/2" 
-            size={80} 
-            strokeWidth={1} 
-          />
-
+      <div className="mx-auto max-w-3xl px-4">
+        <div
+          className="relative overflow-hidden rounded-[2.5rem] bg-[var(--accent-soft)] px-8 py-16 sm:px-16"
+          style={{ border: "1px solid var(--border)" }}
+        >
+          {/* Subtiel Quote symbool boven de tekst */}
           <div 
-            className={`
-              flex flex-col items-center text-center transition-all duration-1000 ease-in-out
-              ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
-            `}
+            className="mb-8 flex justify-center opacity-10 pointer-events-none" 
+            style={{ color: 'var(--text)' }}
           >
-            <div className="mb-10">
-              <StarRating count={currentReview.stars || 5} />
-            </div>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V12C14.017 12.5523 13.5693 13 13.017 13H12.017V4H21.017V15C21.017 18.3137 18.3307 21 15.017 21H14.017ZM3.0166 21L3.0166 18C3.0166 16.8954 3.91203 16 5.0166 16H8.0166C8.56888 16 9.0166 15.5523 9.0166 15V9C9.0166 8.44772 8.56888 8 8.0166 8H4.0166C3.46432 8 3.0166 8.44772 3.0166 9V12C3.0166 12.5523 2.56888 13 2.0166 13H1.0166V4H10.0166V15C10.0166 18.3137 7.33031 21 4.0166 21H3.0166Z" />
+            </svg>
+          </div>
 
-            <blockquote className="max-w-2xl">
-              <p className="text-xl md:text-2xl leading-relaxed text-slate-700 font-serif italic">
-                "{currentReview.quote}"
+          <div
+            className="relative flex flex-col items-center text-center"
+            style={{
+              opacity: fadeIn ? 1 : 0,
+              transform: fadeIn ? "translateY(0px)" : "translateY(8px)",
+              transition: `opacity ${fadeMs}ms ease-out, transform ${fadeMs}ms ease-out`,
+            }}
+          >
+            <StarRow count={stars} />
+
+            <blockquote className="mt-8 max-w-lg">
+              <p className="text-lg md:text-xl font-medium leading-relaxed italic text-[var(--text)]">
+                "{r.quote}"
               </p>
             </blockquote>
 
-            <div className="mt-10 flex flex-col items-center">
-              <div className="h-px w-12 bg-amber-200 mb-6" />
-              <p className="text-base font-semibold text-slate-900 tracking-tight">
-                {currentReview.name}
-              </p>
-              {currentReview.location && (
-                <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">
-                  {currentReview.location}
-                </p>
+            <div className="mt-8 flex flex-col items-center">
+              <span className="text-sm font-bold text-[var(--text)] tracking-tight">
+                {r.name}
+              </span>
+              {r.location && (
+                <span className="mt-1 text-[11px] uppercase tracking-widest text-[var(--text-soft)] opacity-70">
+                  {r.location}
+                </span>
               )}
             </div>
           </div>
-
-          {/* Subtiele voortgangsbalk (optioneel, zeer discreet) */}
-          {items.length > 1 && (
-            <div className="absolute bottom-0 w-full max-w-[100px] h-[2px] bg-slate-100 overflow-hidden">
-              <div 
-                key={index}
-                className="h-full bg-amber-400/30 transition-all"
-                style={{ 
-                  animation: isVisible ? `progress ${intervalMs}ms linear forwards` : 'none'
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
     </section>
   );
 }
