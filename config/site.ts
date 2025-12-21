@@ -17,7 +17,7 @@ export const siteConfig = {
     { label: "Over mij", href: "/over-mij" },
     { label: "Portfolio", href: "/portfolio" },
     { label: "Pakketten", href: "/pakketten" },
-    { label: "Contact", href: "/boek" },
+    { label: "Contact", href: "/contact" },
   ],
 
   /* =========================
