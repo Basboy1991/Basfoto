@@ -137,3 +137,24 @@ export const pageBySlugQuery = `
     }
   }
 `;
+export const packagesQuery = `
+  *[_type == "package"] | order(featured desc, order asc, _createdAt desc){
+    title,
+    subtitle,
+    price,
+    duration,
+    deliverables,
+    highlights,
+    featured,
+    note,
+    ctaLabel,
+    ctaHref
+  }
+`;
+
+export const packagesPageIntroQuery = `
+  *[_type == "sitePage" && slug.current == "pakketten"][0]{
+    title,
+    intro
+  }
+`;
