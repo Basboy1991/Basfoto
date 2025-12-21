@@ -28,48 +28,63 @@ function shuffle<T>(arr: T[]) {
 export default function PageMedia({
   media,
   priority = false,
-  className = "",
 }: {
   media: MediaItem[];
   priority?: boolean;
-  className?: string;
 }) {
-  // Support zowel asset._id (groq asset->{_id,url}) als asset._ref (sanity image ref)
   const items = useMemo(
-    () => (media ?? []).filter((m) => m?.asset?._id || m?.asset?._ref),
+    () => (media ?? []).filter((m) => m?.asset?._ref || m?.asset?._id),
     [media]
   );
 
-  // Willekeurige volgorde per pageload (maar stabiel tijdens sessie)
+  // Willekeurige volgorde per pageload
   const itemsRef = useRef<MediaItem[] | null>(null);
   if (!itemsRef.current) itemsRef.current = shuffle(items);
   const images = itemsRef.current;
 
-  const fadeMs = 1800; // net iets sneller/strakker
-  const intervalMs = 9000;
+  const fadeMs = 2000;
+  const intervalMs = 9500;
 
   const [current, setCurrent] = useState(0);
   const [showNext, setShowNext] = useState(false);
   const [zoomKey, setZoomKey] = useState(0);
 
+  // ✅ Mobiel detectie (voor andere crop + sizes)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+
   const next = images.length > 0 ? (current + 1) % images.length : 0;
 
-  // URL builder (zachte crop, editorial)
-  const getUrl = (img: MediaItem) =>
-    urlFor(img.asset)
-      .width(1800)
-      .height(1125)
+  /**
+   * ✅ Strakkere (maar minder “afsnijdende”) hero crop:
+   * - Mobiel: 4:5-ish (1200x1500) → laat meer “body” zien bij portretten
+   * - Desktop: 16:10-ish (1800x1125) → editorial widescreen
+   */
+  const getHeroUrl = (img: MediaItem) => {
+    const w = isMobile ? 1200 : 1800;
+    const h = isMobile ? 1500 : 1125;
+
+    return urlFor(img.asset)
+      .width(w)
+      .height(h)
       .fit("crop")
       .auto("format")
       .quality(80)
       .url();
+  };
 
   // Preload volgende slide
   useEffect(() => {
     if (images.length <= 1) return;
     const preload = new window.Image();
-    preload.src = getUrl(images[next]);
-  }, [images, next]);
+    preload.src = getHeroUrl(images[next]);
+  }, [images, next, isMobile]); // isMobile -> andere crop
 
   // Loop
   useEffect(() => {
@@ -88,29 +103,26 @@ export default function PageMedia({
     return () => window.clearInterval(timer);
   }, [images.length, fadeMs, intervalMs]);
 
-  if (!images.length) return null;
+  if (images.length === 0) return null;
 
   const currentItem = images[current];
   const nextItem = images[next];
 
-  const currentSrc = getUrl(currentItem);
-  const nextSrc = getUrl(nextItem);
+  const currentSrc = getHeroUrl(currentItem);
+  const nextSrc = getHeroUrl(nextItem);
 
-  // Alleen éérste image priority als jij dat vraagt
-  const isPriority = priority && current === 0;
+  // ✅ LCP: alleen eerste render priority als priority=true
+  const isPriority = priority ? current === 0 : false;
+
+  // ✅ sizes: mobiel full width, desktop vaak half (in split layout)
+  const sizes = "(max-width: 1024px) 100vw, 50vw";
 
   return (
     <div
-      className={[
-        // ✅ mobiel kleiner, desktop groter
-        "relative w-full overflow-hidden rounded-3xl",
-        "h-[360px] sm:h-[420px] md:h-[520px]",
-        className,
-      ].join(" ")}
-      style={{
-        border: "1px solid var(--border)",
-        boxShadow: "var(--shadow-md)",
-      }}
+      className="
+        relative w-full overflow-hidden
+        h-[320px] sm:h-[420px] md:h-[520px]
+      "
     >
       <Image
         key={`current-${zoomKey}`}
@@ -118,7 +130,7 @@ export default function PageMedia({
         alt=""
         fill
         priority={isPriority}
-        sizes="(max-width: 768px) 100vw, 50vw"
+        sizes={sizes}
         className="object-cover kenburns"
         placeholder={currentItem.asset.metadata?.lqip ? "blur" : "empty"}
         blurDataURL={currentItem.asset.metadata?.lqip}
@@ -130,7 +142,7 @@ export default function PageMedia({
           src={nextSrc}
           alt=""
           fill
-          sizes="(max-width: 768px) 100vw, 50vw"
+          sizes={sizes}
           className="object-cover kenburns"
           style={{
             opacity: showNext ? 1 : 0,
@@ -140,9 +152,6 @@ export default function PageMedia({
           blurDataURL={nextItem.asset.metadata?.lqip}
         />
       )}
-
-      {/* zachte “fade naar pagina” onderkant */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-[var(--bg)]" />
     </div>
   );
 }
