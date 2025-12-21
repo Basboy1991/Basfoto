@@ -7,56 +7,64 @@ import { portableTextComponents } from "@/lib/portableTextComponents";
 import PageMedia from "@/components/PageMedia";
 import { notFound } from "next/navigation";
 
+type PTBlock = {
+  _type: string;
+  children?: { _type: string; text?: string }[];
+};
+
+function getPlainText(block?: PTBlock) {
+  if (!block || block._type !== "block") return "";
+  return (block.children ?? [])
+    .map((c) => (c?._type === "span" ? c.text ?? "" : ""))
+    .join("")
+    .trim();
+}
+
 export default async function OverMijPage() {
   const page = await sanityClient.fetch(pageBySlugQuery, { slug: "over-mij" });
 
-  // ✅ echte 404 wanneer pagina niet bestaat
   if (!page) notFound();
 
+  // ✅ Als de eerste PortableText regel hetzelfde is als intro → wegfilteren
+  let content = page.content ?? [];
+  const intro = (page.intro ?? "").trim();
+
+  if (intro && Array.isArray(content) && content.length > 0) {
+    const first = content[0] as PTBlock;
+    const firstText = getPlainText(first);
+
+    if (firstText && firstText.toLowerCase() === intro.toLowerCase()) {
+      content = content.slice(1);
+    }
+  }
+
   return (
-    <article className="mx-auto w-full max-w-3xl">
+    <article className="mx-auto max-w-3xl">
       {/* Media / slideshow */}
-      {page.media?.length > 0 && (
-        <div
-          className="mb-10 overflow-hidden rounded-3xl bg-[var(--surface)] shadow-[var(--shadow-md)]"
-          style={{ border: "1px solid var(--border)" }}
-        >
+      {page.media && page.media.length > 0 && (
+        <div className="mb-8">
           <PageMedia media={page.media} />
         </div>
       )}
 
-      {/* Eyebrow (subtitel) */}
-      <p className="text-sm italic tracking-wide text-[var(--text-soft)]">
-        Wie is de fotograaf?
-      </p>
+      {/* Intro (cursief + lichter) */}
+      {intro ? (
+        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
+          {intro}
+        </p>
+      ) : null}
 
       {/* Titel */}
-      <h1
-        className="mt-3 text-3xl font-semibold leading-tight text-[var(--text)] md:text-4xl"
-        style={{ letterSpacing: "-0.02em" }}
-      >
+      <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
       </h1>
 
-      {/* Intro (lead) */}
-      {page.intro && (
-        <p className="mt-5 text-[17px] leading-relaxed text-[var(--text-soft)] md:text-lg">
-          {page.intro}
-        </p>
-      )}
-
-      {/* Zachte divider */}
-      <div
-        className="my-8 h-px w-full"
-        style={{ background: "var(--border)" }}
-      />
-
       {/* Content */}
-      {page.content && (
-        <div className="prose prose-zinc max-w-none">
-          <PortableText value={page.content} components={portableTextComponents} />
+      {content?.length ? (
+        <div className="prose prose-zinc mt-8 max-w-none">
+          <PortableText value={content} components={portableTextComponents} />
         </div>
-      )}
+      ) : null}
     </article>
   );
 }
