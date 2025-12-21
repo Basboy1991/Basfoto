@@ -26,18 +26,18 @@ export const siteConfig = {
   socials: [
     {
       label: "Instagram",
-      href: "https://instagram.com/",
+      href: "https://www.instagram.com/basvdscheer_fotografie?igsh=c2l0ZWh5Mnh1OXoy",
       type: "instagram",
     },
     {
       label: "Facebook",
-      href: "https://facebook.com/",
+      href: "https://www.facebook.com/share/1JuhXNDpZ9/",
       type: "facebook",
     },
     // Optioneel later:
     // {
     //   label: "WhatsApp",
-    //   href: "https://wa.me/31612345678",
+    //   href: "https://wa.me/31644733404",
     //   type: "whatsapp",
     // },
   ],
@@ -48,7 +48,7 @@ export const siteConfig = {
   contact: {
     email: "Basvanderscheer@gmail.com",
     phone: "06-44733404",
-    whatsapp: "31612345678",
+    whatsapp: "31644733404",
     responseTime: "Meestal reactie dezelfde dag",
   },
 
