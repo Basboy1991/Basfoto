@@ -1,31 +1,3 @@
-export const pageBySlugQuery = `
-  *[_type == "sitePage" && slug.current == $slug][0]{
-    title,
-    slug,
-    seoTitle,
-    seoDescription,
-
-    // ✅ zichtbare intro (nieuw veld)
-    intro,
-
-    content,
-
-    media[]{
-      asset->{
-        _id,
-        url,
-        metadata{
-          lqip,
-          dimensions{
-            width,
-            height,
-            aspectRatio
-          }
-        }
-      }
-    }
-  }
-`;
 
 export const homePageQuery = `
   *[_type == "homePage"][0]{
