@@ -6,8 +6,8 @@ import { urlFor } from "@/lib/sanity.image";
 
 type MediaItem = {
   asset: {
-    _id?: string; // asset-> projection geeft _id
-    _ref?: string; // soms krijg je alleen ref
+    _id?: string;
+    _ref?: string;
     url?: string;
     metadata?: {
       lqip?: string;
@@ -28,32 +28,34 @@ function shuffle<T>(arr: T[]) {
 export default function PageMedia({
   media,
   priority = false,
+  className = "",
 }: {
   media: MediaItem[];
   priority?: boolean;
+  className?: string;
 }) {
+  // Support zowel asset._id (groq asset->{_id,url}) als asset._ref (sanity image ref)
   const items = useMemo(
-    () => (media ?? []).filter((m) => m?.asset?._ref || m?.asset?._id),
+    () => (media ?? []).filter((m) => m?.asset?._id || m?.asset?._ref),
     [media]
   );
 
-  // Willekeurige volgorde per pageload
+  // Willekeurige volgorde per pageload (maar stabiel tijdens sessie)
   const itemsRef = useRef<MediaItem[] | null>(null);
   if (!itemsRef.current) itemsRef.current = shuffle(items);
   const images = itemsRef.current;
 
-  const fadeMs = 2000;
-  const intervalMs = 9500;
+  const fadeMs = 1800; // net iets sneller/strakker
+  const intervalMs = 9000;
 
   const [current, setCurrent] = useState(0);
   const [showNext, setShowNext] = useState(false);
   const [zoomKey, setZoomKey] = useState(0);
 
-  if (!images || images.length === 0) return null;
+  const next = images.length > 0 ? (current + 1) % images.length : 0;
 
-  const next = (current + 1) % images.length;
-
-  const getHeroUrl = (img: MediaItem) =>
+  // URL builder (zachte crop, editorial)
+  const getUrl = (img: MediaItem) =>
     urlFor(img.asset)
       .width(1800)
       .height(1125)
@@ -65,11 +67,8 @@ export default function PageMedia({
   // Preload volgende slide
   useEffect(() => {
     if (images.length <= 1) return;
-    const nextItem = images[next];
-    if (!nextItem) return;
-
     const preload = new window.Image();
-    preload.src = getHeroUrl(nextItem);
+    preload.src = getUrl(images[next]);
   }, [images, next]);
 
   // Loop
@@ -89,24 +88,37 @@ export default function PageMedia({
     return () => window.clearInterval(timer);
   }, [images.length, fadeMs, intervalMs]);
 
+  if (!images.length) return null;
+
   const currentItem = images[current];
   const nextItem = images[next];
 
-  const currentSrc = getHeroUrl(currentItem);
-  const nextSrc = getHeroUrl(nextItem);
+  const currentSrc = getUrl(currentItem);
+  const nextSrc = getUrl(nextItem);
 
-  // ✅ Alleen priority als de parent dat wil én alleen op de 1e render
+  // Alleen éérste image priority als jij dat vraagt
   const isPriority = priority && current === 0;
 
   return (
-    <div className="relative h-[520px] w-full overflow-hidden">
+    <div
+      className={[
+        // ✅ mobiel kleiner, desktop groter
+        "relative w-full overflow-hidden rounded-3xl",
+        "h-[360px] sm:h-[420px] md:h-[520px]",
+        className,
+      ].join(" ")}
+      style={{
+        border: "1px solid var(--border)",
+        boxShadow: "var(--shadow-md)",
+      }}
+    >
       <Image
         key={`current-${zoomKey}`}
         src={currentSrc}
         alt=""
         fill
         priority={isPriority}
-        sizes="(max-width: 1024px) 100vw, 50vw"
+        sizes="(max-width: 768px) 100vw, 50vw"
         className="object-cover kenburns"
         placeholder={currentItem.asset.metadata?.lqip ? "blur" : "empty"}
         blurDataURL={currentItem.asset.metadata?.lqip}
@@ -118,7 +130,7 @@ export default function PageMedia({
           src={nextSrc}
           alt=""
           fill
-          sizes="(max-width: 1024px) 100vw, 50vw"
+          sizes="(max-width: 768px) 100vw, 50vw"
           className="object-cover kenburns"
           style={{
             opacity: showNext ? 1 : 0,
@@ -128,6 +140,9 @@ export default function PageMedia({
           blurDataURL={nextItem.asset.metadata?.lqip}
         />
       )}
+
+      {/* zachte “fade naar pagina” onderkant */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-[var(--bg)]" />
     </div>
   );
 }
