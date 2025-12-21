@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@plasmicapp/loader-react": "^1.0.404",
     "@portabletext/react": "^6.0.0",
     "@sanity/icons": "^3.7.4",
     "@sanity/image-url": "^1.2.0",
