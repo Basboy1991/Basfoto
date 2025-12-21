@@ -19,7 +19,7 @@ export default function NotFound() {
         </h1>
 
         <p className="mx-auto mt-4 max-w-prose text-[var(--text-soft)]">
-          De pagina die je zoekt bestaat niet of is verplaatst. Geen stress —
+          De pagina die je zoekt bestaat niet of is verplaatst. Geen stress,
           hieronder vind je snel weer de juiste route.
         </p>
 
