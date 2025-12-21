@@ -38,12 +38,6 @@ export default function NotFound() {
             Bekijk portfolio
           </Link>
 
-          <Link
-            href="/over-mij"
-            className="inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-white/60 px-7 py-3 text-sm font-medium text-[var(--text)] transition hover:bg-white"
-          >
-            Over mij
-          </Link>
         </div>
 
         <p className="mt-8 text-xs text-[var(--text-soft)]">
