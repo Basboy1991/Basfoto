@@ -6,8 +6,9 @@ import { urlFor } from "@/lib/sanity.image";
 
 type MediaItem = {
   asset: {
-    _id: string;
-    url: string;
+    _id?: string; // asset-> projection geeft _id
+    _ref?: string; // soms krijg je alleen ref
+    url?: string;
     metadata?: {
       lqip?: string;
       dimensions?: { width: number; height: number; aspectRatio: number };
@@ -31,31 +32,44 @@ export default function PageMedia({
   media: MediaItem[];
   priority?: boolean;
 }) {
-  const items = useMemo(() => media.filter((m: any) => m?.asset?._ref || m?.asset?._id), [media]);
+  const items = useMemo(
+    () => (media ?? []).filter((m) => m?.asset?._ref || m?.asset?._id),
+    [media]
+  );
 
   // Willekeurige volgorde per pageload
   const itemsRef = useRef<MediaItem[] | null>(null);
   if (!itemsRef.current) itemsRef.current = shuffle(items);
   const images = itemsRef.current;
 
-  const fadeMs = 2000; // rustige crossfade
-  const intervalMs = 9500; // iets langzamer
+  const fadeMs = 2000;
+  const intervalMs = 9500;
 
   const [current, setCurrent] = useState(0);
   const [showNext, setShowNext] = useState(false);
   const [zoomKey, setZoomKey] = useState(0);
 
-  const next = images.length > 0 ? (current + 1) % images.length : 0;
+  if (!images || images.length === 0) return null;
 
-  // HERO: zachte crop + auto format (AVIF/WebP) + kwaliteit
+  const next = (current + 1) % images.length;
+
   const getHeroUrl = (img: MediaItem) =>
-    urlFor(img.asset).width(1800).height(1125).fit("crop").auto("format").quality(80).url();
+    urlFor(img.asset)
+      .width(1800)
+      .height(1125)
+      .fit("crop")
+      .auto("format")
+      .quality(80)
+      .url();
 
   // Preload volgende slide
   useEffect(() => {
     if (images.length <= 1) return;
+    const nextItem = images[next];
+    if (!nextItem) return;
+
     const preload = new window.Image();
-    preload.src = getHeroUrl(images[next]);
+    preload.src = getHeroUrl(nextItem);
   }, [images, next]);
 
   // Loop
@@ -75,16 +89,14 @@ export default function PageMedia({
     return () => window.clearInterval(timer);
   }, [images.length, fadeMs, intervalMs]);
 
-  if (images.length === 0) return null;
-
   const currentItem = images[current];
   const nextItem = images[next];
 
   const currentSrc = getHeroUrl(currentItem);
   const nextSrc = getHeroUrl(nextItem);
 
-  // ✅ LCP: als priority prop aan staat, maak de eerste render priority
-  const isPriority = priority ? current === 0 : current === 0;
+  // ✅ Alleen priority als de parent dat wil én alleen op de 1e render
+  const isPriority = priority && current === 0;
 
   return (
     <div className="relative h-[520px] w-full overflow-hidden">
