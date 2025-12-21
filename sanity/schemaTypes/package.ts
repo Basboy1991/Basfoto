@@ -7,23 +7,23 @@ export default defineType({
   fields: [
     defineField({
       name: "title",
-      title: "Naam",
+      title: "Titel",
       type: "string",
       validation: (Rule) => Rule.required(),
     }),
 
     defineField({
       name: "subtitle",
-      title: "Subtitel (kort)",
+      title: "Subtitel",
       type: "string",
-      description: "Bijv. 'Perfect voor gezinnen'",
+      description: "Kleine ondertitel (bijv. 'perfect voor snel het perfecte plaatje')",
     }),
 
     defineField({
       name: "price",
       title: "Prijs",
       type: "string",
-      description: "Bijv. '€ 189' of 'Vanaf € 189'",
+      description: "Bijv: 35 of 35,- (€ wordt automatisch toegevoegd op de site)",
       validation: (Rule) => Rule.required(),
     }),
 
@@ -31,36 +31,37 @@ export default defineType({
       name: "duration",
       title: "Duur",
       type: "string",
-      description: "Bijv. '60 minuten'",
+      description: "Bijv: 1 uur (wordt op site: 'Circa 1 uur fotoshoot')",
     }),
 
     defineField({
       name: "deliverables",
-      title: "Oplevering",
+      title: "Deliverables",
       type: "string",
-      description: "Bijv. '15 foto's in hoge resolutie'",
+      description: "Bijv: 10 foto’s in hoge resolutie (komt als eerste bullet en is iets vetter)",
     }),
 
     defineField({
       name: "highlights",
-      title: "Highlights (bullet points)",
+      title: "Highlights",
       type: "array",
       of: [{ type: "string" }],
-      validation: (Rule) => Rule.min(3).max(10),
-    }),
-
-    defineField({
-      name: "featured",
-      title: "Meest gekozen (uitlichten)",
-      type: "boolean",
-      initialValue: false,
+      description: "Bullets onder deliverables (bijv. 1 kledingwissel, studioshot, buitenshot in overleg)",
     }),
 
     defineField({
       name: "note",
-      title: "Kleine opmerking (optioneel)",
+      title: "Kleine noot (onder bullets)",
       type: "string",
-      description: "Bijv. 'Reiskosten in overleg' of 'Weekend +€25'",
+      description: "Bijv: vanaf 5 km 0,23 per km (komt vlak boven de knop)",
+    }),
+
+    defineField({
+      name: "featured",
+      title: "Meest gekozen",
+      type: "boolean",
+      initialValue: false,
+      description: "Toont badge ‘Meest gekozen’ op de kaart",
     }),
 
     defineField({
@@ -74,8 +75,7 @@ export default defineType({
       name: "ctaHref",
       title: "Knop link",
       type: "string",
-      description: "Bijv. '/boek' of '/boek?pakket=mini'",
-      initialValue: "/boek",
+      description: "Bijv: /boek of /boek?pakket=lite",
       validation: (Rule) => Rule.required(),
     }),
 
@@ -83,7 +83,24 @@ export default defineType({
       name: "order",
       title: "Volgorde",
       type: "number",
-      initialValue: 10,
+      description: "Lager = hoger in lijst (bijv. 1,2,3). Laat leeg voor automatisch.",
     }),
   ],
+
+  preview: {
+    select: {
+      title: "title",
+      subtitle: "subtitle",
+      featured: "featured",
+      price: "price",
+    },
+    prepare({ title, subtitle, featured, price }) {
+      const badge = featured ? "★ Meest gekozen" : "";
+      const priceLabel = price ? `€${String(price).replace("€", "")}` : "";
+      return {
+        title: [title, badge].filter(Boolean).join(" "),
+        subtitle: [subtitle, priceLabel].filter(Boolean).join(" · "),
+      };
+    },
+  },
 });
