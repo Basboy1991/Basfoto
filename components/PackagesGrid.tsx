@@ -9,13 +9,12 @@ type PackageCard = {
   deliverables?: string;
   highlights?: string[];
   featured?: boolean;
-  note?: string; // bv: "vanaf 5 km 0,23 per km"
+  note?: string;
   ctaLabel?: string;
   ctaHref: string;
 };
 
 function formatPrice(price: string) {
-  // accepteert: "35", "35.00", "€35", "€ 35"
   const cleaned = price.replace("€", "").trim();
   if (!cleaned) return "€";
   return `€${cleaned}`;
@@ -23,7 +22,6 @@ function formatPrice(price: string) {
 
 function normalizeDuration(duration?: string) {
   if (!duration) return null;
-  // Als iemand "1 uur" invult, maken we er iets netters van.
   return `Fotoshoot van circa ${duration}`;
 }
 
@@ -44,7 +42,7 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
               style={{ border: "1px solid var(--border)" }}
             >
               {/* Featured badge */}
-              {p.featured ? (
+              {p.featured && (
                 <div className="absolute right-5 top-5 z-10">
                   <span
                     className="inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold tracking-wide"
@@ -57,7 +55,7 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
                     Meest gekozen
                   </span>
                 </div>
-              ) : null}
+              )}
 
               <div className="p-7">
                 {/* Title */}
@@ -66,37 +64,44 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
                 </h2>
 
                 {/* Subtitle */}
-                {p.subtitle ? (
+                {p.subtitle && (
                   <p className="mt-2 text-center text-sm italic text-[var(--text-soft)]/90">
                     {p.subtitle}
                   </p>
-                ) : null}
+                )}
 
-                {/* Price block */}
+                {/* Price */}
                 <div className="mt-6 text-center">
                   <p className="text-4xl font-semibold text-[var(--text)]">
                     {formatPrice(p.price)}
                   </p>
 
-                  {durationLine ? (
-                    <p className="mt-2 text-sm text-[var(--text-soft)]">{durationLine}</p>
-                  ) : null}
+                  {durationLine && (
+                    <p className="mt-2 text-sm text-[var(--text-soft)]">
+                      {durationLine}
+                    </p>
+                  )}
                 </div>
 
-                {/* Deliverables as top “bullet” (bold-ish) */}
-                {p.deliverables ? (
-                  <div
-                    className="mt-6 rounded-2xl bg-white/55 px-4 py-3 text-sm"
-                    style={{ border: "1px solid var(--border)" }}
-                  >
-                    <span className="font-medium text-[var(--text)]">{p.deliverables}</span>
-                  </div>
-                ) : null}
+                {/* Highlights (deliverables eerst) */}
+                {(p.deliverables || p.highlights?.length) && (
+                  <ul className="mt-6 space-y-3">
+                    {p.deliverables && (
+                      <li className="flex items-start gap-3">
+                        <span
+                          className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/65"
+                          style={{ border: "1px solid var(--border)" }}
+                          aria-hidden
+                        >
+                          <Check size={16} color="var(--accent-strong)" />
+                        </span>
+                        <span className="text-sm font-medium text-[var(--text)]">
+                          {p.deliverables}
+                        </span>
+                      </li>
+                    )}
 
-                {/* Highlights */}
-                {p.highlights?.length ? (
-                  <ul className="mt-5 space-y-3">
-                    {p.highlights.map((h) => (
+                    {p.highlights?.map((h) => (
                       <li key={h} className="flex items-start gap-3">
                         <span
                           className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/65"
@@ -105,17 +110,19 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
                         >
                           <Check size={16} color="var(--accent-strong)" />
                         </span>
-                        <span className="text-sm leading-relaxed text-[var(--text-soft)]">{h}</span>
+                        <span className="text-sm leading-relaxed text-[var(--text-soft)]">
+                          {h}
+                        </span>
                       </li>
                     ))}
                   </ul>
-                ) : null}
+                )}
 
-                {/* Note (km-heffing) — vlak boven de knop */}
-                {p.note ? (
-                  <p className="mt-6 text-center text-xs text-[var(--text-soft)]">{p.note}</p>
-                ) : (
-                  <div className="mt-6" />
+                {/* Note / km-heffing */}
+                {p.note && (
+                  <p className="mt-6 text-center text-xs text-[var(--text-soft)]">
+                    {p.note}
+                  </p>
                 )}
 
                 {/* CTA */}
@@ -131,7 +138,7 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
                 </div>
               </div>
 
-              {/* tiny premium hover */}
+              {/* Subtiele premium hover */}
               <div
                 className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
