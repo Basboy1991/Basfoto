@@ -67,6 +67,14 @@ export default defineType({
       },
       description:
         "Sleep meerdere foto's tegelijk hierheen voor een slideshow. 1 foto = vaste header.",
+
+defineField({
+  name: "intro",
+  title: "Intro (zichtbaar op pagina)",
+  type: "text",
+  rows: 3,
+  description: "Korte intro tekst bovenaan de pagina (niet voor SEO).",
+}),
     }),
   ],
 });
