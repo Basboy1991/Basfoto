@@ -40,9 +40,6 @@ export default function NotFound() {
 
         </div>
 
-        <p className="mt-8 text-xs text-[var(--text-soft)]">
-          Tip: check je link, of ga via het menu naar de juiste pagina.
-        </p>
       </section>
     </main>
   );
