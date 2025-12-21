@@ -147,3 +147,21 @@ export const albumsQuery = `
     }
   }
 `;
+export const pageBySlugQuery = `
+  *[_type == "sitePage" && slug.current == $slug][0]{
+    title,
+    "slug": slug.current,
+    intro,
+    content,
+    media[]{
+      asset->{
+        _id,
+        url,
+        metadata{
+          lqip,
+          dimensions{width,height,aspectRatio}
+        }
+      }
+    }
+  }
+`;
