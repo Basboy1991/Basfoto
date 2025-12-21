@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type PackageCard = {
+export type PackageCard = {
   title: string;
   subtitle?: string;
   price: string;
@@ -21,21 +21,24 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
       <div className="grid gap-6 lg:grid-cols-3">
         {items.map((p) => (
           <article
-            key={p.title}
+            key={`${p.title}-${p.price}`}
             className="relative overflow-hidden rounded-3xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]"
             style={{
-              border: p.featured ? "1px solid rgba(126,162,148,0.55)" : "1px solid var(--border)",
+              border: p.featured
+                ? "1px solid rgba(126,162,148,0.55)"
+                : "1px solid var(--border)",
             }}
           >
-            {/* subtle premium top glow for featured */}
             {p.featured && (
               <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[var(--accent-soft)] to-transparent" />
             )}
 
             <div className="relative p-8 text-center">
               {p.featured && (
-                <p className="mx-auto mb-3 inline-flex rounded-full bg-white/70 px-4 py-1 text-xs font-medium text-[var(--text)]"
-                   style={{ border: "1px solid var(--border)" }}>
+                <p
+                  className="mx-auto mb-3 inline-flex rounded-full bg-white/70 px-4 py-1 text-xs font-medium text-[var(--text)]"
+                  style={{ border: "1px solid var(--border)" }}
+                >
                   Meest gekozen
                 </p>
               )}
@@ -79,9 +82,7 @@ export default function PackagesGrid({ items }: { items: PackageCard[] }) {
                 </Link>
               </div>
 
-              {p.note && (
-                <p className="mt-4 text-xs text-[var(--text-soft)] opacity-90">{p.note}</p>
-              )}
+              {p.note && <p className="mt-4 text-xs text-[var(--text-soft)] opacity-90">{p.note}</p>}
             </div>
           </article>
         ))}
