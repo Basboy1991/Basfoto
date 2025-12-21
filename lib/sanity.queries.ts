@@ -1,14 +1,28 @@
 export const pageBySlugQuery = `
   *[_type == "sitePage" && slug.current == $slug][0]{
     title,
+    slug,
     seoTitle,
     seoDescription,
+
+    // ✅ zichtbare intro (nieuw veld)
+    intro,
+
     content,
+
     media[]{
-      asset,
-      crop,
-      hotspot,
-      "lqip": asset->metadata.lqip
+      asset->{
+        _id,
+        url,
+        metadata{
+          lqip,
+          dimensions{
+            width,
+            height,
+            aspectRatio
+          }
+        }
+      }
     }
   }
 `;
