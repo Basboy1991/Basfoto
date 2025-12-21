@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { albumBySlugQuery } from "@/lib/sanity.queries";
@@ -20,7 +21,7 @@ type ParamsShape = { slug: string };
 export default async function PortfolioDetailPage({ params }: { params: Promise<ParamsShape> }) {
   const { slug } = await params;
 
-  // 1) Guard: slug moet bestaan
+  // 1) Guard: slug moet bestaan (dit is geen "404", maar een dev/route issue)
   if (!slug) {
     return (
       <section className="py-16">
@@ -41,37 +42,12 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
   // 2) Album ophalen uit Sanity
   const album = (await sanityClient.fetch(albumBySlugQuery, { slug })) as Album | null;
 
+  // ✅ ALBUM NIET GEVONDEN → gebruik de globale not-found.tsx
   if (!album) {
-    return (
-      <section className="py-16">
-        <h1 className="text-2xl font-semibold text-[var(--text)]">Album niet gevonden</h1>
-        <p className="mt-2 text-[var(--text-soft)]">
-          Gezochte slug: <strong>{slug}</strong>
-        </p>
-        <p className="mt-2 text-sm text-[var(--text-soft)]">
-          Check in Sanity Studio of het album <strong>gepubliceerd</strong> is en of de slug exact
-          klopt.
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/portfolio"
-            className="inline-flex items-center rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--accent-strong)]"
-          >
-            Naar portfolio
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center rounded-full border border-[var(--border)] bg-white/60 px-6 py-3 text-sm font-medium text-[var(--text)] hover:bg-white"
-          >
-            Naar homepage
-          </Link>
-        </div>
-      </section>
-    );
+    notFound();
   }
 
-  // 3) Cloudinary folder guard
+  // 3) Cloudinary folder guard (hier wil je wél een informatieve melding, geen 404)
   const folder = (album.cloudinaryFolder || "").trim();
   if (!folder) {
     return (
@@ -101,7 +77,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
     );
   }
 
-  // 4) Images ophalen uit Cloudinary (nu inclusief caption/alt via context)
+  // 4) Images ophalen uit Cloudinary
   const images = await listImagesByFolder(folder, 120);
 
   return (
@@ -139,7 +115,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
         </div>
       ) : (
         <>
-          {/* ✅ Lightbox gallery (klik = groot) */}
+          {/* ✅ Lightbox gallery */}
           <LightboxGallery images={images} titleFallback={album.title} />
 
           {/* Onder info / CTA */}
