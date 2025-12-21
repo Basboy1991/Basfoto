@@ -138,7 +138,7 @@ export const pageBySlugQuery = `
   }
 `;
 export const packagesQuery = `
-  *[_type == "package"] | order(featured desc, order asc, _createdAt desc){
+  *[_type == "package"] | order(featured desc, order asc, _createdAt desc) {
     title,
     subtitle,
     price,
