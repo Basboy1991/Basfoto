@@ -58,24 +58,14 @@ export default function PortfolioCards({ cards }: { cards: Card[] }) {
 function CardItem({ card, variant }: { card: Card; variant: "featured" | "small" }) {
   const aspect = variant === "featured" ? "aspect-[16/9]" : "aspect-[4/5]";
   const sizes =
-    variant === "featured" ? "(max-width: 768px) 100vw, 1024px" : "(max-width: 768px) 100vw, 520px";
+    variant === "featured"
+      ? "(max-width: 768px) 100vw, 1024px"
+      : "(max-width: 768px) 100vw, 520px";
 
   const imgUrl =
     variant === "featured"
-      ? urlFor(card.coverImage.asset)
-          .width(1800)
-          .height(1013)
-          .fit("crop")
-          .auto("format")
-          .quality(80)
-          .url()
-      : urlFor(card.coverImage.asset)
-          .width(1400)
-          .height(1750)
-          .fit("crop")
-          .auto("format")
-          .quality(80)
-          .url();
+      ? urlFor(card.coverImage.asset).width(1800).height(1013).fit("crop").auto("format").quality(80).url()
+      : urlFor(card.coverImage.asset).width(1400).height(1750).fit("crop").auto("format").quality(80).url();
 
   return (
     <article
@@ -97,23 +87,32 @@ function CardItem({ card, variant }: { card: Card; variant: "featured" | "small"
 
         {/* Content */}
         <div className="px-6 py-7 text-center">
+          {/* ✅ Titel: iets sterker + subtiele letterspacing */}
           <h3
             className={`font-semibold text-[var(--text)] ${
-              variant === "featured" ? "text-2xl" : "text-xl"
+              variant === "featured" ? "text-2xl md:text-3xl" : "text-xl md:text-2xl"
             }`}
+            style={{ letterSpacing: "-0.01em" }}
           >
             {card.title}
           </h3>
 
+          {/* ✅ Subtekst: rustiger & premium */}
           {card.text && (
-            <p className="mx-auto mt-2 max-w-[34ch] text-sm leading-relaxed text-[var(--text-soft)]">
+            <p className="mx-auto mt-2 max-w-[34ch] text-[13px] leading-relaxed text-[var(--text-soft)]">
               {card.text}
             </p>
           )}
 
-          {/* Kaart knop */}
+          {/* ✅ Knop: minder dominant, nog steeds premium */}
           <div className="mt-5 flex justify-center">
-            <span className="inline-flex items-center rounded-full bg-[var(--accent-strong)] px-6 py-2 text-sm font-medium text-white transition-colors group-hover:bg-[var(--accent)]">
+            <span
+              className="inline-flex items-center rounded-full px-5 py-2 text-[13px] font-medium text-[var(--text)] transition group-hover:bg-white"
+              style={{
+                background: "rgba(255,255,255,0.60)",
+                border: "1px solid var(--border)",
+              }}
+            >
               {card.buttonLabel ?? "Bekijk"}
               <span className="ml-2">→</span>
             </span>
