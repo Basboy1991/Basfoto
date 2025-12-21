@@ -1,86 +1,144 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 
 type PackageCard = {
   title: string;
   subtitle?: string;
-  price?: string;
+  price: string;
   duration?: string;
   deliverables?: string;
   highlights?: string[];
   featured?: boolean;
-  note?: string;
+  note?: string; // bv: "vanaf 5 km 0,23 per km"
   ctaLabel?: string;
-  ctaHref?: string;
+  ctaHref: string;
 };
 
-export default function PackagesGrid({ items }: { items: PackageCard[] }) {
-  const featured = items.find((p) => p.featured);
+function formatPrice(price: string) {
+  // accepteert: "35", "35.00", "€35", "€ 35"
+  const cleaned = price.replace("€", "").trim();
+  if (!cleaned) return "€";
+  return `€${cleaned}`;
+}
 
+function normalizeDuration(duration?: string) {
+  if (!duration) return null;
+  // Als iemand "1 uur" invult, maken we er iets netters van.
+  return `Fotoshoot van circa ${duration}`;
+}
+
+export default function PackagesGrid({ items }: { items: PackageCard[] }) {
   return (
     <section className="mt-12">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((p) => {
-          const isFeatured = featured && p === featured;
+          const durationLine = normalizeDuration(p.duration);
 
           return (
             <article
-              key={p.title}
-              className="relative overflow-hidden rounded-3xl bg-[var(--surface-2)] p-8 shadow-[var(--shadow-sm)]"
-              style={{
-                border: isFeatured ? "1px solid rgba(126,162,148,0.65)" : "1px solid var(--border)",
-                boxShadow: isFeatured ? "var(--shadow-md)" : "var(--shadow-sm)",
-              }}
+              key={`${p.title}-${p.price}`}
+              className={[
+                "group relative overflow-hidden rounded-3xl bg-[var(--surface-2)] shadow-[var(--shadow-sm)]",
+                p.featured ? "ring-1 ring-[var(--accent-strong)]" : "",
+              ].join(" ")}
+              style={{ border: "1px solid var(--border)" }}
             >
-              {isFeatured ? (
-                <span className="absolute right-6 top-6 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--text)]">
-                  Meest gekozen
-                </span>
+              {/* Featured badge */}
+              {p.featured ? (
+                <div className="absolute right-5 top-5 z-10">
+                  <span
+                    className="inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold tracking-wide"
+                    style={{
+                      background: "var(--accent-soft)",
+                      color: "var(--text)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    Meest gekozen
+                  </span>
+                </div>
               ) : null}
 
-              <h2 className="text-xl font-semibold text-[var(--text)]">{p.title}</h2>
+              <div className="p-7">
+                {/* Title */}
+                <h2 className="text-center text-2xl font-semibold text-[var(--text)]">
+                  {p.title}
+                </h2>
 
-              {p.subtitle ? (
-                <p className="mt-2 text-sm italic text-[var(--text-soft)]">{p.subtitle}</p>
-              ) : null}
+                {/* Subtitle */}
+                {p.subtitle ? (
+                  <p className="mt-2 text-center text-sm italic text-[var(--text-soft)]/90">
+                    {p.subtitle}
+                  </p>
+                ) : null}
 
-              {(p.price || p.duration) && (
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-center md:justify-start md:text-left">
-                  {p.price ? (
-                    <p className="text-2xl font-semibold text-[var(--text)]">{p.price}</p>
-                  ) : null}
-                  {p.duration ? (
-                    <p className="text-sm text-[var(--text-soft)]">{p.duration}</p>
+                {/* Price block */}
+                <div className="mt-6 text-center">
+                  <p className="text-4xl font-semibold text-[var(--text)]">
+                    {formatPrice(p.price)}
+                  </p>
+
+                  {durationLine ? (
+                    <p className="mt-2 text-sm text-[var(--text-soft)]">{durationLine}</p>
                   ) : null}
                 </div>
-              )}
 
-              {p.deliverables ? (
-                <p className="mt-4 text-sm leading-relaxed text-[var(--text-soft)]">{p.deliverables}</p>
-              ) : null}
+                {/* Deliverables as top “bullet” (bold-ish) */}
+                {p.deliverables ? (
+                  <div
+                    className="mt-6 rounded-2xl bg-white/55 px-4 py-3 text-sm"
+                    style={{ border: "1px solid var(--border)" }}
+                  >
+                    <span className="font-medium text-[var(--text)]">{p.deliverables}</span>
+                  </div>
+                ) : null}
 
-              {p.highlights?.length ? (
-                <ul className="mt-6 space-y-2 text-sm text-[var(--text-soft)]">
-                  {p.highlights.map((h, i) => (
-                    <li key={`${p.title}-h-${i}`} className="flex gap-2">
-                      <span className="mt-[2px] text-[var(--accent-strong)]">✓</span>
-                      <span>{h}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                {/* Highlights */}
+                {p.highlights?.length ? (
+                  <ul className="mt-5 space-y-3">
+                    {p.highlights.map((h) => (
+                      <li key={h} className="flex items-start gap-3">
+                        <span
+                          className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/65"
+                          style={{ border: "1px solid var(--border)" }}
+                          aria-hidden
+                        >
+                          <Check size={16} color="var(--accent-strong)" />
+                        </span>
+                        <span className="text-sm leading-relaxed text-[var(--text-soft)]">{h}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
 
-              {p.note ? (
-                <p className="mt-5 text-xs text-[var(--text-soft)] opacity-90">{p.note}</p>
-              ) : null}
+                {/* Note (km-heffing) — vlak boven de knop */}
+                {p.note ? (
+                  <p className="mt-6 text-center text-xs text-[var(--text-soft)]">{p.note}</p>
+                ) : (
+                  <div className="mt-6" />
+                )}
 
-              <div className="mt-8">
-                <Link
-                  href={p.ctaHref || "/boek"}
-                  className="inline-flex w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--accent-strong)]"
-                >
-                  {p.ctaLabel || "Boek dit pakket"}
-                </Link>
+                {/* CTA */}
+                <div className="mt-5">
+                  <Link
+                    href={p.ctaHref}
+                    className="inline-flex w-full items-center justify-center rounded-full px-6 py-4 text-sm font-semibold text-white transition hover:opacity-95"
+                    style={{ background: "var(--accent-strong)" }}
+                    aria-label={p.ctaLabel ?? `Boek ${p.title}`}
+                  >
+                    {p.ctaLabel ?? "Boek dit pakket"}
+                  </Link>
+                </div>
               </div>
+
+              {/* tiny premium hover */}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(143,174,160,0.10), rgba(255,255,255,0.0) 45%)",
+                }}
+              />
             </article>
           );
         })}
