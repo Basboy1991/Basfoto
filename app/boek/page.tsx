@@ -3,6 +3,10 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 
+import { sanityClient } from "@/lib/sanity.client";
+import { availabilitySettingsQuery } from "@/lib/sanity.queries";
+import { getAvailabilityForRange } from "@/lib/availability";
+
 function ContactButton({
   href,
   label,
@@ -29,14 +33,17 @@ function ContactButton({
       <span className="text-center">
         <span className="block">{label}</span>
         {sub ? (
-          <span className="mt-1 block text-xs font-medium opacity-80">{sub}</span>
+          <span className="mt-1 block text-xs font-medium opacity-80">
+            {sub}
+          </span>
         ) : null}
       </span>
     </a>
   );
 }
 
-export default function BoekPage() {
+export default async function BoekPage() {
+  // ✅ Contact uit config
   const contact = siteConfig.contact;
 
   const email = contact?.email ?? "";
@@ -49,6 +56,15 @@ export default function BoekPage() {
       ? `https://wa.me/${whatsapp.replace(/\D/g, "")}`
       : "";
 
+  // ✅ Availability uit Sanity + berekenen
+  const settings = await sanityClient.fetch(availabilitySettingsQuery);
+
+  // (Voor nu: vaste range als test — later maken we dit dynamisch)
+  const from = "2025-01-01";
+  const to = "2025-01-31";
+
+  const days = getAvailabilityForRange(settings, from, to);
+
   return (
     <>
       <header className="text-center">
@@ -57,8 +73,8 @@ export default function BoekPage() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-2xl text-[var(--text-soft)] md:text-lg">
-          Stuur me een bericht met je idee (gezin / huisdier / locatie / datum). Ik denk met je mee
-          en we plannen iets dat ontspannen voelt.
+          Stuur me een bericht met je idee (gezin / huisdier / locatie / datum).
+          Ik denk met je mee en we plannen iets dat ontspannen voelt.
         </p>
       </header>
 
@@ -106,8 +122,8 @@ export default function BoekPage() {
 
           <div className="pt-4">
             <p className="text-xs text-[var(--text-soft)]">
-              Tip: noem alvast je gewenste datum + locatie (Westland e.o.), en of het om gezin of
-              huisdieren gaat.
+              Tip: noem alvast je gewenste datum + locatie (Westland e.o.), en of
+              het om gezin of huisdieren gaat.
             </p>
           </div>
         </div>
@@ -134,8 +150,12 @@ export default function BoekPage() {
               className="rounded-3xl bg-[var(--surface-2)] p-6 text-center"
               style={{ border: "1px solid var(--border)" }}
             >
-              <p className="text-sm font-semibold text-[var(--text)]">{b.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--text-soft)]">{b.text}</p>
+              <p className="text-sm font-semibold text-[var(--text)]">
+                {b.title}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--text-soft)]">
+                {b.text}
+              </p>
             </div>
           ))}
         </div>
@@ -148,6 +168,26 @@ export default function BoekPage() {
             Bekijk eerst de pakketten
             <span className="ml-2">→</span>
           </Link>
+        </div>
+      </section>
+
+      {/* ✅ TEMP: Availability debug (straks vervangen door echte kalender UI) */}
+      <section
+        className="mx-auto mt-12 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <p className="text-sm font-semibold text-[var(--text)]">
+          Beschikbaarheid (test)
+        </p>
+        <p className="mt-2 text-sm text-[var(--text-soft)]">
+          Hieronder zie je tijdelijk de output van Sanity → availability. Dit
+          vervangen we straks door een kalender + klikbare starttijden.
+        </p>
+
+        <div className="mt-4 overflow-hidden rounded-2xl bg-black/5 p-4">
+          <pre className="text-xs whitespace-pre-wrap">
+            {JSON.stringify(days, null, 2)}
+          </pre>
         </div>
       </section>
     </>
