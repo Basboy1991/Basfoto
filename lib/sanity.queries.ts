@@ -158,3 +158,33 @@ export const packagesPageIntroQuery = `
     intro
   }
 `;
+
+export const availabilitySettingsQuery = `
+  *[_type == "availabilitySettings"][0]{
+    title,
+    timezone,
+    slotMinutes,
+    advanceDays,
+    defaultClosed,
+    defaultStartTimes,
+    openRanges[]{
+      label,
+      from,
+      to,
+      days,
+      useDefaultTimes,
+      startTimes
+    },
+    exceptions[]{
+      date,
+      closed,
+      startTimes,
+      note
+    },
+    blockedSlots[]{
+      date,
+      startTime,
+      reason
+    }
+  }
+`;
