@@ -18,6 +18,7 @@ export const siteConfig = {
     { label: "Portfolio", href: "/portfolio" },
     { label: "Pakketten", href: "/pakketten" },
     { label: "Contact", href: "/contact" },
+{ label: "Boek een Shoot", href: "/boek" },
   ],
 
   /* =========================
