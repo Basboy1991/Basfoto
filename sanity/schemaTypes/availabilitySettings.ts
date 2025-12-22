@@ -2,7 +2,7 @@ import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "availabilitySettings",
-  title: "Beschikbaarheid (Boekingen)",
+  title: "Beschikbaarheid (instellingen)",
   type: "document",
 
   fields: [
@@ -14,61 +14,107 @@ export default defineType({
       readOnly: true,
     }),
 
+    // ✅ Default closed (B)
     defineField({
-      name: "unavailableDates",
-      title: "Niet beschikbaar (datums)",
-      type: "array",
-      of: [{ type: "date" }],
-      description: "Datums die niet boekbaar zijn (vakantie/vol).",
-      options: { layout: "grid" },
+      name: "defaultClosed",
+      title: "Standaard: alles gesloten",
+      type: "boolean",
+      initialValue: true,
+      description:
+        "Als dit aan staat, zijn alleen dagen in 'Open dagen' boekbaar (behalve als ze in een gesloten periode vallen).",
     }),
 
+    // ✅ Open dagen (B)
     defineField({
-      name: "timeSlots",
-      title: "Tijdsloten (vaste tijden)",
+      name: "openDates",
+      title: "Open dagen (losse datums)",
+      type: "array",
+      of: [{ type: "date" }],
+      options: { layout: "grid" },
+      description:
+        "Voeg hier alleen de dagen toe die je wél wil aanbieden. (Handig: plan bijv. 2 maanden vooruit.)",
+    }),
+
+    // ✅ Extra dicht periodes (ranges)
+    defineField({
+      name: "closedRanges",
+      title: "Gesloten periodes (ranges)",
       type: "array",
       of: [
         {
-          name: "slot",
-          title: "Tijdslot",
           type: "object",
+          name: "range",
           fields: [
             defineField({
-              name: "label",
-              title: "Label",
-              type: "string",
-              description: 'Bijv. "09:00 – 10:00"',
-              validation: (Rule) => Rule.required(),
+              name: "from",
+              title: "Van",
+              type: "date",
+              validation: (R) => R.required(),
             }),
             defineField({
-              name: "value",
-              title: "Value",
+              name: "to",
+              title: "Tot",
+              type: "date",
+              validation: (R) => R.required(),
+            }),
+            defineField({
+              name: "reason",
+              title: "Reden (optioneel)",
               type: "string",
-              description: 'Bijv. "09:00-10:00" (voor techniek/filters)',
-              validation: (Rule) => Rule.required(),
             }),
           ],
           preview: {
-            select: { title: "label", subtitle: "value" },
+            select: { from: "from", to: "to", reason: "reason" },
+            prepare({ from, to, reason }) {
+              return {
+                title: `${from} → ${to}`,
+                subtitle: reason || "Gesloten",
+              };
+            },
           },
         },
       ],
-      description: "Deze tijden toon je in je formulier als dropdown.",
+      description:
+        "Handig voor vakantie/drukte. Deze ranges winnen altijd, ook als een dag in 'Open dagen' staat.",
     }),
 
+    // ✅ Tijdsloten (basis die we straks gebruiken in je formulier)
     defineField({
-      name: "note",
-      title: "Opmerking",
-      type: "text",
-      rows: 3,
-      description: 'Bijv. "Avonden alleen in overleg".',
+      name: "timeSlots",
+      title: "Tijdsloten",
+      type: "array",
+      of: [{ type: "string" }],
+      initialValue: ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30"],
+      description:
+        "De mogelijke starttijden. (Later koppelen we dit aan 'bezet/vrij'.)",
+    }),
+
+    // ✅ Optioneel: dagen van de week die je überhaupt aanbiedt (extra filter)
+    defineField({
+      name: "allowedWeekdays",
+      title: "Toegestane dagen (optioneel)",
+      type: "array",
+      of: [{ type: "string" }],
+      options: {
+        list: [
+          { title: "Maandag", value: "1" },
+          { title: "Dinsdag", value: "2" },
+          { title: "Woensdag", value: "3" },
+          { title: "Donderdag", value: "4" },
+          { title: "Vrijdag", value: "5" },
+          { title: "Zaterdag", value: "6" },
+          { title: "Zondag", value: "0" },
+        ],
+        layout: "grid",
+      },
+      description:
+        "Als je dit invult, zijn alleen deze weekdagen überhaupt selecteerbaar (bovenop open/closed logic).",
     }),
   ],
 
   preview: {
-    select: { title: "title" },
-    prepare({ title }) {
-      return { title: title || "Beschikbaarheid" };
+    prepare() {
+      return { title: "Beschikbaarheid (instellingen)" };
     },
   },
 });
