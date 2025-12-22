@@ -1,10 +1,19 @@
 import { defineField, defineType } from "sanity";
 
+const DAYS = [
+  { title: "Maandag", value: "mon" },
+  { title: "Dinsdag", value: "tue" },
+  { title: "Woensdag", value: "wed" },
+  { title: "Donderdag", value: "thu" },
+  { title: "Vrijdag", value: "fri" },
+  { title: "Zaterdag", value: "sat" },
+  { title: "Zondag", value: "sun" },
+];
+
 export default defineType({
   name: "availabilitySettings",
-  title: "Beschikbaarheid (instellingen)",
+  title: "Beschikbaarheid",
   type: "document",
-
   fields: [
     defineField({
       name: "title",
@@ -14,107 +23,230 @@ export default defineType({
       readOnly: true,
     }),
 
-    // ✅ Default closed (B)
+    defineField({
+      name: "timezone",
+      title: "Tijdzone",
+      type: "string",
+      description: "Voor NL meestal Europe/Amsterdam",
+      initialValue: "Europe/Amsterdam",
+    }),
+
+    defineField({
+      name: "slotMinutes",
+      title: "Slot duur (minuten)",
+      type: "number",
+      description:
+        "Wordt later gebruikt om te checken of een starttijd nog past. Laat op 60 staan als je 1 uur blokken wil.",
+      initialValue: 60,
+      validation: (Rule) => Rule.required().min(15).max(240),
+    }),
+
+    defineField({
+      name: "advanceDays",
+      title: "Hoeveel dagen vooruit boekbaar",
+      type: "number",
+      description: "Bijv. 60 = de komende 60 dagen zichtbaar/boekbaar",
+      initialValue: 60,
+      validation: (Rule) => Rule.required().min(7).max(365),
+    }),
+
     defineField({
       name: "defaultClosed",
-      title: "Standaard: alles gesloten",
+      title: "Default gesloten",
       type: "boolean",
+      description: "Aan = alles is dicht tenzij je open ranges instelt.",
       initialValue: true,
-      description:
-        "Als dit aan staat, zijn alleen dagen in 'Open dagen' boekbaar (behalve als ze in een gesloten periode vallen).",
+      validation: (Rule) => Rule.required(),
     }),
 
-    // ✅ Open dagen (B)
     defineField({
-      name: "openDates",
-      title: "Open dagen (losse datums)",
+      name: "openRanges",
+      title: "Open ranges",
       type: "array",
-      of: [{ type: "date" }],
-      options: { layout: "grid" },
       description:
-        "Voeg hier alleen de dagen toe die je wél wil aanbieden. (Handig: plan bijv. 2 maanden vooruit.)",
-    }),
-
-    // ✅ Extra dicht periodes (ranges)
-    defineField({
-      name: "closedRanges",
-      title: "Gesloten periodes (ranges)",
-      type: "array",
+        "Maak een periode open (datum van/tot), kies weekdagen en starttijden (bijv. 10:00, 13:00, 16:00).",
       of: [
         {
           type: "object",
-          name: "range",
+          name: "openRange",
           fields: [
             defineField({
+              name: "label",
+              title: "Label",
+              type: "string",
+              description: "Bijv. 'Zaterdag ochtenden' of 'Voorjaarsactie'",
+            }),
+            defineField({
               name: "from",
-              title: "Van",
+              title: "Vanaf (datum)",
               type: "date",
-              validation: (R) => R.required(),
+              validation: (Rule) => Rule.required(),
             }),
             defineField({
               name: "to",
-              title: "Tot",
+              title: "Tot (datum)",
               type: "date",
-              validation: (R) => R.required(),
+              validation: (Rule) => Rule.required(),
             }),
             defineField({
-              name: "reason",
-              title: "Reden (optioneel)",
-              type: "string",
+              name: "days",
+              title: "Weekdagen",
+              type: "array",
+              of: [{ type: "string" }],
+              options: { list: DAYS },
+              validation: (Rule) => Rule.required().min(1),
+            }),
+            defineField({
+              name: "startTimes",
+              title: "Starttijden (HH:MM)",
+              type: "array",
+              description: "Voorbeeld: 10:00, 13:00, 16:00",
+              of: [
+                {
+                  type: "string",
+                  validation: (Rule) =>
+                    Rule.regex(/^\d{2}:\d{2}$/, {
+                      name: "HH:MM",
+                      invert: false,
+                    }),
+                },
+              ],
+              validation: (Rule) => Rule.required().min(1),
             }),
           ],
           preview: {
-            select: { from: "from", to: "to", reason: "reason" },
-            prepare({ from, to, reason }) {
+            select: {
+              label: "label",
+              from: "from",
+              to: "to",
+              days: "days",
+              startTimes: "startTimes",
+            },
+            prepare({ label, from, to, days, startTimes }) {
+              const dayStr = Array.isArray(days) ? days.join(", ") : "";
+              const timeStr = Array.isArray(startTimes) ? startTimes.join(", ") : "";
               return {
-                title: `${from} → ${to}`,
-                subtitle: reason || "Gesloten",
+                title: label || "Open range",
+                subtitle: `${from || "?"} → ${to || "?"} | ${dayStr} | ${timeStr}`,
               };
             },
           },
         },
       ],
-      description:
-        "Handig voor vakantie/drukte. Deze ranges winnen altijd, ook als een dag in 'Open dagen' staat.",
+      initialValue: [],
     }),
 
-    // ✅ Tijdsloten (basis die we straks gebruiken in je formulier)
     defineField({
-      name: "timeSlots",
-      title: "Tijdsloten",
+      name: "exceptions",
+      title: "Uitzonderingen (specifieke datum)",
       type: "array",
-      of: [{ type: "string" }],
-      initialValue: ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30"],
       description:
-        "De mogelijke starttijden. (Later koppelen we dit aan 'bezet/vrij'.)",
+        "Gebruik dit om 1 dag dicht te zetten of juist extra open te zetten met eigen starttijden.",
+      of: [
+        {
+          type: "object",
+          name: "exception",
+          fields: [
+            defineField({
+              name: "date",
+              title: "Datum",
+              type: "date",
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "closed",
+              title: "Gesloten op deze datum",
+              type: "boolean",
+              initialValue: false,
+            }),
+            defineField({
+              name: "startTimes",
+              title: "Starttijden (alleen als NIET gesloten)",
+              type: "array",
+              of: [
+                {
+                  type: "string",
+                  validation: (Rule) =>
+                    Rule.regex(/^\d{2}:\d{2}$/, {
+                      name: "HH:MM",
+                      invert: false,
+                    }),
+                },
+              ],
+              hidden: ({ parent }) => Boolean(parent?.closed),
+            }),
+            defineField({
+              name: "note",
+              title: "Notitie",
+              type: "string",
+              description: "Bijv. 'Alleen ochtend' / 'Privé' / 'Kerst'",
+            }),
+          ],
+          preview: {
+            select: {
+              date: "date",
+              closed: "closed",
+              startTimes: "startTimes",
+              note: "note",
+            },
+            prepare({ date, closed, startTimes, note }) {
+              const t = Array.isArray(startTimes) ? startTimes.join(", ") : "";
+              return {
+                title: `${date || "Datum"} — ${closed ? "GESLOTEN" : "OPEN"}`,
+                subtitle: closed ? note || "" : `${t}${note ? ` · ${note}` : ""}`,
+              };
+            },
+          },
+        },
+      ],
+      initialValue: [],
     }),
 
-    // ✅ Optioneel: dagen van de week die je überhaupt aanbiedt (extra filter)
     defineField({
-      name: "allowedWeekdays",
-      title: "Toegestane dagen (optioneel)",
+      name: "blockedSlots",
+      title: "Geblokkeerde starttijden",
       type: "array",
-      of: [{ type: "string" }],
-      options: {
-        list: [
-          { title: "Maandag", value: "1" },
-          { title: "Dinsdag", value: "2" },
-          { title: "Woensdag", value: "3" },
-          { title: "Donderdag", value: "4" },
-          { title: "Vrijdag", value: "5" },
-          { title: "Zaterdag", value: "6" },
-          { title: "Zondag", value: "0" },
-        ],
-        layout: "grid",
-      },
       description:
-        "Als je dit invult, zijn alleen deze weekdagen überhaupt selecteerbaar (bovenop open/closed logic).",
+        "Als er al iets staat (of je wil een tijd blokkeren): kies datum + starttijd. Wordt later door het formulier uitgesloten.",
+      of: [
+        {
+          type: "object",
+          name: "blockedSlot",
+          fields: [
+            defineField({
+              name: "date",
+              title: "Datum",
+              type: "date",
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "startTime",
+              title: "Starttijd (HH:MM)",
+              type: "string",
+              validation: (Rule) =>
+                Rule.required().regex(/^\d{2}:\d{2}$/, {
+                  name: "HH:MM",
+                  invert: false,
+                }),
+            }),
+            defineField({
+              name: "reason",
+              title: "Reden",
+              type: "string",
+            }),
+          ],
+          preview: {
+            select: { date: "date", startTime: "startTime", reason: "reason" },
+            prepare({ date, startTime, reason }) {
+              return {
+                title: `${date || "Datum"} — ${startTime || ""}`,
+                subtitle: reason || "Geblokkeerd",
+              };
+            },
+          },
+        },
+      ],
+      initialValue: [],
     }),
   ],
-
-  preview: {
-    prepare() {
-      return { title: "Beschikbaarheid (instellingen)" };
-    },
-  },
 });
