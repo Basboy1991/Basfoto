@@ -10,6 +10,9 @@ const DAYS = [
   { title: "Zondag", value: "sun" },
 ];
 
+const timeValidation = (Rule: any) =>
+  Rule.regex(/^\d{2}:\d{2}$/, { name: "HH:MM", invert: false });
+
 export default defineType({
   name: "availabilitySettings",
   title: "Beschikbaarheid",
@@ -35,8 +38,6 @@ export default defineType({
       name: "slotMinutes",
       title: "Slot duur (minuten)",
       type: "number",
-      description:
-        "Wordt later gebruikt om te checken of een starttijd nog past. Laat op 60 staan als je 1 uur blokken wil.",
       initialValue: 60,
       validation: (Rule) => Rule.required().min(15).max(240),
     }),
@@ -45,7 +46,6 @@ export default defineType({
       name: "advanceDays",
       title: "Hoeveel dagen vooruit boekbaar",
       type: "number",
-      description: "Bijv. 60 = de komende 60 dagen zichtbaar/boekbaar",
       initialValue: 60,
       validation: (Rule) => Rule.required().min(7).max(365),
     }),
@@ -59,12 +59,31 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
 
+    // ✅ NIEUW: standaard starttijden (globaal)
+    defineField({
+      name: "defaultStartTimes",
+      title: "Standaard starttijden",
+      type: "array",
+      description:
+        "Deze tijden worden gebruikt als default. Open ranges kunnen dit overnemen, of overrulen.",
+      of: [
+        {
+          type: "string",
+          validation: (Rule) => Rule.required().custom((v: string) => {
+            if (!v) return true;
+            return /^\d{2}:\d{2}$/.test(v) ? true : "Gebruik HH:MM (bijv. 10:00)";
+          }),
+        },
+      ],
+      initialValue: [],
+    }),
+
     defineField({
       name: "openRanges",
       title: "Open ranges",
       type: "array",
       description:
-        "Maak een periode open (datum van/tot), kies weekdagen en starttijden (bijv. 10:00, 13:00, 16:00).",
+        "Maak een periode open (datum van/tot), kies weekdagen en starttijden. Je kunt standaard tijden gebruiken.",
       of: [
         {
           type: "object",
@@ -96,22 +115,29 @@ export default defineType({
               options: { list: DAYS },
               validation: (Rule) => Rule.required().min(1),
             }),
+
+            // ✅ NIEUW: toggle voor default tijden
+            defineField({
+              name: "useDefaultTimes",
+              title: "Gebruik standaard starttijden",
+              type: "boolean",
+              initialValue: true,
+              description:
+                "Aan = gebruikt ‘Standaard starttijden’ hierboven. Uit = kies starttijden speciaal voor deze range.",
+            }),
+
             defineField({
               name: "startTimes",
-              title: "Starttijden (HH:MM)",
+              title: "Starttijden (override) (HH:MM)",
               type: "array",
-              description: "Voorbeeld: 10:00, 13:00, 16:00",
+              description: "Alleen invullen als je NIET de standaard tijden gebruikt.",
               of: [
                 {
                   type: "string",
-                  validation: (Rule) =>
-                    Rule.regex(/^\d{2}:\d{2}$/, {
-                      name: "HH:MM",
-                      invert: false,
-                    }),
+                  validation: (Rule) => timeValidation(Rule),
                 },
               ],
-              validation: (Rule) => Rule.required().min(1),
+              hidden: ({ parent }) => Boolean(parent?.useDefaultTimes),
             }),
           ],
           preview: {
@@ -120,11 +146,16 @@ export default defineType({
               from: "from",
               to: "to",
               days: "days",
+              useDefaultTimes: "useDefaultTimes",
               startTimes: "startTimes",
             },
-            prepare({ label, from, to, days, startTimes }) {
+            prepare({ label, from, to, days, useDefaultTimes, startTimes }) {
               const dayStr = Array.isArray(days) ? days.join(", ") : "";
-              const timeStr = Array.isArray(startTimes) ? startTimes.join(", ") : "";
+              const timeStr = useDefaultTimes
+                ? "Standaard tijden"
+                : Array.isArray(startTimes)
+                  ? startTimes.join(", ")
+                  : "";
               return {
                 title: label || "Open range",
                 subtitle: `${from || "?"} → ${to || "?"} | ${dayStr} | ${timeStr}`,
@@ -161,34 +192,19 @@ export default defineType({
             }),
             defineField({
               name: "startTimes",
-              title: "Starttijden (alleen als NIET gesloten)",
+              title: "Starttijden (als OPEN) (HH:MM)",
               type: "array",
-              of: [
-                {
-                  type: "string",
-                  validation: (Rule) =>
-                    Rule.regex(/^\d{2}:\d{2}$/, {
-                      name: "HH:MM",
-                      invert: false,
-                    }),
-                },
-              ],
+              of: [{ type: "string", validation: (Rule) => timeValidation(Rule) }],
               hidden: ({ parent }) => Boolean(parent?.closed),
             }),
             defineField({
               name: "note",
               title: "Notitie",
               type: "string",
-              description: "Bijv. 'Alleen ochtend' / 'Privé' / 'Kerst'",
             }),
           ],
           preview: {
-            select: {
-              date: "date",
-              closed: "closed",
-              startTimes: "startTimes",
-              note: "note",
-            },
+            select: { date: "date", closed: "closed", startTimes: "startTimes", note: "note" },
             prepare({ date, closed, startTimes, note }) {
               const t = Array.isArray(startTimes) ? startTimes.join(", ") : "";
               return {
@@ -206,8 +222,7 @@ export default defineType({
       name: "blockedSlots",
       title: "Geblokkeerde starttijden",
       type: "array",
-      description:
-        "Als er al iets staat (of je wil een tijd blokkeren): kies datum + starttijd. Wordt later door het formulier uitgesloten.",
+      description: "Datum + starttijd die niet meer te boeken is.",
       of: [
         {
           type: "object",
@@ -223,11 +238,10 @@ export default defineType({
               name: "startTime",
               title: "Starttijd (HH:MM)",
               type: "string",
-              validation: (Rule) =>
-                Rule.required().regex(/^\d{2}:\d{2}$/, {
-                  name: "HH:MM",
-                  invert: false,
-                }),
+              validation: (Rule) => Rule.required().custom((v: string) => {
+                if (!v) return true;
+                return /^\d{2}:\d{2}$/.test(v) ? true : "Gebruik HH:MM (bijv. 10:00)";
+              }),
             }),
             defineField({
               name: "reason",
