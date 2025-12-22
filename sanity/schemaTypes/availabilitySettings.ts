@@ -2,7 +2,7 @@ import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "availabilitySettings",
-  title: "Beschikbaarheid (Boeken)",
+  title: "Beschikbaarheid (instellingen)",
   type: "document",
 
   fields: [
@@ -11,83 +11,84 @@ export default defineType({
       title: "Titel",
       type: "string",
       initialValue: "Beschikbaarheid",
-      validation: (Rule) => Rule.required(),
+      readOnly: true,
+    }),
+
+    defineField({
+      name: "timezone",
+      title: "Tijdzone",
+      type: "string",
+      initialValue: "Europe/Amsterdam",
+      description: "Laat dit meestal staan.",
     }),
 
     defineField({
       name: "defaultClosed",
-      title: "Standaard gesloten",
+      title: "Standaard dicht",
       type: "boolean",
       initialValue: true,
       description:
-        "Als dit aan staat, is alles standaard gesloten tenzij je een Open range toevoegt.",
+        "Aan = alle dagen zijn dicht tenzij je ze open zet (handigste start).",
     }),
 
     defineField({
-      name: "startTimes",
+      name: "defaultStartTimes",
       title: "Standaard starttijden",
       type: "array",
       of: [{ type: "string" }],
       description:
-        'Voorbeeld: ["10:00","13:00","15:00"]. Deze tijden verschijnen bij open dagen.',
-    }),
-
-    defineField({
-      name: "openRanges",
-      title: "Open ranges (periodes die boekbaar zijn)",
-      type: "array",
-      of: [
-        {
-          type: "object",
-          name: "openRange",
-          fields: [
-            defineField({ name: "from", title: "Van", type: "date", validation: (Rule) => Rule.required() }),
-            defineField({ name: "to", title: "Tot", type: "date", validation: (Rule) => Rule.required() }),
-            defineField({
-              name: "note",
-              title: "Notitie",
-              type: "string",
-              description: "Optioneel (bijv. kerstvakantie open)",
-            }),
-          ],
-        },
-      ],
+        'Welke tijden zijn standaard boekbaar (bv. "10:00", "13:00", "16:00").',
+      initialValue: ["10:00", "13:00", "16:00"],
     }),
 
     defineField({
       name: "closedDates",
-      title: "Gesloten dagen (hele dag dicht)",
+      title: "Gesloten dagen (losse datums)",
       type: "array",
       of: [{ type: "date" }],
-      description: "Losse dagen die altijd dicht zijn.",
+      description: "Bijv. vakanties / privé / volgeboekt.",
     }),
 
     defineField({
-      name: "blockedSlots",
-      title: "Geblokkeerde tijden (per dag)",
+      name: "openRanges",
+      title: "Open ranges",
       type: "array",
+      description:
+        "Zet een periode open + optioneel specifieke starttijden (laat leeg = standaard tijden).",
       of: [
         {
           type: "object",
-          name: "blockedSlot",
           fields: [
-            defineField({ name: "date", title: "Datum", type: "date", validation: (Rule) => Rule.required() }),
             defineField({
-              name: "times",
-              title: "Geblokkeerde starttijden",
-              type: "array",
-              of: [{ type: "string" }],
-              description: 'Voorbeeld: ["10:00","13:00"]',
+              name: "from",
+              title: "Van",
+              type: "date",
+              validation: (Rule) => Rule.required(),
             }),
             defineField({
-              name: "reason",
-              title: "Reden",
-              type: "string",
-              description: "Optioneel",
+              name: "to",
+              title: "Tot",
+              type: "date",
+              validation: (Rule) => Rule.required(),
+            }),
+            defineField({
+              name: "startTimes",
+              title: "Starttijden (optioneel)",
+              type: "array",
+              of: [{ type: "string" }],
+              description:
+                'Laat leeg = gebruikt "Standaard starttijden".',
             }),
           ],
         },
       ],
     }),
   ],
+
+  preview: {
+    select: { title: "title" },
+    prepare({ title }) {
+      return { title: title ?? "Beschikbaarheid" };
+    },
+  },
 });
