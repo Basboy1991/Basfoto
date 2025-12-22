@@ -7,7 +7,18 @@ import { sanityClient } from "@/lib/sanity.client";
 import { availabilitySettingsQuery } from "@/lib/sanity.queries";
 import { getAvailabilityForRange } from "@/lib/availability";
 
-import BookingAvailabilitySection from "@/components/BookingAvailabilitySection";
+import AvailabilityPicker from "@/components/AvailabilityPicker";
+
+function addDaysISO(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  // YYYY-MM-DD
+  return d.toISOString().slice(0, 10);
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function ContactButton({
   href,
@@ -36,24 +47,9 @@ function ContactButton({
   );
 }
 
-function toISODate(d: Date) {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function addDaysISO(fromISO: string, days: number) {
-  const [y, m, d] = fromISO.split("-").map(Number);
-  const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
-  dt.setDate(dt.getDate() + days);
-  return toISODate(dt);
-}
-
 export default async function BoekPage() {
   // ✅ Contact uit config
   const contact = siteConfig.contact;
-
   const email = contact?.email ?? "";
   const phone = contact?.phone ?? "";
   const whatsapp = contact?.whatsapp ?? "";
@@ -64,11 +60,13 @@ export default async function BoekPage() {
       ? `https://wa.me/${whatsapp.replace(/\D/g, "")}`
       : "";
 
-  // ✅ Availability uit Sanity + berekenen (vandaag → 45 dagen vooruit)
+  // ✅ Availability settings uit Sanity
   const settings = await sanityClient.fetch(availabilitySettingsQuery);
 
-  const from = toISODate(new Date());
-  const to = addDaysISO(from, 45);
+  // ✅ Dynamische periode
+  const from = todayISO();
+  const advanceDays = Number(settings?.advanceDays ?? 45); // fallback 45
+  const to = addDaysISO(advanceDays);
 
   const days = getAvailabilityForRange(settings, from, to);
 
@@ -90,7 +88,9 @@ export default async function BoekPage() {
       >
         <p className="text-sm font-medium text-[var(--text)]">Snelste route naar een afspraak</p>
 
-        <p className="mx-auto mt-2 max-w-xl text-sm italic text-[var(--text-soft)]">{responseTime}</p>
+        <p className="mx-auto mt-2 max-w-xl text-sm italic text-[var(--text-soft)]">
+          {responseTime}
+        </p>
 
         <div className="mt-7 grid gap-3">
           {email ? (
@@ -126,26 +126,23 @@ export default async function BoekPage() {
         </div>
       </section>
 
-      {/* ✅ Kalender + starttijden (echte UI) */}
-      <BookingAvailabilitySection days={days} email={email} />
+      {/* ✅ Klikbare beschikbaarheid */}
+      <section
+        className="mx-auto mt-12 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-[var(--text)]">Beschikbaarheid</h2>
+          <p className="mt-2 text-sm text-[var(--text-soft)]">
+            Van <strong>{from}</strong> t/m <strong>{to}</strong>
+          </p>
+        </div>
 
-      {/* Vertrouwen / premium reassurance */}
-      <section className="mx-auto mt-12 max-w-4xl">
-        <div className="grid gap-6 md:grid-cols-3">
-          {[
-            { title: "Rustig & persoonlijk", text: "Geen gehaast. We nemen de tijd zodat het echt voelt." },
-            { title: "Heldere afspraken", text: "Je weet vooraf wat je krijgt en wat het kost." },
-            { title: "Kwaliteit in levering", text: "Foto’s waar je jaren later nog blij van wordt." },
-          ].map((b) => (
-            <div
-              key={b.title}
-              className="rounded-3xl bg-[var(--surface-2)] p-6 text-center"
-              style={{ border: "1px solid var(--border)" }}
-            >
-              <p className="text-sm font-semibold text-[var(--text)]">{b.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--text-soft)]">{b.text}</p>
-            </div>
-          ))}
+        <div className="mt-6">
+          <AvailabilityPicker
+            days={days}
+            timezone={settings?.timezone ?? "Europe/Amsterdam"}
+          />
         </div>
 
         <div className="mt-10 text-center">
