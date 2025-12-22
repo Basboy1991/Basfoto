@@ -1,3 +1,6 @@
+/* =========================
+   HOME
+========================= */
 
 export const homePageQuery = `
   *[_type == "homePage"][0]{
@@ -44,6 +47,10 @@ export const homePageQuery = `
   }
 `;
 
+/* =========================
+   PORTFOLIO
+========================= */
+
 export const portfolioListQuery = `
   *[_type == "portfolioItem"] | order(featured desc, _createdAt desc){
     title,
@@ -83,6 +90,10 @@ export const portfolioBySlugQuery = `
   }
 `;
 
+/* =========================
+   ALBUMS
+========================= */
+
 export const albumListQuery = `
   *[_type == "album"] | order(_createdAt desc){
     title,
@@ -103,7 +114,7 @@ export const albumBySlugQuery = `
 `;
 
 export const albumsQuery = `
-  *[_type == "album" && defined(slug.current)] | order(_createdAt desc) {
+  *[_type == "album" && defined(slug.current)] | order(_createdAt desc){
     title,
     "slug": slug.current,
     description,
@@ -113,12 +124,21 @@ export const albumsQuery = `
         url,
         metadata{
           lqip,
-          dimensions{width,height,aspectRatio}
+          dimensions{
+            width,
+            height,
+            aspectRatio
+          }
         }
       }
     }
   }
 `;
+
+/* =========================
+   GENERIC SITE PAGES
+========================= */
+
 export const pageBySlugQuery = `
   *[_type == "sitePage" && slug.current == $slug][0]{
     title,
@@ -131,14 +151,23 @@ export const pageBySlugQuery = `
         url,
         metadata{
           lqip,
-          dimensions{width,height,aspectRatio}
+          dimensions{
+            width,
+            height,
+            aspectRatio
+          }
         }
       }
     }
   }
 `;
+
+/* =========================
+   PACKAGES
+========================= */
+
 export const packagesQuery = `
-  *[_type == "package"] | order(featured desc, order asc, _createdAt desc) {
+  *[_type == "package"] | order(featured desc, order asc, _createdAt desc){
     title,
     subtitle,
     price,
@@ -158,6 +187,10 @@ export const packagesPageIntroQuery = `
     intro
   }
 `;
+
+/* =========================
+   AVAILABILITY / BOEKEN
+========================= */
 
 export const availabilitySettingsQuery = `
   *[_type == "availabilitySettings"][0]{
@@ -186,22 +219,5 @@ export const availabilitySettingsQuery = `
       startTime,
       reason
     }
-  }
-`;
-    blockedSlots[]{
-      date,
-      startTime,
-      reason
-    }
-  }
-`;
-export const availabilitySettingsQuery = `
-  *[_type == "availabilitySettings"][0]{
-    title,
-    defaultClosed,
-    startTimes,
-    openRanges[]{from,to,note},
-    closedDates,
-    blockedSlots[]{date,times,reason}
   }
 `;
