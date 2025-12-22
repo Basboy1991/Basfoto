@@ -1,156 +1,133 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { AvailabilityDay } from "@/lib/availability";
 
-function weekdayShort(i: number) {
-  // maandag first
-  const names = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
-  return names[i] ?? "";
-}
+type DayAvailability = {
+  date: string; // YYYY-MM-DD
+  closed?: boolean;
+  startTimes?: string[]; // ["10:00","13:00"]
+  note?: string;
+};
 
-function getWeekdayIndexMondayFirst(dateISO: string) {
-  const [y, m, d] = dateISO.split("-").map(Number);
-  const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
-  const js = dt.getDay(); // 0 zondag
-  return (js + 6) % 7; // maandag=0 ... zondag=6
+function formatDateNL(iso: string, tz: string) {
+  const d = new Date(iso + "T00:00:00");
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: tz,
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(d);
 }
 
 export default function AvailabilityPicker({
   days,
-  onSelect,
+  timezone,
 }: {
-  days: AvailabilityDay[];
-  onSelect?: (payload: { date: string; time: string }) => void;
+  days: DayAvailability[];
+  timezone: string;
 }) {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const selectableDays = useMemo(
+    () => (days ?? []).filter((d) => !d.closed && (d.startTimes?.length ?? 0) > 0),
+    [days]
+  );
 
-  const dayMap = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    selectableDays[0]?.date ?? (days?.[0]?.date ?? "")
+  );
 
-  const first = days[0]?.date;
-  const last = days[days.length - 1]?.date;
-
-  // grid padding (lege cellen aan begin)
-  const pad = first ? getWeekdayIndexMondayFirst(first) : 0;
-
-  const selected = selectedDate ? dayMap.get(selectedDate) : null;
+  const selected = useMemo(
+    () => (days ?? []).find((d) => d.date === selectedDate),
+    [days, selectedDate]
+  );
 
   return (
-    <section
-      className="mx-auto mt-12 max-w-5xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-10"
-      style={{ border: "1px solid var(--border)" }}
-    >
-      <header className="text-center">
-        <h2 className="text-xl font-semibold text-[var(--text)] md:text-2xl">
-          Kies een datum & starttijd
-        </h2>
-        {first && last ? (
-          <p className="mt-2 text-sm italic text-[var(--text-soft)]">
-            Beschikbaarheid van {first} t/m {last}
-          </p>
-        ) : null}
-      </header>
+    <div className="grid gap-5 md:grid-cols-[1fr,1.2fr]">
+      {/* Datums */}
+      <div
+        className="rounded-3xl bg-white/55 p-4 md:p-5"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <p className="mb-3 text-sm font-semibold text-[var(--text)]">Kies een datum</p>
 
-      {/* Weekdays */}
-      <div className="mt-8 grid grid-cols-7 gap-2 text-center text-xs font-semibold text-[var(--text-soft)]">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i}>{weekdayShort(i)}</div>
-        ))}
-      </div>
+        <div className="grid max-h-[360px] gap-2 overflow-auto pr-1">
+          {(days ?? []).map((d) => {
+            const active = d.date === selectedDate;
+            const disabled = d.closed || !(d.startTimes?.length);
 
-      {/* Days grid */}
-      <div className="mt-3 grid grid-cols-7 gap-2">
-        {Array.from({ length: pad }).map((_, i) => (
-          <div key={`pad-${i}`} />
-        ))}
+            return (
+              <button
+                key={d.date}
+                type="button"
+                onClick={() => setSelectedDate(d.date)}
+                disabled={disabled}
+                className={[
+                  "rounded-2xl px-4 py-3 text-left text-sm transition",
+                  disabled ? "opacity-50" : "hover:bg-white",
+                  active ? "bg-[var(--accent-soft)]" : "bg-white/60",
+                ].join(" ")}
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-[var(--text)]">
+                    {formatDateNL(d.date, timezone)}
+                  </span>
+                  {disabled ? (
+                    <span className="text-xs text-[var(--text-soft)]">Niet beschikbaar</span>
+                  ) : (
+                    <span className="text-xs text-[var(--text-soft)]">
+                      {d.startTimes?.length} tijden
+                    </span>
+                  )}
+                </div>
 
-        {days.map((d) => {
-          const dd = d.date.split("-")[2];
-          const hasAny = d.times.some((t) => t.available);
-          const isSelected = selectedDate === d.date;
-
-          return (
-            <button
-              key={d.date}
-              type="button"
-              onClick={() => {
-                setSelectedDate(d.date);
-                setSelectedTime(null);
-              }}
-              disabled={!hasAny}
-              className={[
-                "h-12 rounded-2xl text-sm transition",
-                hasAny
-                  ? "bg-white/70 hover:bg-white"
-                  : "bg-black/5 opacity-60 cursor-not-allowed",
-                isSelected ? "ring-2 ring-[var(--accent-strong)]" : "",
-              ].join(" ")}
-              style={{ border: "1px solid var(--border)" }}
-              aria-label={`Datum ${d.date}`}
-            >
-              <span className="font-semibold text-[var(--text)]">{dd}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Times */}
-      <div className="mt-8">
-        <div className="text-center">
-          <p className="text-sm font-semibold text-[var(--text)]">
-            {selected ? `Starttijden voor ${selected.date}` : "Selecteer eerst een datum"}
-          </p>
-          {selected?.note ? (
-            <p className="mt-1 text-xs text-[var(--text-soft)]">{selected.note}</p>
-          ) : null}
+                {d.note ? (
+                  <div className="mt-1 text-xs text-[var(--text-soft)]">{d.note}</div>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
-
-        {selected ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {selected.times.map((t) => {
-              const active = selectedTime === t.time;
-
-              return (
-                <button
-                  key={t.time}
-                  type="button"
-                  disabled={!t.available}
-                  onClick={() => {
-                    setSelectedTime(t.time);
-                    onSelect?.({ date: selected.date, time: t.time });
-                  }}
-                  className={[
-                    "rounded-full px-5 py-3 text-sm font-semibold transition",
-                    t.available
-                      ? "bg-white/70 hover:bg-white"
-                      : "bg-black/5 opacity-60 cursor-not-allowed",
-                    active ? "bg-[var(--accent-strong)] text-white hover:bg-[var(--accent)]" : "text-[var(--text)]",
-                  ].join(" ")}
-                  style={{ border: "1px solid var(--border)" }}
-                >
-                  {t.time}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {/* Selected summary */}
-        {selectedDate && selectedTime ? (
-          <div
-            className="mt-8 rounded-3xl bg-white/60 p-5 text-center"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            <p className="text-sm font-semibold text-[var(--text)]">
-              Gekozen: {selectedDate} om {selectedTime}
-            </p>
-            <p className="mt-1 text-xs text-[var(--text-soft)]">
-              Dit is nog geen definitieve boeking — je stuurt mij een bericht en ik bevestig.
-            </p>
-          </div>
-        ) : null}
       </div>
-    </section>
+
+      {/* Tijden */}
+      <div
+        className="rounded-3xl bg-white/55 p-4 md:p-5"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <p className="mb-3 text-sm font-semibold text-[var(--text)]">Beschikbare starttijden</p>
+
+        {selected?.closed ? (
+          <p className="text-sm text-[var(--text-soft)]">Deze dag is gesloten.</p>
+        ) : selected?.startTimes?.length ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {selected.startTimes.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className="rounded-2xl bg-white/70 px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-white"
+                style={{ border: "1px solid var(--border)" }}
+                onClick={() => {
+                  // Voor nu: selecteren = kopieerbare hint.
+                  // Later: dit wordt “formulier invullen” of direct mail/agenda.
+                  const msg = `Ik wil graag een shoot boeken op ${selected.date} om ${t}.`;
+                  navigator.clipboard?.writeText(msg);
+                  alert(`Gekopieerd:\n${msg}\n\nPlak dit in je mail/WhatsApp 🙂`);
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--text-soft)]">
+            Kies links een datum met beschikbare tijden.
+          </p>
+        )}
+
+        <p className="mt-4 text-xs text-[var(--text-soft)]">
+          Tip: klik op een tijd → tekst wordt gekopieerd (handig voor mail/WhatsApp).
+        </p>
+      </div>
+    </div>
   );
 }
