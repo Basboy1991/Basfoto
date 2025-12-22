@@ -188,3 +188,13 @@ export const availabilitySettingsQuery = `
     }
   }
 `;
+export const availabilitySettingsQuery = `
+  *[_type == "availabilitySettings"][0]{
+    title,
+    defaultClosed,
+    startTimes,
+    openRanges[]{from,to,note},
+    closedDates,
+    blockedSlots[]{date,times,reason}
+  }
+`;
