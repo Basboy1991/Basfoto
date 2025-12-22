@@ -4,8 +4,6 @@ export default defineType({
   name: "availabilitySettings",
   title: "Beschikbaarheid (Boekingen)",
   type: "document",
-  // Singleton: voorkomt meerdere docs
-  __experimental_actions: ["update", "publish"] as any,
 
   fields: [
     defineField({
@@ -30,7 +28,7 @@ export default defineType({
       title: "Tijdsloten (vaste tijden)",
       type: "array",
       of: [
-        defineField({
+        {
           name: "slot",
           title: "Tijdslot",
           type: "object",
@@ -53,7 +51,7 @@ export default defineType({
           preview: {
             select: { title: "label", subtitle: "value" },
           },
-        }),
+        },
       ],
       description: "Deze tijden toon je in je formulier als dropdown.",
     }),
