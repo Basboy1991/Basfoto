@@ -1,59 +1,67 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import AvailabilityPicker from "@/components/AvailabilityPicker";
-import type { AvailabilityDay } from "@/lib/availability";
+import AvailabilityPicker, { DayAvailability } from "@/components/AvailabilityPicker";
 
-function buildMailto(email: string, date: string, time: string) {
-  const subject = encodeURIComponent("Boekingsaanvraag fotoshoot");
-  const body = encodeURIComponent(
-    `Hoi Bas,\n\nIk wil graag een fotoshoot boeken.\n\nVoorkeur:\n- Datum: ${date}\n- Starttijd: ${time}\n\nExtra info:\n- Type shoot (gezin/huisdieren): \n- Locatie (Westland e.o.): \n- Aantal personen/dieren: \n\nGroet,\n`
-  );
-  return `mailto:${email}?subject=${subject}&body=${body}`;
-}
+type Props = {
+  days: DayAvailability[];
+  timezone: string;
+  from: string;
+  to: string;
+};
 
-export default function BookingAvailabilitySection({
-  days,
-  email,
-}: {
-  days: AvailabilityDay[];
-  email: string;
-}) {
+export default function BookingAvailabilitySection({ days, timezone, from, to }: Props) {
   const [selection, setSelection] = useState<{ date: string; time: string } | null>(null);
 
-  const mailto = useMemo(() => {
-    if (!selection || !email) return "";
-    return buildMailto(email, selection.date, selection.time);
-  }, [selection, email]);
-
-  if (!days?.length) return null;
+  const selectableCount = useMemo(() => {
+    return (days ?? []).filter((d) => !d.closed && (d.startTimes?.length ?? 0) > 0).length;
+  }, [days]);
 
   return (
-    <section className="mt-12">
-      <AvailabilityPicker
-        days={days}
-        onSelect={(payload) => {
-          setSelection(payload);
-        }}
-      />
-
-      {/* Extra CTA als er gekozen is */}
-      {selection && email ? (
-        <div className="mx-auto mt-8 max-w-5xl text-center">
-          <a
-            href={mailto}
-            className="inline-flex items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition hover:opacity-95"
-            style={{ background: "var(--accent-strong)" }}
-          >
-            Mail met keuze ({selection.date} · {selection.time})
-            <span className="ml-2">→</span>
-          </a>
-
-          <p className="mx-auto mt-3 max-w-2xl text-xs text-[var(--text-soft)]">
-            Dit is nog geen definitieve boeking — jij stuurt de aanvraag, Bas bevestigt de afspraak.
+    <div>
+      {selectableCount === 0 ? (
+        <div
+          className="rounded-3xl bg-[var(--surface-2)] p-8 text-center"
+          style={{ border: "1px solid var(--border)" }}
+        >
+          <p className="text-sm font-semibold text-[var(--text)]">Geen tijden beschikbaar</p>
+          <p className="mt-2 text-sm text-[var(--text-soft)]">
+            Dit betekent meestal dat in Sanity nog geen <strong>openRanges</strong> of{" "}
+            <strong>defaultStartTimes</strong> zijn ingesteld, of dat alles in deze periode
+            “gesloten” is.
           </p>
+
+          <div className="mt-4 overflow-hidden rounded-2xl bg-black/5 p-4 text-left">
+            <p className="mb-2 text-xs font-semibold text-[var(--text)]">
+              Debug (range {from} → {to})
+            </p>
+            <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(days?.slice(0, 14), null, 2)}</pre>
+          </div>
         </div>
-      ) : null}
-    </section>
+      ) : (
+        <>
+          <AvailabilityPicker
+            days={days}
+            timezone={timezone}
+            onSelect={(payload) => setSelection(payload)}
+          />
+
+          {selection ? (
+            <div
+              className="mt-6 rounded-3xl bg-[var(--surface-2)] p-6 text-center"
+              style={{ border: "1px solid var(--border)" }}
+            >
+              <p className="text-sm font-semibold text-[var(--text)]">Gekozen:</p>
+              <p className="mt-1 text-sm text-[var(--text-soft)]">
+                {selection.date} om {selection.time}
+              </p>
+              <p className="mt-3 text-xs text-[var(--text-soft)]">
+                (Volgende stap: hier maken we straks automatisch een mail/WhatsApp-tekst van.)
+              </p>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
   );
 }
