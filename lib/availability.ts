@@ -1,99 +1,132 @@
-type OpenRange = { from: string; to: string; note?: string };
-type BlockedSlot = { date: string; times?: string[]; reason?: string };
+// lib/availability.ts
 
 export type AvailabilitySettings = {
+  timezone?: string;
+  advanceDays?: number;
+
   defaultClosed?: boolean;
-  startTimes?: string[];
-  openRanges?: OpenRange[];
-  closedDates?: string[];
-  blockedSlots?: BlockedSlot[];
+  defaultStartTimes?: string[];
+
+  openRanges?: Array<{
+    label?: string;
+    from: string; // YYYY-MM-DD
+    to: string;   // YYYY-MM-DD
+    days?: string[]; // ["mon","tue",...]
+    useDefaultTimes?: boolean;
+    startTimes?: string[];
+  }>;
+
+  exceptions?: Array<{
+    date: string; // YYYY-MM-DD
+    closed?: boolean;
+    startTimes?: string[];
+    note?: string;
+  }>;
+
+  blockedSlots?: Array<{
+    date: string;      // YYYY-MM-DD
+    startTime: string; // "10:00"
+    reason?: string;
+  }>;
 };
 
-export type AvailabilityDay = {
-  date: string; // YYYY-MM-DD
-  isOpen: boolean;
-  times: { time: string; available: boolean }[];
-  note?: string;
+export type DayAvailability = {
+  date: string;           // YYYY-MM-DD
+  closed: boolean;        // true = dicht
+  startTimes: string[];   // ["10:00","13:00"]
 };
 
-function toISODate(d: Date) {
-  // UTC-safe-ish for day-level logic
+function toDate(d: string) {
+  // d = YYYY-MM-DD
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(y, m - 1, day);
+}
+function toIsoDate(d: Date) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
-
-function parseISODate(s: string) {
-  // "2025-01-05" -> Date in local timezone (ok voor day grid)
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
+function addDays(date: Date, days: number) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
 }
-
-function inRange(day: string, from: string, to: string) {
-  const t = parseISODate(day).getTime();
-  return t >= parseISODate(from).getTime() && t <= parseISODate(to).getTime();
+function inRange(date: string, from: string, to: string) {
+  return date >= from && date <= to;
+}
+function weekdayKey(date: string) {
+  // NL week: mon..sun
+  const d = toDate(date);
+  const map = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+  return map[d.getDay()];
 }
 
 export function getAvailabilityForRange(
   settings: AvailabilitySettings,
   from: string,
   to: string
-): AvailabilityDay[] {
-  const startTimes = (settings.startTimes ?? []).filter(Boolean);
+): DayAvailability[] {
+  const defaultClosed = Boolean(settings?.defaultClosed ?? false);
+  const defaultStartTimes = (settings?.defaultStartTimes ?? []).filter(Boolean);
 
-  const openRanges = settings.openRanges ?? [];
-  const closedDates = new Set((settings.closedDates ?? []).filter(Boolean));
+  const openRanges = settings?.openRanges ?? [];
+  const exceptions = settings?.exceptions ?? [];
+  const blocked = settings?.blockedSlots ?? [];
 
-  // map date -> blocked times set
-  const blockedMap = new Map<string, Set<string>>();
-  for (const b of settings.blockedSlots ?? []) {
-    if (!b?.date) continue;
-    const set = new Set((b.times ?? []).filter(Boolean));
-    if (!blockedMap.has(b.date)) blockedMap.set(b.date, set);
-    else {
-      // merge
-      const cur = blockedMap.get(b.date)!;
-      for (const t of set) cur.add(t);
-    }
-  }
+  // Loop days
+  const start = toDate(from);
+  const end = toDate(to);
 
-  const defaultClosed = Boolean(settings.defaultClosed);
+  const out: DayAvailability[] = [];
+  for (let cur = new Date(start); cur <= end; cur = addDays(cur, 1)) {
+    const date = toIsoDate(cur);
+    const dayKey = weekdayKey(date);
 
-  const out: AvailabilityDay[] = [];
-  const fromD = parseISODate(from);
-  const toD = parseISODate(to);
+    // 1) start with defaults
+    let closed = defaultClosed;
+    let startTimes = [...defaultStartTimes];
 
-  for (let d = new Date(fromD); d.getTime() <= toD.getTime(); d.setDate(d.getDate() + 1)) {
-    const day = toISODate(d);
-
-    // note: eerste matchende range-note
-    const rangeNote = openRanges.find((r) => r?.from && r?.to && inRange(day, r.from, r.to))?.note;
-
-    // open/closed logic
-    const isClosedByList = closedDates.has(day);
-
-    const isInOpenRange = openRanges.some((r) => r?.from && r?.to && inRange(day, r.from, r.to));
-
-    // Default: als defaultClosed=true -> alleen open als in open range
-    // Als defaultClosed=false -> open, behalve closedDates
-    let isOpen = defaultClosed ? isInOpenRange : true;
-
-    if (isClosedByList) isOpen = false;
-
-    const blocked = blockedMap.get(day) ?? new Set<string>();
-
-    const times = startTimes.map((t) => ({
-      time: t,
-      available: isOpen && !blocked.has(t),
-    }));
-
-    out.push({
-      date: day,
-      isOpen,
-      times,
-      note: rangeNote,
+    // 2) apply openRanges (kan default openzetten + tijden geven)
+    // Als defaultClosed=true, dan moet een openRange die dag "open" maken.
+    const matchingRanges = openRanges.filter((r) => {
+      if (!r?.from || !r?.to) return false;
+      if (!inRange(date, r.from, r.to)) return false;
+      if (r.days?.length) return r.days.includes(dayKey);
+      return true;
     });
+
+    if (matchingRanges.length) {
+      // Als er een range matcht: open (tenzij je bewust dicht wilt via exception)
+      closed = false;
+
+      // kies tijden: als range useDefaultTimes → defaultStartTimes, anders range.startTimes
+      // bij meerdere ranges: neem de eerste met expliciete startTimes, anders default
+      const withCustomTimes = matchingRanges.find((r) => r.startTimes?.length && !r.useDefaultTimes);
+
+      if (withCustomTimes?.startTimes?.length) {
+        startTimes = [...withCustomTimes.startTimes];
+      } else {
+        // als ten minste één range zegt "useDefaultTimes" of er zijn geen custom tijden:
+        startTimes = [...defaultStartTimes];
+      }
+    }
+
+    // 3) apply exception for exact date (override)
+    const ex = exceptions.find((e) => e.date === date);
+    if (ex) {
+      if (typeof ex.closed === "boolean") closed = ex.closed;
+      if (ex.startTimes) startTimes = [...ex.startTimes];
+    }
+
+    // 4) remove blocked slots for that date
+    const blockedTimes = blocked.filter((b) => b.date === date).map((b) => b.startTime);
+    startTimes = startTimes.filter((t) => !blockedTimes.includes(t));
+
+    // 5) if no times => treat as closed for UI purposes
+    if (!startTimes.length) closed = true;
+
+    out.push({ date, closed, startTimes });
   }
 
   return out;
