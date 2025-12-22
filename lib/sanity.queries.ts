@@ -188,6 +188,13 @@ export const availabilitySettingsQuery = `
     }
   }
 `;
+    blockedSlots[]{
+      date,
+      startTime,
+      reason
+    }
+  }
+`;
 export const availabilitySettingsQuery = `
   *[_type == "availabilitySettings"][0]{
     title,
