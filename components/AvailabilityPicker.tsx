@@ -2,11 +2,16 @@
 
 import { useMemo, useState } from "react";
 
-type DayAvailability = {
+export type DayAvailability = {
   date: string; // YYYY-MM-DD
   closed?: boolean;
   startTimes?: string[]; // ["10:00","13:00"]
   note?: string;
+};
+
+type SelectPayload = {
+  date: string;
+  time: string;
 };
 
 function formatDateNL(iso: string, tz: string) {
@@ -21,10 +26,12 @@ function formatDateNL(iso: string, tz: string) {
 
 export default function AvailabilityPicker({
   days,
-  timezone,
+  timezone = "Europe/Amsterdam",
+  onSelect,
 }: {
   days: DayAvailability[];
-  timezone: string;
+  timezone?: string;
+  onSelect?: (payload: SelectPayload) => void;
 }) {
   const selectableDays = useMemo(
     () => (days ?? []).filter((d) => !d.closed && (d.startTimes?.length ?? 0) > 0),
@@ -40,6 +47,21 @@ export default function AvailabilityPicker({
     [days, selectedDate]
   );
 
+  function handleSelectTime(time: string) {
+    const payload = { date: selectedDate, time };
+
+    // ✅ Als parent een handler meegeeft (BookingAvailabilitySection), gebruik die
+    if (onSelect) {
+      onSelect(payload);
+      return;
+    }
+
+    // ✅ Fallback: kopieer tekst + alert
+    const msg = `Ik wil graag een shoot boeken op ${payload.date} om ${payload.time}.`;
+    navigator.clipboard?.writeText(msg);
+    alert(`Gekopieerd:\n${msg}\n\nPlak dit in je mail/WhatsApp 🙂`);
+  }
+
   return (
     <div className="grid gap-5 md:grid-cols-[1fr,1.2fr]">
       {/* Datums */}
@@ -52,7 +74,7 @@ export default function AvailabilityPicker({
         <div className="grid max-h-[360px] gap-2 overflow-auto pr-1">
           {(days ?? []).map((d) => {
             const active = d.date === selectedDate;
-            const disabled = d.closed || !(d.startTimes?.length);
+            const disabled = Boolean(d.closed || !(d.startTimes?.length));
 
             return (
               <button
@@ -71,6 +93,7 @@ export default function AvailabilityPicker({
                   <span className="font-medium text-[var(--text)]">
                     {formatDateNL(d.date, timezone)}
                   </span>
+
                   {disabled ? (
                     <span className="text-xs text-[var(--text-soft)]">Niet beschikbaar</span>
                   ) : (
@@ -80,9 +103,7 @@ export default function AvailabilityPicker({
                   )}
                 </div>
 
-                {d.note ? (
-                  <div className="mt-1 text-xs text-[var(--text-soft)]">{d.note}</div>
-                ) : null}
+                {d.note ? <div className="mt-1 text-xs text-[var(--text-soft)]">{d.note}</div> : null}
               </button>
             );
           })}
@@ -106,13 +127,7 @@ export default function AvailabilityPicker({
                 type="button"
                 className="rounded-2xl bg-white/70 px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-white"
                 style={{ border: "1px solid var(--border)" }}
-                onClick={() => {
-                  // Voor nu: selecteren = kopieerbare hint.
-                  // Later: dit wordt “formulier invullen” of direct mail/agenda.
-                  const msg = `Ik wil graag een shoot boeken op ${selected.date} om ${t}.`;
-                  navigator.clipboard?.writeText(msg);
-                  alert(`Gekopieerd:\n${msg}\n\nPlak dit in je mail/WhatsApp 🙂`);
-                }}
+                onClick={() => handleSelectTime(t)}
               >
                 {t}
               </button>
@@ -125,7 +140,7 @@ export default function AvailabilityPicker({
         )}
 
         <p className="mt-4 text-xs text-[var(--text-soft)]">
-          Tip: klik op een tijd → tekst wordt gekopieerd (handig voor mail/WhatsApp).
+          Tip: klik op een tijd → we gebruiken jouw selectie (of kopiëren tekst als fallback).
         </p>
       </div>
     </div>
