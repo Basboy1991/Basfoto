@@ -4,106 +4,54 @@ import { useMemo, useState } from "react";
 
 export type DayAvailability = {
   date: string; // YYYY-MM-DD
-  closed?: boolean;
-  startTimes?: string[]; // ["10:00","13:00"]
-  note?: string;
+  closed: boolean;
+  startTimes: string[];
 };
-
-type SelectPayload = {
-  date: string;
-  time: string;
-};
-
-function formatDateNL(iso: string, tz: string) {
-  const d = new Date(iso + "T00:00:00");
-  return new Intl.DateTimeFormat("nl-NL", {
-    timeZone: tz,
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  }).format(d);
-}
 
 export default function AvailabilityPicker({
   days,
-  timezone = "Europe/Amsterdam",
+  timezone,
   onSelect,
 }: {
   days: DayAvailability[];
-  timezone?: string;
-  onSelect?: (payload: SelectPayload) => void;
+  timezone: string;
+  onSelect?: (payload: { date: string; time: string }) => void;
 }) {
-  const selectableDays = useMemo(
-    () => (days ?? []).filter((d) => !d.closed && (d.startTimes?.length ?? 0) > 0),
-    [days]
-  );
-
-  const [selectedDate, setSelectedDate] = useState<string>(
-    selectableDays[0]?.date ?? (days?.[0]?.date ?? "")
-  );
-
-  const selected = useMemo(
-    () => (days ?? []).find((d) => d.date === selectedDate),
-    [days, selectedDate]
-  );
-
-  function handleSelectTime(time: string) {
-    const payload = { date: selectedDate, time };
-
-    // ✅ Als parent een handler meegeeft (BookingAvailabilitySection), gebruik die
-    if (onSelect) {
-      onSelect(payload);
-      return;
-    }
-
-    // ✅ Fallback: kopieer tekst + alert
-    const msg = `Ik wil graag een shoot boeken op ${payload.date} om ${payload.time}.`;
-    navigator.clipboard?.writeText(msg);
-    alert(`Gekopieerd:\n${msg}\n\nPlak dit in je mail/WhatsApp 🙂`);
-  }
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const selected = useMemo(() => days.find((d) => d.date === selectedDate), [days, selectedDate]);
 
   return (
-    <div className="grid gap-5 md:grid-cols-[1fr,1.2fr]">
-      {/* Datums */}
+    <div className="grid gap-6 md:grid-cols-2">
+      {/* Dagen */}
       <div
-        className="rounded-3xl bg-white/55 p-4 md:p-5"
+        className="rounded-3xl bg-[var(--surface-2)] p-6"
         style={{ border: "1px solid var(--border)" }}
       >
-        <p className="mb-3 text-sm font-semibold text-[var(--text)]">Kies een datum</p>
+        <p className="text-sm font-semibold text-[var(--text)]">Kies een dag</p>
+        <p className="mt-1 text-xs text-[var(--text-soft)]">Tijdzone: {timezone}</p>
 
-        <div className="grid max-h-[360px] gap-2 overflow-auto pr-1">
-          {(days ?? []).map((d) => {
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {days.map((d) => {
+            const disabled = d.closed || d.startTimes.length === 0;
             const active = d.date === selectedDate;
-            const disabled = Boolean(d.closed || !(d.startTimes?.length));
 
             return (
               <button
                 key={d.date}
                 type="button"
-                onClick={() => setSelectedDate(d.date)}
                 disabled={disabled}
+                onClick={() => setSelectedDate(d.date)}
                 className={[
-                  "rounded-2xl px-4 py-3 text-left text-sm transition",
-                  disabled ? "opacity-50" : "hover:bg-white",
-                  active ? "bg-[var(--accent-soft)]" : "bg-white/60",
+                  "rounded-2xl px-3 py-3 text-left text-sm transition",
+                  disabled ? "opacity-40" : "hover:bg-white/60",
+                  active ? "bg-white/70" : "bg-white/40",
                 ].join(" ")}
                 style={{ border: "1px solid var(--border)" }}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium text-[var(--text)]">
-                    {formatDateNL(d.date, timezone)}
-                  </span>
-
-                  {disabled ? (
-                    <span className="text-xs text-[var(--text-soft)]">Niet beschikbaar</span>
-                  ) : (
-                    <span className="text-xs text-[var(--text-soft)]">
-                      {d.startTimes?.length} tijden
-                    </span>
-                  )}
+                <div className="font-medium text-[var(--text)]">{d.date}</div>
+                <div className="mt-1 text-xs text-[var(--text-soft)]">
+                  {disabled ? "Niet beschikbaar" : `${d.startTimes.length} tijden`}
                 </div>
-
-                {d.note ? <div className="mt-1 text-xs text-[var(--text-soft)]">{d.note}</div> : null}
               </button>
             );
           })}
@@ -112,36 +60,30 @@ export default function AvailabilityPicker({
 
       {/* Tijden */}
       <div
-        className="rounded-3xl bg-white/55 p-4 md:p-5"
+        className="rounded-3xl bg-[var(--surface-2)] p-6"
         style={{ border: "1px solid var(--border)" }}
       >
-        <p className="mb-3 text-sm font-semibold text-[var(--text)]">Beschikbare starttijden</p>
+        <p className="text-sm font-semibold text-[var(--text)]">Kies een starttijd</p>
 
-        {selected?.closed ? (
-          <p className="text-sm text-[var(--text-soft)]">Deze dag is gesloten.</p>
-        ) : selected?.startTimes?.length ? (
-          <div className="grid gap-2 sm:grid-cols-2">
+        {!selectedDate ? (
+          <p className="mt-4 text-sm text-[var(--text-soft)]">Selecteer eerst een dag.</p>
+        ) : selected?.closed || !selected?.startTimes?.length ? (
+          <p className="mt-4 text-sm text-[var(--text-soft)]">Geen tijden beschikbaar.</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {selected.startTimes.map((t) => (
               <button
                 key={t}
                 type="button"
-                className="rounded-2xl bg-white/70 px-4 py-3 text-sm font-semibold text-[var(--text)] transition hover:bg-white"
+                onClick={() => onSelect?.({ date: selected.date, time: t })}
+                className="rounded-2xl bg-white/55 px-3 py-3 text-sm font-medium text-[var(--text)] transition hover:bg-white"
                 style={{ border: "1px solid var(--border)" }}
-                onClick={() => handleSelectTime(t)}
               >
                 {t}
               </button>
             ))}
           </div>
-        ) : (
-          <p className="text-sm text-[var(--text-soft)]">
-            Kies links een datum met beschikbare tijden.
-          </p>
         )}
-
-        <p className="mt-4 text-xs text-[var(--text-soft)]">
-          Tip: klik op een tijd → we gebruiken jouw selectie (of kopiëren tekst als fallback).
-        </p>
       </div>
     </div>
   );
