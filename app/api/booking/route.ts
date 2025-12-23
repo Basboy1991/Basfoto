@@ -1,127 +1,137 @@
+// app/api/booking/route.ts
 import { NextResponse } from "next/server";
-import { sanityWriteClient } from "@/lib/sanity.write";
+import { Resend } from "resend";
 
-type Payload = {
+type BookingPayload = {
+  // keuze uit availability
   date: string;
   time: string;
-  timezone?: string;
+  timezone: string;
 
-  shootType: string;
-  package?: string;
-  location?: string;
-
+  // contact
   name: string;
   email: string;
   phone?: string;
 
-  message: string;
+  // shoot info
+  shootType?: string; // gezin/huisdier/etc
+  location?: string;
+  message?: string;
+
+  // extra
+  preferredContact?: "whatsapp" | "email" | "phone";
   consent?: boolean;
+
+  // anti-spam (honeypot)
+  company?: string;
 };
 
-function isEmail(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-async function maybeSendEmail(doc: any) {
-  // Optioneel: Resend (werkt alleen als je RESEND_API_KEY zet)
-  const key = process.env.RESEND_API_KEY;
-  const to = process.env.BOOKING_NOTIFY_EMAIL;
-
-  if (!key || !to) return;
-
-  // dynamische import zodat je geen dependency issues krijgt als je Resend niet gebruikt
-  const { Resend } = await import("resend");
-  const resend = new Resend(key);
-
-  const subject = `Nieuwe boekingsaanvraag: ${doc.date} om ${doc.time}`;
-  const text = [
-    `Nieuwe boekingsaanvraag`,
-    ``,
-    `Datum: ${doc.date}`,
-    `Tijd: ${doc.time}`,
-    `Type: ${doc.shootType}`,
-    doc.package ? `Pakket: ${doc.package}` : null,
-    doc.location ? `Locatie: ${doc.location}` : null,
-    ``,
-    `Naam: ${doc.name}`,
-    `Email: ${doc.email}`,
-    doc.phone ? `Telefoon: ${doc.phone}` : null,
-    ``,
-    `Opmerkingen:`,
-    doc.message,
-    ``,
-    `In Sanity: bookingRequest (${doc._id})`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  await resend.emails.send({
-    from: "Bas-fotografie <onboarding@resend.dev>",
-    to,
-    subject,
-    text,
-  });
+function esc(s: string) {
+  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
 }
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Payload;
+    const body = (await req.json()) as Partial<BookingPayload>;
 
-    // basis validatie
-    if (!body.date || !body.time) {
-      return NextResponse.json({ error: "Kies eerst een datum en tijd." }, { status: 400 });
-    }
-    if (!body.shootType) {
-      return NextResponse.json({ error: "Kies een type shoot." }, { status: 400 });
-    }
-    if (!body.name?.trim()) {
-      return NextResponse.json({ error: "Naam is verplicht." }, { status: 400 });
-    }
-    if (!body.email?.trim() || !isEmail(body.email)) {
-      return NextResponse.json({ error: "Vul een geldig e-mailadres in." }, { status: 400 });
-    }
-    if (!body.message?.trim()) {
-      return NextResponse.json({ error: "Opmerkingen zijn verplicht." }, { status: 400 });
+    // Honeypot: als gevuld -> stil ok teruggeven (spam)
+    if (body.company && String(body.company).trim().length > 0) {
+      return NextResponse.json({ ok: true });
     }
 
-    // Sanity write token check
-    if (!process.env.SANITY_API_WRITE_TOKEN) {
+    const date = String(body.date ?? "").trim();
+    const time = String(body.time ?? "").trim();
+    const timezone = String(body.timezone ?? "Europe/Amsterdam").trim();
+
+    const name = String(body.name ?? "").trim();
+    const email = String(body.email ?? "").trim();
+    const phone = String(body.phone ?? "").trim();
+
+    const shootType = String(body.shootType ?? "").trim();
+    const location = String(body.location ?? "").trim();
+    const message = String(body.message ?? "").trim();
+    const preferredContact = (body.preferredContact ?? "whatsapp") as BookingPayload["preferredContact"];
+    const consent = Boolean(body.consent);
+
+    // Basic validation
+    const errors: Record<string, string> = {};
+    if (!date) errors.date = "Kies een datum.";
+    if (!time) errors.time = "Kies een tijd.";
+    if (!name) errors.name = "Naam is verplicht.";
+    if (!email || !isValidEmail(email)) errors.email = "Vul een geldig e-mailadres in.";
+    if (!consent) errors.consent = "Toestemming is verplicht.";
+
+    if (Object.keys(errors).length) {
+      return NextResponse.json({ ok: false, errors }, { status: 400 });
+    }
+
+    const resendKey = process.env.RESEND_API_KEY;
+    const toEmail = process.env.BOOKING_TO_EMAIL;
+    const fromEmail = process.env.BOOKING_FROM_EMAIL;
+    const replyTo = process.env.BOOKING_REPLYTO_EMAIL || toEmail;
+
+    if (!resendKey || !toEmail || !fromEmail) {
       return NextResponse.json(
-        { error: "SANITY_API_WRITE_TOKEN ontbreekt (kan niet opslaan)." },
+        { ok: false, error: "Mail configuratie mist (RESEND_API_KEY / BOOKING_TO_EMAIL / BOOKING_FROM_EMAIL)." },
         { status: 500 }
       );
     }
 
-    const doc = {
-      _type: "bookingRequest",
-      createdAt: new Date().toISOString(),
-      status: "nieuw",
+    const resend = new Resend(resendKey);
 
-      date: body.date,
-      time: body.time,
-      timezone: body.timezone ?? "Europe/Amsterdam",
+    const subject = `Nieuwe boekingsaanvraag: ${date} ${time}`;
 
-      shootType: body.shootType,
-      package: body.package ?? "",
-      location: body.location ?? "",
+    const html = `
+      <div style="font-family: ui-sans-serif, system-ui; line-height:1.5">
+        <h2>Nieuwe boekingsaanvraag</h2>
 
-      name: body.name.trim(),
-      email: body.email.trim(),
-      phone: body.phone?.trim() ?? "",
+        <p><strong>Datum/tijd:</strong> ${esc(date)} om ${esc(time)} (${esc(timezone)})</p>
 
-      message: body.message.trim(),
-      consent: body.consent ?? true,
-    };
+        <h3>Contact</h3>
+        <ul>
+          <li><strong>Naam:</strong> ${esc(name)}</li>
+          <li><strong>Email:</strong> ${esc(email)}</li>
+          ${phone ? `<li><strong>Telefoon:</strong> ${esc(phone)}</li>` : ""}
+          <li><strong>Voorkeur contact:</strong> ${esc(preferredContact ?? "")}</li>
+        </ul>
 
-    const created = await sanityWriteClient.create(doc);
+        <h3>Shoot</h3>
+        <ul>
+          ${shootType ? `<li><strong>Type:</strong> ${esc(shootType)}</li>` : ""}
+          ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
+        </ul>
 
-    // optioneel mailen
-    await maybeSendEmail(created);
+        ${message ? `<h3>Opmerking</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>` : ""}
 
-    return NextResponse.json({ ok: true, id: created._id });
-  } catch (err: any) {
+        <hr/>
+        <p style="font-size:12px; opacity:.7">Verstuurd via boekingsformulier.</p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      replyTo: replyTo ?? undefined,
+      subject,
+      html,
+    });
+
+    // Optioneel: bevestiging naar klant (kan je later aanzetten)
+    // await resend.emails.send({
+    //   from: fromEmail,
+    //   to: email,
+    //   subject: "We hebben je aanvraag ontvangen",
+    //   html: `<p>Hi ${esc(name)},</p><p>Dankjewel! Ik neem snel contact op over ${esc(date)} om ${esc(time)}.</p>`,
+    // });
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
     return NextResponse.json(
-      { error: "Server fout bij versturen.", detail: err?.message ?? String(err) },
+      { ok: false, error: e?.message ?? "Onbekende fout" },
       { status: 500 }
     );
   }
