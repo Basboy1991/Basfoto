@@ -221,9 +221,3 @@ export const availabilitySettingsQuery = `
     }
   }
 `;
-      date,
-      startTime,
-      reason
-    }
-  }
-`;
