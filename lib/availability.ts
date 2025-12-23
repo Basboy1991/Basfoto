@@ -18,7 +18,7 @@ export type AvailabilitySettings = {
   openRanges?: Array<{
     label?: string;
     from?: string; // YYYY-MM-DD (of datetime)
-    to?: string;   // YYYY-MM-DD (of datetime)
+    to?: string; // YYYY-MM-DD (of datetime)
     days?: number[]; // 0=Sunday ... 6=Saturday (optioneel)
     useDefaultTimes?: boolean;
     startTimes?: string[];
@@ -40,7 +40,6 @@ export type AvailabilitySettings = {
 
 function toIsoDay(value?: string | null) {
   if (!value) return undefined;
-  // pakt zowel "YYYY-MM-DD" als "YYYY-MM-DDTHH:mm:ssZ"
   return value.slice(0, 10);
 }
 
@@ -78,11 +77,11 @@ export function getAvailabilityForRange(
   const defaultClosed = Boolean(settings?.defaultClosed);
   const defaultTimes = settings?.defaultStartTimes ?? [];
 
-  const fromDay = toIsoDay(from);
-  const toDay = toIsoDay(to);
-  if (!fromDay || !toDay) return [];
+  const fromIso = toIsoDay(from);
+  const toIso = toIsoDay(to);
+  if (!fromIso || !toIso) return [];
 
-  const dates = eachDayIso(fromDay, toDay);
+  const dates = eachDayIso(fromIso, toIso);
 
   return dates.map((date) => {
     // 1) basis
@@ -90,14 +89,14 @@ export function getAvailabilityForRange(
     let times: string[] = isOpen ? [...defaultTimes] : [];
     let note: string | undefined;
 
-    // 2) openRanges: zet open + tijden volgens range
+    // 2) openRanges
     const ranges = settings?.openRanges ?? [];
     for (const r of ranges) {
       const rFrom = toIsoDay(r.from);
       const rTo = toIsoDay(r.to);
       if (!isWithinRange(date, rFrom, rTo)) continue;
 
-      // optioneel: filter op weekdag
+      // optioneel: weekdag filter
       if (Array.isArray(r.days) && r.days.length) {
         const jsDay = new Date(date + "T00:00:00").getDay(); // 0-6
         if (!r.days.includes(jsDay)) continue;
@@ -105,10 +104,6 @@ export function getAvailabilityForRange(
 
       isOpen = true;
 
-      // Slimme fallback:
-      // - useDefaultTimes true => defaultTimes
-      // - useDefaultTimes false => startTimes (als leeg: fallback defaultTimes)
-      // - useDefaultTimes undefined => startTimes als gevuld, anders defaultTimes
       const hasStartTimes = (r.startTimes?.length ?? 0) > 0;
 
       if (r.useDefaultTimes === true) {
@@ -116,12 +111,15 @@ export function getAvailabilityForRange(
       } else if (r.useDefaultTimes === false) {
         times = hasStartTimes ? [...(r.startTimes ?? [])] : [...defaultTimes];
       } else {
+        // undefined => intuïtief: als range tijden heeft -> die, anders default
         times = hasStartTimes ? [...(r.startTimes ?? [])] : [...defaultTimes];
       }
     }
 
-    // 3) exceptions: per dag overschrijven
-    const ex = (settings?.exceptions ?? []).find((e) => toIsoDay(e.date) === date);
+    // 3) exceptions per dag
+    const ex = (settings?.exceptions ?? []).find(
+      (e) => toIsoDay(e.date) === date
+    );
 
     if (ex) {
       if (typeof ex.closed === "boolean") {
@@ -137,8 +135,11 @@ export function getAvailabilityForRange(
       if (ex.note) note = ex.note;
     }
 
-    // 4) blockedSlots: verwijder losse tijden
-    const blocked = (settings?.blockedSlots ?? []).filter((b) => toIsoDay(b.date) === date);
+    // 4) blockedSlots filteren
+    const blocked = (settings?.blockedSlots ?? []).filter(
+      (b) => toIsoDay(b.date) === date
+    );
+
     if (blocked.length && times.length) {
       const blockedTimes = new Set(blocked.map((b) => b.startTime));
       times = times.filter((t) => !blockedTimes.has(t));
