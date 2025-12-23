@@ -29,7 +29,6 @@ function formatRangeNL(fromIso: string, toIso: string) {
     month: "2-digit",
     year: "numeric",
   });
-
   return `${fromTxt} t/m ${toTxt}`;
 }
 
@@ -44,7 +43,7 @@ export default function AvailabilityPicker({
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
 }) {
-  // ✅ Optie B: alleen dagen die open zijn én tijden hebben
+  // ✅ Alleen echt boekbaar: open + minimaal 1 tijd
   const visibleDays = useMemo(() => {
     return [...(days ?? [])]
       .filter((d) => d.isOpen && (d.times?.length ?? 0) > 0)
@@ -53,7 +52,10 @@ export default function AvailabilityPicker({
 
   const rangeLabel = useMemo(() => {
     if (!visibleDays.length) return null;
-    return formatRangeNL(visibleDays[0].date, visibleDays[visibleDays.length - 1].date);
+    return formatRangeNL(
+      visibleDays[0].date,
+      visibleDays[visibleDays.length - 1].date
+    );
   }, [visibleDays]);
 
   if (!visibleDays.length) {
@@ -62,10 +64,13 @@ export default function AvailabilityPicker({
         className="rounded-3xl bg-[var(--surface-2)] p-8 text-center"
         style={{ border: "1px solid var(--border)" }}
       >
-        <p className="text-sm font-semibold text-[var(--text)]">Geen tijden beschikbaar</p>
+        <p className="text-sm font-semibold text-[var(--text)]">
+          Geen tijden beschikbaar
+        </p>
         <p className="mt-2 text-sm text-[var(--text-soft)]">
-          Vul in Sanity <strong>defaultStartTimes</strong> of <strong>openRanges.startTimes</strong> in,
-          en zorg dat de periode open staat.
+          Vul in Sanity <strong>defaultStartTimes</strong> of{" "}
+          <strong>openRanges.startTimes</strong> in, en zorg dat de periode open
+          staat.
         </p>
       </div>
     );
@@ -77,11 +82,14 @@ export default function AvailabilityPicker({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <p className="text-sm font-semibold text-[var(--text)]">Beschikbaarheid</p>
+        <p className="text-sm font-semibold text-[var(--text)]">
+          Beschikbaarheid
+        </p>
 
         {rangeLabel ? (
           <p className="mt-2 text-sm italic text-[var(--text-soft)]">
-            {rangeLabel} <span className="not-italic opacity-70">({timezone})</span>
+            {rangeLabel}{" "}
+            <span className="not-italic opacity-70">({timezone})</span>
           </p>
         ) : null}
       </div>
@@ -100,17 +108,17 @@ export default function AvailabilityPicker({
                 active ? "bg-white/85" : "bg-white/55",
               ].join(" ")}
               style={{
-                border: `1px solid ${active ? "var(--accent-strong)" : "var(--border)"}`,
+                border: `1px solid ${
+                  active ? "var(--accent-strong)" : "var(--border)"
+                }`,
               }}
             >
               <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">
                 {formatDateShortNL(d.date)}
               </p>
-              <p className="mt-1 text-sm font-medium text-[var(--text)]">Open</p>
-
-              {d.note ? (
-                <p className="mt-1 line-clamp-2 text-xs text-[var(--text-soft)]">{d.note}</p>
-              ) : null}
+              <p className="mt-1 text-sm font-medium text-[var(--text)]">
+                Open
+              </p>
             </button>
           );
         })}
