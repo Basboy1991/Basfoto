@@ -29,6 +29,7 @@ function formatRangeNL(fromIso: string, toIso: string) {
     month: "2-digit",
     year: "numeric",
   });
+
   return `${fromTxt} t/m ${toTxt}`;
 }
 
@@ -43,12 +44,11 @@ export default function AvailabilityPicker({
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
 }) {
-  // ✅ Alleen dagen tonen die echt boekbaar zijn: open + minimaal 1 tijd
+  // ✅ Optie B: alleen dagen die open zijn én tijden hebben
   const visibleDays = useMemo(() => {
-    const copy = [...(days ?? [])]
+    return [...(days ?? [])]
       .filter((d) => d.isOpen && (d.times?.length ?? 0) > 0)
       .sort((a, b) => a.date.localeCompare(b.date));
-    return copy;
   }, [days]);
 
   const rangeLabel = useMemo(() => {
@@ -107,8 +107,9 @@ export default function AvailabilityPicker({
                 {formatDateShortNL(d.date)}
               </p>
               <p className="mt-1 text-sm font-medium text-[var(--text)]">Open</p>
+
               {d.note ? (
-                <p className="mt-1 text-xs text-[var(--text-soft)] line-clamp-2">{d.note}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-[var(--text-soft)]">{d.note}</p>
               ) : null}
             </button>
           );
