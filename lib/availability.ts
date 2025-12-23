@@ -1,154 +1,80 @@
-// lib/availability.ts
+"use client";
 
-export type DayAvailability = {
-  date: string; // YYYY-MM-DD
-  isOpen: boolean;
-  times: string[]; // ["10:00", "13:00", ...]
-  note?: string;
-};
+import { useMemo } from "react";
+import type { DayAvailability } from "@/lib/availability";
 
-export type AvailabilitySettings = {
-  timezone?: string;
-  slotMinutes?: number;
-  advanceDays?: number;
-
-  defaultClosed?: boolean;
-  defaultStartTimes?: string[];
-
-  openRanges?: Array<{
-    label?: string;
-    from?: string; // YYYY-MM-DD (of datetime)
-    to?: string; // YYYY-MM-DD (of datetime)
-    days?: number[]; // 0=Sunday ... 6=Saturday (optioneel)
-    useDefaultTimes?: boolean;
-    startTimes?: string[];
-  }>;
-
-  exceptions?: Array<{
-    date: string; // YYYY-MM-DD (of datetime)
-    closed?: boolean;
-    startTimes?: string[];
-    note?: string;
-  }>;
-
-  blockedSlots?: Array<{
-    date: string; // YYYY-MM-DD (of datetime)
-    startTime: string; // "10:00"
-    reason?: string;
-  }>;
-};
-
-function toIsoDay(value?: string | null) {
-  if (!value) return undefined;
-  // pakt zowel "YYYY-MM-DD" als "YYYY-MM-DDTHH:mm:ssZ"
-  return value.slice(0, 10);
+function formatDateNL(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString("nl-NL", { weekday: "short", day: "2-digit", month: "short" });
 }
 
-function isWithinRange(date: string, from?: string, to?: string) {
-  const f = toIsoDay(from);
-  const t = toIsoDay(to);
-  if (f && date < f) return false;
-  if (t && date > t) return false;
-  return true;
-}
+export default function AvailabilityPicker({
+  days,
+  timezone,
+  selectedDate,
+  onSelectDate,
+}: {
+  days: DayAvailability[];
+  timezone: string;
+  selectedDate: string | null;
+  onSelectDate: (date: string) => void;
+}) {
+  const sorted = useMemo(() => {
+    const copy = [...(days ?? [])];
+    copy.sort((a, b) => a.date.localeCompare(b.date));
+    return copy;
+  }, [days]);
 
-function uniqueSorted(arr: string[]) {
-  return Array.from(new Set(arr)).sort();
-}
-
-function eachDayIso(from: string, to: string) {
-  const out: string[] = [];
-  const start = new Date(from + "T00:00:00");
-  const end = new Date(to + "T00:00:00");
-
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    out.push(`${yyyy}-${mm}-${dd}`);
+  if (!sorted.length) {
+    return (
+      <div
+        className="rounded-3xl bg-white/55 p-6 text-center"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <p className="text-sm font-semibold text-[var(--text)]">Geen open dagen in deze periode</p>
+        <p className="mt-2 text-sm text-[var(--text-soft)]">
+          Kies een andere datumrange of voeg openRanges toe in Sanity.
+        </p>
+      </div>
+    );
   }
-  return out;
-}
 
-export function getAvailabilityForRange(
-  settings: AvailabilitySettings,
-  from: string,
-  to: string
-): DayAvailability[] {
-  const defaultClosed = Boolean(settings?.defaultClosed);
-  const defaultTimes = settings?.defaultStartTimes ?? [];
+  return (
+    <section
+      className="mt-6 rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+      style={{ border: "1px solid var(--border)" }}
+    >
+      <div className="text-center">
+        <p className="text-sm font-semibold text-[var(--text)]">Open dagen</p>
+        <p className="mt-2 text-sm italic text-[var(--text-soft)]">
+          Alleen dagen met beschikbare tijden. <span className="not-italic opacity-70">({timezone})</span>
+        </p>
+      </div>
 
-  const dates = eachDayIso(toIsoDay(from)!, toIsoDay(to)!);
-
-  return dates.map((date) => {
-    // 1) basis
-    let isOpen = !defaultClosed;
-    let times: string[] = isOpen ? [...defaultTimes] : [];
-    let note: string | undefined;
-
-    // 2) openRanges: zet open + tijden volgens range
-    const ranges = settings?.openRanges ?? [];
-    for (const r of ranges) {
-      const rFrom = toIsoDay(r.from);
-      const rTo = toIsoDay(r.to);
-      if (!isWithinRange(date, rFrom, rTo)) continue;
-
-      // optioneel: filter op weekdag
-      if (Array.isArray(r.days) && r.days.length) {
-        const jsDay = new Date(date + "T00:00:00").getDay(); // 0-6
-        if (!r.days.includes(jsDay)) continue;
-      }
-
-      isOpen = true;
-
-      // ✅ Slimme fallback:
-      // - Als useDefaultTimes true => defaultTimes
-      // - Als useDefaultTimes false => startTimes (maar als leeg: fallback naar defaultTimes)
-      // - Als useDefaultTimes undefined => als startTimes gevuld -> gebruik die, anders defaultTimes
-      const hasStartTimes = (r.startTimes?.length ?? 0) > 0;
-
-      if (r.useDefaultTimes === true) {
-        times = [...defaultTimes];
-      } else if (r.useDefaultTimes === false) {
-        times = hasStartTimes ? [...(r.startTimes ?? [])] : [...defaultTimes];
-      } else {
-        // undefined => intuïtief gedrag
-        times = hasStartTimes ? [...(r.startTimes ?? [])] : [...defaultTimes];
-      }
-    }
-
-    // 3) exceptions: per dag overschrijven
-    const ex = (settings?.exceptions ?? []).find((e) => toIsoDay(e.date) === date);
-
-    if (ex) {
-      if (typeof ex.closed === "boolean") {
-        isOpen = !ex.closed;
-        if (!isOpen) times = [];
-      }
-
-      if (Array.isArray(ex.startTimes)) {
-        // als startTimes expliciet gezet zijn, is het open (tenzij je closed true zet)
-        isOpen = true;
-        times = [...ex.startTimes];
-      }
-
-      if (ex.note) note = ex.note;
-    }
-
-    // 4) blockedSlots: verwijder losse tijden
-    const blocked = (settings?.blockedSlots ?? []).filter((b) => toIsoDay(b.date) === date);
-    if (blocked.length && times.length) {
-      const blockedTimes = new Set(blocked.map((b) => b.startTime));
-      times = times.filter((t) => !blockedTimes.has(t));
-    }
-
-    const finalTimes = isOpen ? uniqueSorted(times) : [];
-
-    return {
-      date,
-      isOpen,
-      times: finalTimes,
-      ...(note ? { note } : {}),
-    };
-  });
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {sorted.map((d) => {
+          const active = selectedDate === d.date;
+          return (
+            <button
+              key={d.date}
+              type="button"
+              onClick={() => onSelectDate(d.date)}
+              className={[
+                "rounded-2xl px-3 py-3 text-left transition hover:bg-white/70",
+                active ? "bg-white/85" : "bg-white/55",
+              ].join(" ")}
+              style={{ border: `1px solid ${active ? "var(--accent-strong)" : "var(--border)"}` }}
+            >
+              <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">{formatDateNL(d.date)}</p>
+              <p className="mt-1 text-sm font-medium text-[var(--text)]">{d.date}</p>
+              <p className="mt-1 text-xs text-[var(--text-soft)]">
+                {d.times.length} tijd{d.times.length === 1 ? "" : "en"}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
