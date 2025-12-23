@@ -20,8 +20,6 @@ export default function BookingForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    // ✅ Pak meteen het form element, zodat het niet null is na await
     const formEl = e.currentTarget;
 
     setStatus("sending");
@@ -56,8 +54,10 @@ export default function BookingForm({
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => null);
+      console.log("BOOKING RESPONSE", res.status, data);
+
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
         const msg = data?.errors
           ? Object.values(data.errors).join(" ")
           : data?.error ?? "Er ging iets mis. Probeer opnieuw.";
@@ -65,8 +65,8 @@ export default function BookingForm({
       }
 
       setStatus("success");
-      formEl.reset(); // ✅ veilig
-      onSuccess?.();  // ✅ reset datum/tijd in parent
+      formEl.reset();
+      onSuccess?.();
     } catch (err: any) {
       setStatus("error");
       setError(err?.message ?? "Er ging iets mis.");
@@ -96,7 +96,7 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={onSubmit} className="mt-6 grid gap-4">
-        {/* Honeypot (niet zichtbaar) */}
+        {/* Honeypot */}
         <input
           name="company"
           tabIndex={-1}
