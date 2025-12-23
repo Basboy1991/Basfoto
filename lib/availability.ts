@@ -17,30 +17,38 @@ export type AvailabilitySettings = {
 
   openRanges?: Array<{
     label?: string;
-    from?: string; // YYYY-MM-DD
-    to?: string; // YYYY-MM-DD
+    from?: string; // YYYY-MM-DD (of datetime)
+    to?: string; // YYYY-MM-DD (of datetime)
     days?: number[]; // 0=Sunday ... 6=Saturday (optioneel)
     useDefaultTimes?: boolean;
     startTimes?: string[];
   }>;
 
   exceptions?: Array<{
-    date: string; // YYYY-MM-DD
+    date: string; // YYYY-MM-DD (of datetime)
     closed?: boolean;
     startTimes?: string[];
     note?: string;
   }>;
 
   blockedSlots?: Array<{
-    date: string; // YYYY-MM-DD
+    date: string; // YYYY-MM-DD (of datetime)
     startTime: string; // "10:00"
     reason?: string;
   }>;
 };
 
+function toIsoDay(value?: string | null) {
+  if (!value) return undefined;
+  // pakt zowel "YYYY-MM-DD" als "YYYY-MM-DDTHH:mm:ssZ"
+  return value.slice(0, 10);
+}
+
 function isWithinRange(date: string, from?: string, to?: string) {
-  if (from && date < from) return false;
-  if (to && date > to) return false;
+  const f = toIsoDay(from);
+  const t = toIsoDay(to);
+  if (f && date < f) return false;
+  if (t && date > t) return false;
   return true;
 }
 
@@ -70,17 +78,20 @@ export function getAvailabilityForRange(
   const defaultClosed = Boolean(settings?.defaultClosed);
   const defaultTimes = settings?.defaultStartTimes ?? [];
 
-  const dates = eachDayIso(from, to);
+  const dates = eachDayIso(toIsoDay(from)!, toIsoDay(to)!);
 
   return dates.map((date) => {
     // 1) basis
     let isOpen = !defaultClosed;
     let times: string[] = isOpen ? [...defaultTimes] : [];
+    let note: string | undefined;
 
     // 2) openRanges: zet open + tijden volgens range
     const ranges = settings?.openRanges ?? [];
     for (const r of ranges) {
-      if (!isWithinRange(date, r.from, r.to)) continue;
+      const rFrom = toIsoDay(r.from);
+      const rTo = toIsoDay(r.to);
+      if (!isWithinRange(date, rFrom, rTo)) continue;
 
       // optioneel: filter op weekdag
       if (Array.isArray(r.days) && r.days.length) {
@@ -90,16 +101,24 @@ export function getAvailabilityForRange(
 
       isOpen = true;
 
-      const rangeTimes = r.useDefaultTimes
-        ? defaultTimes
-        : (r.startTimes ?? []);
+      // ✅ Slimme fallback:
+      // - Als useDefaultTimes true => defaultTimes
+      // - Als useDefaultTimes false => startTimes (maar als leeg: fallback naar defaultTimes)
+      // - Als useDefaultTimes undefined => als startTimes gevuld -> gebruik die, anders defaultTimes
+      const hasStartTimes = (r.startTimes?.length ?? 0) > 0;
 
-      times = [...rangeTimes];
+      if (r.useDefaultTimes === true) {
+        times = [...defaultTimes];
+      } else if (r.useDefaultTimes === false) {
+        times = hasStartTimes ? [...(r.startTimes ?? [])] : [...defaultTimes];
+      } else {
+        // undefined => intuïtief gedrag
+        times = hasStartTimes ? [...(r.startTimes ?? [])] : [...defaultTimes];
+      }
     }
 
     // 3) exceptions: per dag overschrijven
-    const ex = (settings?.exceptions ?? []).find((e) => e.date === date);
-    let note: string | undefined;
+    const ex = (settings?.exceptions ?? []).find((e) => toIsoDay(e.date) === date);
 
     if (ex) {
       if (typeof ex.closed === "boolean") {
@@ -108,16 +127,16 @@ export function getAvailabilityForRange(
       }
 
       if (Array.isArray(ex.startTimes)) {
-        // als startTimes expliciet gezet zijn, is het open
+        // als startTimes expliciet gezet zijn, is het open (tenzij je closed true zet)
         isOpen = true;
-        times = ex.startTimes;
+        times = [...ex.startTimes];
       }
 
       if (ex.note) note = ex.note;
     }
 
     // 4) blockedSlots: verwijder losse tijden
-    const blocked = (settings?.blockedSlots ?? []).filter((b) => b.date === date);
+    const blocked = (settings?.blockedSlots ?? []).filter((b) => toIsoDay(b.date) === date);
     if (blocked.length && times.length) {
       const blockedTimes = new Set(blocked.map((b) => b.startTime));
       times = times.filter((t) => !blockedTimes.has(t));
