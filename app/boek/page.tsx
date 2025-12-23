@@ -11,7 +11,17 @@ import BookingWidget from "@/components/BookingWidget";
 
 export default async function BoekPage() {
   const contact = siteConfig.contact;
-
+<pre className="text-xs">
+  {JSON.stringify(
+    {
+      defaultStartTimes: settings?.defaultStartTimes,
+      defaultClosed: settings?.defaultClosed,
+      openRanges: settings?.openRanges?.slice?.(0, 1),
+    },
+    null,
+    2
+  )}
+</pre>
   // ✅ Availability uit Sanity + berekenen
   const settings = await sanityClient.fetch(availabilitySettingsQuery);
 
