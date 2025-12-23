@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import AvailabilityPicker, { DayAvailability } from "@/components/AvailabilityPicker";
+import AvailabilityPicker from "@/components/AvailabilityPicker";
+import type { DayAvailability } from "@/lib/availability";
 
 export default function BookingAvailabilitySection({
   days,
@@ -13,7 +14,7 @@ export default function BookingAvailabilitySection({
   const [selection, setSelection] = useState<{ date: string; time: string } | null>(null);
 
   const selectableCount = useMemo(
-    () => (days ?? []).filter((d) => !d.closed && (d.startTimes?.length ?? 0) > 0).length,
+    () => (days ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0).length,
     [days]
   );
 
@@ -34,7 +35,11 @@ export default function BookingAvailabilitySection({
 
   return (
     <>
-      <AvailabilityPicker days={days} timezone={timezone} onSelect={(p) => setSelection(p)} />
+      <AvailabilityPicker
+        days={days}
+        timezone={timezone}
+        onSelect={(p) => setSelection({ date: p.date, time: p.time })}
+      />
 
       {selection ? (
         <div
