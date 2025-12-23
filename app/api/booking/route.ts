@@ -3,27 +3,22 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 type BookingPayload = {
-  // keuze uit availability
   date: string;
   time: string;
   timezone: string;
 
-  // contact
   name: string;
   email: string;
   phone?: string;
 
-  // shoot info
-  shootType?: string; // gezin/huisdier/etc
+  shootType?: string;
   location?: string;
   message?: string;
 
-  // extra
   preferredContact?: "whatsapp" | "email" | "phone";
   consent?: boolean;
 
-  // anti-spam (honeypot)
-  company?: string;
+  company?: string; // honeypot
 };
 
 function isValidEmail(email: string) {
@@ -31,14 +26,21 @@ function isValidEmail(email: string) {
 }
 
 function esc(s: string) {
-  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
+  return s.replace(/[<>&]/g, (c) => {
+    const map: Record<string, string> = {
+      "<": "&lt;",
+      ">": "&gt;",
+      "&": "&amp;",
+    };
+    return map[c] ?? c;
+  });
 }
 
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Partial<BookingPayload>;
 
-    // Honeypot: als gevuld -> stil ok teruggeven (spam)
+    // honeypot
     if (body.company && String(body.company).trim().length > 0) {
       return NextResponse.json({ ok: true });
     }
@@ -54,15 +56,16 @@ export async function POST(req: Request) {
     const shootType = String(body.shootType ?? "").trim();
     const location = String(body.location ?? "").trim();
     const message = String(body.message ?? "").trim();
-    const preferredContact = (body.preferredContact ?? "whatsapp") as BookingPayload["preferredContact"];
+    const preferredContact = (body.preferredContact ??
+      "whatsapp") as BookingPayload["preferredContact"];
     const consent = Boolean(body.consent);
 
-    // Basic validation
     const errors: Record<string, string> = {};
     if (!date) errors.date = "Kies een datum.";
     if (!time) errors.time = "Kies een tijd.";
     if (!name) errors.name = "Naam is verplicht.";
-    if (!email || !isValidEmail(email)) errors.email = "Vul een geldig e-mailadres in.";
+    if (!email || !isValidEmail(email))
+      errors.email = "Vul een geldig e-mailadres in.";
     if (!consent) errors.consent = "Toestemming is verplicht.";
 
     if (Object.keys(errors).length) {
@@ -76,7 +79,18 @@ export async function POST(req: Request) {
 
     if (!resendKey || !toEmail || !fromEmail) {
       return NextResponse.json(
-        { ok: false, error: "Mail configuratie mist (RESEND_API_KEY / BOOKING_TO_EMAIL / BOOKING_FROM_EMAIL)." },
+        {
+          ok: false,
+          error:
+            "Mail configuratie mist (RESEND_API_KEY / BOOKING_TO_EMAIL / BOOKING_FROM_EMAIL).",
+          debug: {
+            hasResendKey: Boolean(resendKey),
+            hasTo: Boolean(toEmail),
+            hasFrom: Boolean(fromEmail),
+            hasReplyTo: Boolean(replyTo),
+            nodeEnv: process.env.NODE_ENV,
+          },
+        },
         { status: 500 }
       );
     }
@@ -89,39 +103,52 @@ export async function POST(req: Request) {
       <div style="font-family: ui-sans-serif, system-ui; line-height:1.5">
         <h2>Nieuwe boekingsaanvraag</h2>
 
-        <p><strong>Datum/tijd:</strong> ${esc(date)} om ${esc(time)} (${esc(timezone)})</p>
+        <p><strong>Datum/tijd:</strong> ${esc(date)} om ${esc(time)} (${esc(
+      timezone
+    )})</p>
 
         <h3>Contact</h3>
         <ul>
           <li><strong>Naam:</strong> ${esc(name)}</li>
           <li><strong>Email:</strong> ${esc(email)}</li>
           ${phone ? `<li><strong>Telefoon:</strong> ${esc(phone)}</li>` : ""}
-          <li><strong>Voorkeur contact:</strong> ${esc(preferredContact ?? "")}</li>
+          <li><strong>Voorkeur contact:</strong> ${esc(
+            preferredContact ?? ""
+          )}</li>
         </ul>
 
         <h3>Shoot</h3>
         <ul>
           ${shootType ? `<li><strong>Type:</strong> ${esc(shootType)}</li>` : ""}
-          ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
+          ${
+            location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""
+          }
         </ul>
 
-        ${message ? `<h3>Opmerking</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>` : ""}
+        ${
+          message
+            ? `<h3>Opmerking</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>`
+            : ""
+        }
 
         <hr/>
         <p style="font-size:12px; opacity:.7">Verstuurd via boekingsformulier.</p>
       </div>
     `;
 
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
+      reply_to: replyTo ?? undefined, // ✅ juiste key
       subject,
       html,
-      ...(replyTo ? { reply_to: replyTo } : {}), // ✅ fix: reply_to
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, resend: result });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? "Onbekende fout" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: e?.message ?? "Onbekende fout" },
+      { status: 500 }
+    );
   }
 }
