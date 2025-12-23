@@ -1,54 +1,58 @@
+// app/boek/page.tsx
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+
 import { sanityClient } from "@/lib/sanity.client";
 import { availabilitySettingsQuery } from "@/lib/sanity.queries";
 import { getAvailabilityForRange } from "@/lib/availability";
+
 import BookingWidget from "@/components/BookingWidget";
 
-function isoToday() {
+type SearchParams = {
+  from?: string;
+  to?: string;
+};
+
+function isIsoDay(v?: string) {
+  return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+}
+
+function todayIso() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function addDaysIso(fromIso: string, days: number) {
-  const d = new Date(fromIso + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function clampRange(from: string, to: string, maxDays = 120) {
-  // simpele guard: to max maxDays na from
-  const fromD = new Date(from + "T00:00:00");
-  const toD = new Date(to + "T00:00:00");
-  const diff = Math.round((toD.getTime() - fromD.getTime()) / (1000 * 60 * 60 * 24));
-  if (diff <= maxDays) return { from, to };
-  return { from, to: addDaysIso(from, maxDays) };
 }
 
 export default async function BoekPage({
   searchParams,
 }: {
-  searchParams?: { from?: string; to?: string };
+  searchParams?: Promise<SearchParams>;
 }) {
   const contact = siteConfig.contact;
 
+  // ✅ Availability settings uit Sanity
   const settings = await sanityClient.fetch(availabilitySettingsQuery);
 
-  const tz = settings?.timezone ?? "Europe/Amsterdam";
   const advance = Number(settings?.advanceDays ?? 45);
+  const tz = settings?.timezone ?? "Europe/Amsterdam";
 
-  // ✅ default range: vandaag → vandaag + advanceDays
-  const defaultFrom = isoToday();
-  const defaultTo = addDaysIso(defaultFrom, advance);
+  // ✅ searchParams is Promise in Next 16 → await
+  const sp = searchParams ? await searchParams : undefined;
 
-  // ✅ URL range override
-  const from = (searchParams?.from?.slice(0, 10) || defaultFrom);
-  const to = (searchParams?.to?.slice(0, 10) || defaultTo);
+  // ✅ from/to: via querystring als ze geldig zijn, anders fallback
+  const from = isIsoDay(sp?.from) ? (sp!.from as string) : todayIso();
 
-  const safe = clampRange(from, to, 120);
+  const fallbackToDate = new Date(from + "T00:00:00");
+  fallbackToDate.setDate(fallbackToDate.getDate() + advance);
+  const fallbackTo = fallbackToDate.toISOString().slice(0, 10);
 
-  const days = getAvailabilityForRange(settings, safe.from, safe.to);
+  const to = isIsoDay(sp?.to) ? (sp!.to as string) : fallbackTo;
+
+  // ✅ dagen berekenen
+  const allDays = getAvailabilityForRange(settings, from, to);
+
+  // ✅ Wil je ALLEEN open dagen tonen? Zet deze aan:
+  const days = allDays.filter((d) => d.isOpen); // <- dit is de “alleen open data zichtbaar” regel
 
   const responseTime = contact?.responseTime ?? "Meestal reactie dezelfde dag";
 
@@ -68,13 +72,8 @@ export default async function BoekPage({
         </p>
       </header>
 
-      {/* ✅ Availability + formulier */}
-      <BookingWidget
-        days={days}
-        timezone={tz}
-        initialFrom={safe.from}
-        initialTo={safe.to}
-      />
+      {/* Availability + formulier */}
+      <BookingWidget days={days} timezone={tz} />
 
       {/* Kleine trust block */}
       <section className="mx-auto mt-12 max-w-4xl">
