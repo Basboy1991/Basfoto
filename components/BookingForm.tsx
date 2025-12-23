@@ -6,10 +6,12 @@ export default function BookingForm({
   date,
   time,
   timezone,
+  onSuccess,
 }: {
   date: string | null;
   time: string | null;
   timezone: string;
+  onSuccess?: () => void;
 }) {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">(
     "idle"
@@ -63,7 +65,8 @@ export default function BookingForm({
       }
 
       setStatus("success");
-      formEl.reset(); // ✅ nu veilig
+      formEl.reset(); // ✅ veilig
+      onSuccess?.();  // ✅ reset datum/tijd in parent
     } catch (err: any) {
       setStatus("error");
       setError(err?.message ?? "Er ging iets mis.");
