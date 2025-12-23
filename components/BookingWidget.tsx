@@ -24,29 +24,33 @@ export default function BookingWidget({
 
   return (
     <>
-      {/* DATUM PICKER */}
-      <AvailabilityPicker
-        days={days}
-        timezone={timezone}
-        selectedDate={selectedDate}
-        onSelectDate={(date) => {
-          setSelectedDate(date);
-          setSelectedTime(null);
-        }}
-      />
-
-      {/* TIJDEN */}
       <section
-        className="mx-auto mt-6 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+        className="mx-auto mt-12 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
         style={{ border: "1px solid var(--border)" }}
       >
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-[var(--text)]">Kies een starttijd</h3>
+          <h2 className="text-xl font-semibold text-[var(--text)]">
+            Beschikbaarheid
+          </h2>
           <p className="mt-2 text-sm italic text-[var(--text-soft)]">
-            {selectedDate ? `Datum: ${selectedDate}` : "Selecteer eerst een datum."}
+            Kies eerst een datum en daarna een starttijd. (Tijdzone: {timezone})
           </p>
         </div>
 
+        {/* DATUM PICKER */}
+        <div className="mt-6">
+          <AvailabilityPicker
+            days={days}
+            timezone={timezone}
+            selectedDate={selectedDate}
+            onSelectDate={(date) => {
+              setSelectedDate(date);
+              setSelectedTime(null);
+            }}
+          />
+        </div>
+
+        {/* TIJDEN */}
         <div className="mt-6">
           {!selectedDate ? (
             <p className="text-center text-sm text-[var(--text-soft)]">
@@ -61,6 +65,10 @@ export default function BookingWidget({
             </div>
           ) : (
             <>
+              <p className="mb-3 text-center text-sm font-medium text-[var(--text)]">
+                Beschikbare tijden op {selectedDate}
+              </p>
+
               <div className="grid gap-3 sm:grid-cols-3">
                 {times.map((t) => {
                   const active = selectedTime === t;
@@ -83,23 +91,42 @@ export default function BookingWidget({
                   );
                 })}
               </div>
-
-              <div
-                className="mt-6 rounded-2xl bg-white/60 p-4 text-center"
-                style={{ border: "1px solid var(--border)" }}
-              >
-                <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
-                <p className="mt-1 text-sm text-[var(--text-soft)]">
-                  {selectedDate} {selectedTime ? `om ${selectedTime}` : ""}
-                </p>
-              </div>
             </>
           )}
         </div>
+
+        {/* SELECTIE SAMENVATTING */}
+        <div className="mt-8">
+          <div
+            className="rounded-2xl bg-white/60 p-4 text-center"
+            style={{ border: "1px solid var(--border)" }}
+          >
+            <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
+            <p className="mt-1 text-sm text-[var(--text-soft)]">
+              {selectedDate ? selectedDate : "—"}{" "}
+              {selectedTime ? `om ${selectedTime}` : ""}
+            </p>
+
+            {selectedDate && selectedTime ? (
+              <p className="mt-2 text-xs text-[var(--text-soft)]">
+                Tip: verstuur hieronder je aanvraag, dan zet ik ’m vast.
+              </p>
+            ) : null}
+          </div>
+        </div>
       </section>
 
-      {/* FORM (koppelt selectie mee) */}
-      <BookingForm date={selectedDate} time={selectedTime} timezone={timezone} />
+      {/* FORMULIER */}
+      <BookingForm
+        date={selectedDate}
+        time={selectedTime}
+        timezone={timezone}
+        onSuccess={() => {
+          // ✅ reset ook de gekozen datum/tijd na succesvol versturen
+          setSelectedDate(null);
+          setSelectedTime(null);
+        }}
+      />
     </>
   );
 }
