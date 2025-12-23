@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { DayAvailability } from "@/lib/availability";
 
-function formatDateNL(iso: string) {
+function formatDateShortNL(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
   return dt.toLocaleDateString("nl-NL", {
@@ -43,34 +43,37 @@ export default function AvailabilityPicker({
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
 }) {
-  const sorted = useMemo(() => {
-    const copy = [...(days ?? [])];
-    copy.sort((a, b) => a.date.localeCompare(b.date));
+  // ✅ Alleen dagen tonen die echt boekbaar zijn: open + minimaal 1 tijd
+  const visibleDays = useMemo(() => {
+    const copy = [...(days ?? [])]
+      .filter((d) => d.isOpen && (d.times?.length ?? 0) > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
     return copy;
   }, [days]);
 
   const rangeLabel = useMemo(() => {
-    if (!sorted.length) return null;
-    return formatRangeNL(sorted[0].date, sorted[sorted.length - 1].date);
-  }, [sorted]);
+    if (!visibleDays.length) return null;
+    return formatRangeNL(visibleDays[0].date, visibleDays[visibleDays.length - 1].date);
+  }, [visibleDays]);
 
-  if (!sorted.length) {
+  if (!visibleDays.length) {
     return (
       <div
         className="rounded-3xl bg-[var(--surface-2)] p-8 text-center"
         style={{ border: "1px solid var(--border)" }}
       >
-        <p className="text-sm text-[var(--text-soft)]">Geen beschikbaarheid gevonden.</p>
+        <p className="text-sm font-semibold text-[var(--text)]">Geen tijden beschikbaar</p>
+        <p className="mt-2 text-sm text-[var(--text-soft)]">
+          Vul in Sanity <strong>defaultStartTimes</strong> of <strong>openRanges.startTimes</strong> in,
+          en zorg dat de periode open staat.
+        </p>
       </div>
     );
   }
 
-  const hasAnyOpen = sorted.some((d) => d.isOpen);
-  const hasAnyTimes = sorted.some((d) => d.isOpen && (d.times?.length ?? 0) > 0);
-
   return (
     <section
-      className="mt-10 rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+      className="mt-6 rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
@@ -83,49 +86,17 @@ export default function AvailabilityPicker({
         ) : null}
       </div>
 
-      {!hasAnyOpen ? (
-        <div
-          className="mt-6 rounded-2xl bg-white/60 p-5 text-center"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          <p className="text-sm font-medium text-[var(--text)]">Geen open dagen</p>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">
-            In deze periode staat alles op gesloten. Voeg een open range of uitzondering toe in Sanity.
-          </p>
-        </div>
-      ) : !hasAnyTimes ? (
-        <div
-          className="mt-6 rounded-2xl bg-white/60 p-5 text-center"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          <p className="text-sm font-medium text-[var(--text)]">Geen tijden beschikbaar</p>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">
-            Meestal betekent dit dat <strong>defaultStartTimes</strong> nog leeg is of dat ranges
-            geen tijden hebben.
-          </p>
-        </div>
-      ) : null}
-
-      {/* DAGEN (nu selecteerbaar) */}
       <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {sorted.map((d) => {
+        {visibleDays.map((d) => {
           const active = selectedDate === d.date;
-
-          // Alleen écht gesloten dagen uitzetten.
-          // Open dagen blijven klikbaar, ook als er (nog) geen tijden zijn.
-          const disabled = !d.isOpen;
-
-          const hasTimes = (d.times?.length ?? 0) > 0;
 
           return (
             <button
               key={d.date}
               type="button"
-              onClick={() => !disabled && onSelectDate(d.date)}
-              disabled={disabled}
+              onClick={() => onSelectDate(d.date)}
               className={[
-                "rounded-2xl px-3 py-3 text-left transition",
-                disabled ? "opacity-45" : "hover:bg-white/70",
+                "rounded-2xl px-3 py-3 text-left transition hover:bg-white/70",
                 active ? "bg-white/85" : "bg-white/55",
               ].join(" ")}
               style={{
@@ -133,13 +104,9 @@ export default function AvailabilityPicker({
               }}
             >
               <p className="text-xs uppercase tracking-wide text-[var(--text-soft)]">
-                {formatDateNL(d.date)}
+                {formatDateShortNL(d.date)}
               </p>
-
-              <p className="mt-1 text-sm font-medium text-[var(--text)]">
-                {!d.isOpen ? "Gesloten" : hasTimes ? "Open" : "Open (geen tijden)"}
-              </p>
-
+              <p className="mt-1 text-sm font-medium text-[var(--text)]">Open</p>
               {d.note ? (
                 <p className="mt-1 text-xs text-[var(--text-soft)] line-clamp-2">{d.note}</p>
               ) : null}
@@ -148,7 +115,6 @@ export default function AvailabilityPicker({
         })}
       </div>
 
-      {/* Kleine hint onderaan */}
       <p className="mt-6 text-center text-xs text-[var(--text-soft)]">
         Kies een datum hierboven, daarna verschijnen de tijden eronder.
       </p>
