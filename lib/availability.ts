@@ -1,50 +1,97 @@
 // lib/availability.ts
 
 export type DayAvailability = {
-  date: string;       // YYYY-MM-DD
-  isOpen: boolean;    // true/false
-  times: string[];    // ["10:00", "13:00", ...]
+  date: string; // "YYYY-MM-DD"
+  isOpen: boolean;
+  times: string[]; // ["10:00","13:00"]
   note?: string;
 };
 
-type AvailabilitySettings = {
+export type AvailabilitySettings = {
   defaultClosed?: boolean;
   defaultStartTimes?: string[];
+
+  // Ranges die open kunnen zetten (eventueel alleen bepaalde weekdagen)
   openRanges?: Array<{
-    from?: string;
-    to?: string;
-    days?: number[]; // 0=Sunday ... 6=Saturday (als je dit gebruikt)
+    label?: string;
+    from?: string; // "YYYY-MM-DD"
+    to?: string; // "YYYY-MM-DD"
+    days?: number[]; // 0=Sunday ... 6=Saturday
     useDefaultTimes?: boolean;
     startTimes?: string[];
-    label?: string;
   }>;
+
+  // Exceptions per specifieke datum
   exceptions?: Array<{
-    date: string; // YYYY-MM-DD
-    closed?: boolean;
-    startTimes?: string[];
+    date: string; // "YYYY-MM-DD"
+    closed?: boolean; // true = dicht, false = open
+    startTimes?: string[]; // als gevuld -> override tijden
     note?: string;
   }>;
+
+  // Losse blokkades (één starttijd op één datum blokkeren)
   blockedSlots?: Array<{
-    date: string;      // YYYY-MM-DD
+    date: string; // "YYYY-MM-DD"
     startTime: string; // "10:00"
     reason?: string;
   }>;
 };
 
-// helper(s) (als je ze al hebt mag je deze laten staan)
+/* ---------------------------
+   Helpers
+--------------------------- */
+
+function toIsoDate(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function listDates(from: string, to: string) {
+  const res: string[] = [];
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    res.push(toIsoDate(d));
+  }
+  return res;
+}
+
 function isWithinRange(date: string, from?: string, to?: string) {
   if (from && date < from) return false;
   if (to && date > to) return false;
   return true;
 }
 
-function uniqueSorted(arr: string[]) {
-  return Array.from(new Set(arr)).sort();
+function normalizeTimes(times?: string[]) {
+  return (times ?? [])
+    .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+    .map((t) => t.trim())
+    .filter((t) => /^\d{1,2}:\d{2}$/.test(t)); // basic sanity
 }
 
+function uniqueSorted(times: string[]) {
+  return Array.from(new Set(times)).sort();
+}
+
+/* ---------------------------
+   Main
+--------------------------- */
+
 /**
- * Deze functie moet altijd DayAvailability[] teruggeven met:
- * { date, isOpen, times }
+ * Berekent beschikbaarheid per dag voor een range.
+ *
+ * Gedrag:
+ * - defaultClosed = true => alles standaard dicht, alleen ranges/exceptions kunnen openen
+ * - defaultClosed = false => alles standaard open met defaultStartTimes
+ * - openRanges: zet open + bepaalt tijden:
+ *    - useDefaultTimes=true => defaultStartTimes
+ *    - startTimes gevuld => startTimes
+ *    - startTimes leeg + useDefaultTimes=false => fallback naar defaultStartTimes
+ * - exceptions: overschrijven per dag (dicht/open + tijden + note)
+ * - blockedSlots: verwijdert losse tijden
  */
 export function getAvailabilityForRange(
   settings: AvailabilitySettings,
@@ -52,69 +99,79 @@ export function getAvailabilityForRange(
   to: string
 ): DayAvailability[] {
   const defaultClosed = Boolean(settings?.defaultClosed);
-  const defaultTimes = settings?.defaultStartTimes ?? [];
 
-  // Maak lijst van dagen (YYYY-MM-DD)
-  const days: string[] = [];
-  const start = new Date(from + "T00:00:00");
-  const end = new Date(to + "T00:00:00");
+  const defaultTimes = normalizeTimes(settings?.defaultStartTimes);
 
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    days.push(`${yyyy}-${mm}-${dd}`);
-  }
+  const dates = listDates(from, to);
 
-  return days.map((date) => {
-    // 1) basis open/closed
+  return dates.map((date) => {
+    // 1) Basis toestand
     let isOpen = !defaultClosed;
     let times: string[] = isOpen ? [...defaultTimes] : [];
+    let note: string | undefined;
 
-    // 2) openRanges (zet open + tijden voor ranges)
+    // 2) Open ranges (kunnen open zetten en tijden bepalen)
     const ranges = settings?.openRanges ?? [];
     for (const r of ranges) {
       if (!isWithinRange(date, r.from, r.to)) continue;
 
-      // Als je "days" gebruikt: check dag van de week
-      if (Array.isArray(r.days) && r.days.length) {
-        const jsDay = new Date(date + "T00:00:00").getDay(); // 0-6
+      // dag van de week filter (optioneel)
+      if (Array.isArray(r.days) && r.days.length > 0) {
+        const jsDay = new Date(`${date}T00:00:00`).getDay(); // 0-6
         if (!r.days.includes(jsDay)) continue;
       }
 
       isOpen = true;
 
+      const rangeTimesRaw = r.useDefaultTimes
+        ? defaultTimes
+        : normalizeTimes(r.startTimes);
+
+      // ✅ Belangrijk: als startTimes leeg is, fallback naar defaultTimes
       const rangeTimes =
-        r.useDefaultTimes ? (defaultTimes ?? []) : (r.startTimes ?? []);
+        rangeTimesRaw.length > 0 ? rangeTimesRaw : defaultTimes;
 
       times = [...rangeTimes];
     }
 
-    // 3) exceptions (overschrijven per dag)
+    // 3) Exceptions (per datum, hoogste prioriteit)
     const ex = (settings?.exceptions ?? []).find((e) => e.date === date);
-    let note: string | undefined;
-
     if (ex) {
-      if (typeof ex.closed === "boolean") isOpen = !ex.closed;
-      if (Array.isArray(ex.startTimes)) {
-        times = ex.startTimes;
-        isOpen = true; // als je expliciet tijden zet is het open
+      if (typeof ex.closed === "boolean") {
+        isOpen = !ex.closed;
       }
+
+      const exTimes = normalizeTimes(ex.startTimes);
+
+      // Als er expliciet tijden worden gezet -> open (tenzij closed=true)
+      if (exTimes.length > 0) {
+        times = [...exTimes];
+        if (ex.closed !== true) isOpen = true;
+      }
+
       if (ex.note) note = ex.note;
+
       if (!isOpen) times = [];
     }
 
-    // 4) blockedSlots (verwijder losse startTime)
-    const blocked = (settings?.blockedSlots ?? []).filter((b) => b.date === date);
-    if (blocked.length && times.length) {
-      const blockedTimes = new Set(blocked.map((b) => b.startTime));
-      times = times.filter((t) => !blockedTimes.has(t));
+    // 4) Blocked slots (verwijder losse startTime)
+    if (isOpen && times.length > 0) {
+      const blocked = (settings?.blockedSlots ?? []).filter(
+        (b) => b.date === date
+      );
+      if (blocked.length) {
+        const blockedSet = new Set(blocked.map((b) => b.startTime));
+        times = times.filter((t) => !blockedSet.has(t));
+      }
     }
+
+    // 5) Final clean
+    const finalTimes = isOpen ? uniqueSorted(times) : [];
 
     return {
       date,
       isOpen,
-      times: isOpen ? uniqueSorted(times) : [],
+      times: finalTimes,
       ...(note ? { note } : {}),
     };
   });
