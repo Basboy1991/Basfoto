@@ -115,24 +115,13 @@ export async function POST(req: Request) {
     await resend.emails.send({
       from: fromEmail,
       to: toEmail,
-      replyTo: replyTo ?? undefined,
       subject,
       html,
+      ...(replyTo ? { reply_to: replyTo } : {}), // ✅ fix: reply_to
     });
-
-    // Optioneel: bevestiging naar klant (kan je later aanzetten)
-    // await resend.emails.send({
-    //   from: fromEmail,
-    //   to: email,
-    //   subject: "We hebben je aanvraag ontvangen",
-    //   html: `<p>Hi ${esc(name)},</p><p>Dankjewel! Ik neem snel contact op over ${esc(date)} om ${esc(time)}.</p>`,
-    // });
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Onbekende fout" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: e?.message ?? "Onbekende fout" }, { status: 500 });
   }
 }
