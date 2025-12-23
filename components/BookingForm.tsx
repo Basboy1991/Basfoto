@@ -11,15 +11,21 @@ export default function BookingForm({
   time: string | null;
   timezone: string;
 }) {
-  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">(
+    "idle"
+  );
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // ✅ Pak meteen het form element, zodat het niet null is na await
+    const formEl = e.currentTarget;
+
     setStatus("sending");
     setError(null);
 
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
 
     const payload = {
       date: date ?? "",
@@ -50,15 +56,14 @@ export default function BookingForm({
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        const msg =
-          data?.errors
-            ? Object.values(data.errors).join(" ")
-            : data?.error ?? "Er ging iets mis. Probeer opnieuw.";
+        const msg = data?.errors
+          ? Object.values(data.errors).join(" ")
+          : data?.error ?? "Er ging iets mis. Probeer opnieuw.";
         throw new Error(msg);
       }
 
       setStatus("success");
-      (e.currentTarget as HTMLFormElement).reset();
+      formEl.reset(); // ✅ nu veilig
     } catch (err: any) {
       setStatus("error");
       setError(err?.message ?? "Er ging iets mis.");
@@ -73,7 +78,9 @@ export default function BookingForm({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h3 className="text-xl font-semibold text-[var(--text)]">Aanvraag versturen</h3>
+        <h3 className="text-xl font-semibold text-[var(--text)]">
+          Aanvraag versturen
+        </h3>
         <p className="mt-2 text-sm italic text-[var(--text-soft)]">
           {canSend ? (
             <>
@@ -97,7 +104,9 @@ export default function BookingForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Naam *
+            </label>
             <input
               name="name"
               required
@@ -108,7 +117,9 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
+            <label className="text-sm font-medium text-[var(--text)]">
+              E-mail *
+            </label>
             <input
               name="email"
               type="email"
@@ -120,7 +131,9 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Telefoon
+            </label>
             <input
               name="phone"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -130,7 +143,9 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Voorkeur contact</label>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Voorkeur contact
+            </label>
             <select
               name="preferredContact"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -146,7 +161,9 @@ export default function BookingForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Type shoot
+            </label>
             <select
               name="shootType"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -163,7 +180,9 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Locatie / plaats
+            </label>
             <input
               name="location"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -174,7 +193,9 @@ export default function BookingForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
+          <label className="text-sm font-medium text-[var(--text)]">
+            Opmerking
+          </label>
           <textarea
             name="message"
             rows={4}
@@ -187,7 +208,8 @@ export default function BookingForm({
         <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
           <input type="checkbox" name="consent" required className="mt-1" />
           <span>
-            Ik geef toestemming om mijn gegevens te gebruiken om contact op te nemen over deze aanvraag. *
+            Ik geef toestemming om mijn gegevens te gebruiken om contact op te
+            nemen over deze aanvraag. *
           </span>
         </label>
 
