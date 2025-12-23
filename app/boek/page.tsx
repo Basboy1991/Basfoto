@@ -1,4 +1,3 @@
-// app/boek/page.tsx
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -10,49 +9,22 @@ import { getAvailabilityForRange } from "@/lib/availability";
 
 import BookingWidget from "@/components/BookingWidget";
 
-type SearchParams = {
-  from?: string;
-  to?: string;
-};
-
-function isIsoDay(v?: string) {
-  return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export default async function BoekPage({
-  searchParams,
-}: {
-  searchParams?: Promise<SearchParams>;
-}) {
+export default async function BoekPage() {
   const contact = siteConfig.contact;
 
-  // ✅ Availability settings uit Sanity
   const settings = await sanityClient.fetch(availabilitySettingsQuery);
 
   const advance = Number(settings?.advanceDays ?? 45);
   const tz = settings?.timezone ?? "Europe/Amsterdam";
 
-  // ✅ searchParams is Promise in Next 16 → await
-  const sp = searchParams ? await searchParams : undefined;
+  const now = new Date();
+  const from = now.toISOString().slice(0, 10);
 
-  // ✅ from/to: via querystring als ze geldig zijn, anders fallback
-  const from = isIsoDay(sp?.from) ? (sp!.from as string) : todayIso();
+  const toDate = new Date(now);
+  toDate.setDate(toDate.getDate() + advance);
+  const to = toDate.toISOString().slice(0, 10);
 
-  const fallbackToDate = new Date(from + "T00:00:00");
-  fallbackToDate.setDate(fallbackToDate.getDate() + advance);
-  const fallbackTo = fallbackToDate.toISOString().slice(0, 10);
-
-  const to = isIsoDay(sp?.to) ? (sp!.to as string) : fallbackTo;
-
-  // ✅ dagen berekenen
-  const allDays = getAvailabilityForRange(settings, from, to);
-
-  // ✅ Wil je ALLEEN open dagen tonen? Zet deze aan:
-  const days = allDays.filter((d) => d.isOpen); // <- dit is de “alleen open data zichtbaar” regel
+  const days = getAvailabilityForRange(settings, from, to);
 
   const responseTime = contact?.responseTime ?? "Meestal reactie dezelfde dag";
 
@@ -72,10 +44,8 @@ export default async function BoekPage({
         </p>
       </header>
 
-      {/* Availability + formulier */}
       <BookingWidget days={days} timezone={tz} />
 
-      {/* Kleine trust block */}
       <section className="mx-auto mt-12 max-w-4xl">
         <div className="grid gap-6 md:grid-cols-3">
           {[
