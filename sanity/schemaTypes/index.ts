@@ -1,3 +1,4 @@
+// sanity/schemaTypes/index.ts
 import sitePage from "./sitePage";
 import album from "./album";
 import homePage from "./homePage";
@@ -6,7 +7,7 @@ import packageType from "./package";
 import availabilitySettings from "./availabilitySettings";
 import bookingRequest from "./bookingRequest";
 
-// ✅ Sanity verwacht meestal een array 'types'
+// ✅ Dit is wat sanity.config.ts verwacht te importeren:
 export const schemaTypes = [
   sitePage,
   album,
