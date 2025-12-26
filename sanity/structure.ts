@@ -1,11 +1,11 @@
 // sanity/structure.ts
-import type { StructureBuilder } from "sanity/structure";
+import type { StructureResolver } from "sanity/desk";
 
-export const structure = (S: StructureBuilder) =>
+export const structure: StructureResolver = (S) =>
   S.list()
     .title("Content")
     .items([
-      // ✅ Boekingen (met filters)
+      // ✅ Boekingen (alleen als schema type bestaat)
       S.listItem()
         .title("Boekingen")
         .child(
@@ -18,9 +18,7 @@ export const structure = (S: StructureBuilder) =>
                   S.documentList()
                     .title("Nieuwe aanvragen")
                     .filter('_type == "bookingRequest" && status == "new"')
-                    .defaultOrdering([
-                      { field: "_createdAt", direction: "desc" },
-                    ])
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                 ),
 
               S.listItem()
@@ -29,9 +27,7 @@ export const structure = (S: StructureBuilder) =>
                   S.documentList()
                     .title("Bevestigd")
                     .filter('_type == "bookingRequest" && status == "confirmed"')
-                    .defaultOrdering([
-                      { field: "_createdAt", direction: "desc" },
-                    ])
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                 ),
 
               S.listItem()
@@ -40,14 +36,10 @@ export const structure = (S: StructureBuilder) =>
                   S.documentList()
                     .title("Afgewezen")
                     .filter('_type == "bookingRequest" && status == "declined"')
-                    .defaultOrdering([
-                      { field: "_createdAt", direction: "desc" },
-                    ])
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                 ),
 
               S.divider(),
-
-              // Alles
               S.documentTypeList("bookingRequest").title("Alle aanvragen"),
             ])
         ),
@@ -63,7 +55,7 @@ export const structure = (S: StructureBuilder) =>
 
       S.divider(),
 
-      // ✅ Settings (singleton)
+      // ✅ Settings singleton
       S.listItem()
         .title("Beschikbaarheid (Settings)")
         .child(
@@ -76,7 +68,7 @@ export const structure = (S: StructureBuilder) =>
 
       S.divider(),
 
-      // ✅ Alles wat je niet expliciet hierboven toont
+      // ✅ Overig (alles wat niet hierboven staat)
       ...S.documentTypeListItems().filter((listItem) => {
         const id = listItem.getId() as string | undefined;
         return (
