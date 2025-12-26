@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSanityWriteClient } from "@/lib/sanity.write";
 
+export const dynamic = "force-dynamic";
+// (optioneel) als je edge issues krijgt met Sanity/Resend:
+// export const runtime = "nodejs";
+
 type BookingPayload = {
-  date: string;
-  time: string;
-  timezone: string;
+  date: string;     // YYYY-MM-DD
+  time: string;     // HH:mm
+  timezone: string; // Europe/Amsterdam
 
   name: string;
   email: string;
@@ -18,8 +22,7 @@ type BookingPayload = {
   preferredContact?: "whatsapp" | "email" | "phone";
   consent?: boolean;
 
-  // honeypot
-  company?: string;
+  company?: string; // honeypot
 };
 
 function isValidEmail(email: string) {
@@ -30,17 +33,35 @@ function esc(s: string) {
   return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]!));
 }
 
+function normalizeDate(d: string) {
+  return (d || "").slice(0, 10);
+}
+
+function normalizeTime(t: string) {
+  return (t || "").slice(0, 5);
+}
+
+/**
+ * Deterministische id op basis van slot.
+ * Hierdoor kan hetzelfde slot maar 1x bestaan (Sanity geeft conflict).
+ */
+function slotId(date: string, time: string) {
+  const safeDate = normalizeDate(date).replace(/[^0-9-]/g, "");
+  const safeTime = normalizeTime(time).replace(/[^0-9]/g, ""); // "10:30" -> "1030"
+  return `bookingRequest.${safeDate}.${safeTime}`;
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Partial<BookingPayload>;
 
-    // 🛑 Honeypot (bot protection)
+    // 🛑 Honeypot
     if (body.company && String(body.company).trim().length > 0) {
       return NextResponse.json({ ok: true });
     }
 
-    const date = String(body.date ?? "").trim();
-    const time = String(body.time ?? "").trim();
+    const date = normalizeDate(String(body.date ?? "").trim());
+    const time = normalizeTime(String(body.time ?? "").trim());
     const timezone = String(body.timezone ?? "Europe/Amsterdam").trim();
 
     const name = String(body.name ?? "").trim();
@@ -68,30 +89,52 @@ export async function POST(req: Request) {
     }
 
     // =========================
-    // 1️⃣ OPSLAAN IN SANITY
+    // 1️⃣ OPSLAAN IN SANITY (met unieke slot-id)
     // =========================
     const sanity = getSanityWriteClient();
 
-    const created = await sanity.create({
-      _type: "bookingRequest",
-      status: "new",
-      createdAt: new Date().toISOString(),
+    const _id = slotId(date, time);
 
-      date,
-      time,
-      timezone,
+    let created: any;
+    try {
+      created = await sanity.create({
+        _id,
+        _type: "bookingRequest",
+        status: "new",
+        createdAt: new Date().toISOString(),
 
-      name,
-      email,
-      phone: phone || undefined,
+        date,
+        time,
+        timezone,
 
-      preferredContact,
-      shootType: shootType || undefined,
-      location: location || undefined,
-      message: message || undefined,
+        name,
+        email,
+        phone: phone || undefined,
 
-      consent,
-    });
+        preferredContact,
+        shootType: shootType || undefined,
+        location: location || undefined,
+        message: message || undefined,
+
+        consent,
+      });
+    } catch (err: any) {
+      // ✅ Als slot al bestaat -> conflict / dubbel geboekt
+      const status = err?.statusCode || err?.response?.statusCode;
+
+      if (status === 409) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Deze tijd is net geboekt. Kies een andere tijd.",
+            code: "SLOT_TAKEN",
+          },
+          { status: 409 }
+        );
+      }
+
+      throw err;
+    }
 
     // =========================
     // 2️⃣ (OPTIONEEL) EMAIL VIA RESEND
@@ -125,16 +168,10 @@ export async function POST(req: Request) {
             ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
           </ul>
 
-          ${
-            message
-              ? `<h3>Bericht</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>`
-              : ""
-          }
+          ${message ? `<h3>Bericht</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>` : ""}
 
           <hr/>
-          <p style="font-size:12px;opacity:.6">
-            Sanity ID: ${esc(created._id)}
-          </p>
+          <p style="font-size:12px;opacity:.6">Sanity ID: ${esc(created._id)}</p>
         </div>
       `;
 
@@ -146,20 +183,13 @@ export async function POST(req: Request) {
         html,
       });
 
+      // mail fail ≠ 500 (opslaan is al gelukt)
       if ((result as any)?.error) {
-        // opslag gelukt, mail niet → geen 500
-        return NextResponse.json({
-          ok: true,
-          createdId: created._id,
-          mailError: true,
-        });
+        return NextResponse.json({ ok: true, createdId: created._id, mailError: true });
       }
     }
 
-    return NextResponse.json({
-      ok: true,
-      createdId: created._id,
-    });
+    return NextResponse.json({ ok: true, createdId: created._id });
   } catch (e: any) {
     console.error("Booking API error:", e);
     return NextResponse.json(
