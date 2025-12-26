@@ -1,16 +1,28 @@
 // sanity/structure.ts
 import type { StructureResolver } from "sanity/structure";
-import { CalendarIcon, DocumentIcon, ImageIcon } from "@sanity/icons";
+import { CalendarIcon, DocumentIcon, HomeIcon, ImageIcon, TagIcon, CogIcon } from "@sanity/icons";
 
 export const structure: StructureResolver = (S) =>
   S.list()
     .title("Content")
     .items([
+      // Home (singleton)
+      S.listItem()
+        .title("Home")
+        .icon(HomeIcon)
+        .child(S.document().schemaType("homePage").documentId("homePage").title("Home")),
+
       // Pagina’s
       S.listItem()
         .title("Pagina’s")
         .icon(DocumentIcon)
         .child(S.documentTypeList("sitePage").title("Pagina’s")),
+
+      // Portfolio
+      S.listItem()
+        .title("Portfolio")
+        .icon(ImageIcon)
+        .child(S.documentTypeList("portfolioItem").title("Portfolio")),
 
       // Albums
       S.listItem()
@@ -18,9 +30,21 @@ export const structure: StructureResolver = (S) =>
         .icon(ImageIcon)
         .child(S.documentTypeList("album").title("Albums")),
 
+      // Pakketten
+      S.listItem()
+        .title("Pakketten")
+        .icon(TagIcon)
+        .child(S.documentTypeList("package").title("Pakketten")),
+
+      // Beschikbaarheid (settings)
+      S.listItem()
+        .title("Beschikbaarheid")
+        .icon(CogIcon)
+        .child(S.document().schemaType("availabilitySettings").documentId("availabilitySettings").title("Beschikbaarheid")),
+
       S.divider(),
 
-      // Boekingen (bookingRequest)
+      // Boekingen
       S.listItem()
         .title("Boekingen")
         .icon(CalendarIcon)
@@ -66,24 +90,30 @@ export const structure: StructureResolver = (S) =>
 
               S.divider(),
 
-              // ✅ “Alle aanvragen” moet een listItem zijn (niet documentTypeList direct)
-              S.documentTypeListItem("bookingRequest").title("Alle aanvragen"),
+              // Alle aanvragen
+              S.listItem()
+                .title("Alle aanvragen")
+                .child(
+                  S.documentTypeList("bookingRequest")
+                    .title("Alle aanvragen")
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                ),
             ])
         ),
 
       S.divider(),
 
-      // Alles wat je niet al bovenaan hebt gezet:
+      // Alles wat je niet hierboven hebt gezet:
       ...S.documentTypeListItems().filter(
         (listItem) =>
           ![
-            "sitePage",
-            "album",
-            "bookingRequest",
             "homePage",
+            "sitePage",
             "portfolioItem",
+            "album",
             "package",
             "availabilitySettings",
+            "bookingRequest",
           ].includes(listItem.getId() as string)
       ),
     ]);
