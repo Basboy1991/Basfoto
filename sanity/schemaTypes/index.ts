@@ -6,14 +6,13 @@ import packageType from "./package";
 import availabilitySettings from "./availabilitySettings";
 import bookingRequest from "./bookingRequest";
 
-export const schema = {
-  types: [
-    sitePage,
-    album,
-    homePage,
-    portfolioItem,
-    packageType,
-    availabilitySettings,
-    bookingRequest,
-  ],
-};
+// ✅ Sanity verwacht meestal een array 'types'
+export const schemaTypes = [
+  sitePage,
+  album,
+  homePage,
+  portfolioItem,
+  packageType,
+  availabilitySettings,
+  bookingRequest,
+];
