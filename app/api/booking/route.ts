@@ -1,7 +1,7 @@
 // app/api/booking/route.ts
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { createClient } from "@sanity/client";
+import { sanityWriteClient } from "@/lib/sanity.write";
 
 type BookingPayload = {
   date: string;
@@ -27,31 +27,14 @@ function isValidEmail(email: string) {
 }
 
 function esc(s: string) {
-  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] as string);
-}
-
-function getSanityWriteClient() {
-  const projectId = process.env.SANITY_PROJECT_ID;
-  const dataset = process.env.SANITY_DATASET;
-  const apiVersion = process.env.SANITY_API_VERSION || "2024-01-01";
-  const token = process.env.SANITY_API_WRITE_TOKEN;
-
-  if (!projectId || !dataset || !token) return null;
-
-  return createClient({
-    projectId,
-    dataset,
-    apiVersion,
-    token,
-    useCdn: false,
-  });
+  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
 }
 
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Partial<BookingPayload>;
 
-    // honeypot
+    // Honeypot
     if (body.company && String(body.company).trim().length > 0) {
       return NextResponse.json({ ok: true });
     }
@@ -62,16 +45,16 @@ export async function POST(req: Request) {
 
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
+    const phone = String(body.phone ?? "").trim() || undefined;
 
-    const shootType = String(body.shootType ?? "").trim();
-    const location = String(body.location ?? "").trim();
-    const message = String(body.message ?? "").trim();
-    const preferredContact = (body.preferredContact ??
-      "whatsapp") as BookingPayload["preferredContact"];
+    const shootType = String(body.shootType ?? "").trim() || undefined;
+    const location = String(body.location ?? "").trim() || undefined;
+    const message = String(body.message ?? "").trim() || undefined;
+
+    const preferredContact = (body.preferredContact ?? "whatsapp") as BookingPayload["preferredContact"];
     const consent = Boolean(body.consent);
 
-    // validatie
+    // Validatie
     const errors: Record<string, string> = {};
     if (!date) errors.date = "Kies een datum.";
     if (!time) errors.time = "Kies een tijd.";
@@ -83,7 +66,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, errors }, { status: 400 });
     }
 
-    // ===== 1) Mail via Resend =====
+    // Resend env
     const resendKey = process.env.RESEND_API_KEY;
     const toEmail = process.env.BOOKING_TO_EMAIL;
     const fromEmail = process.env.BOOKING_FROM_EMAIL;
@@ -91,17 +74,7 @@ export async function POST(req: Request) {
 
     if (!resendKey || !toEmail || !fromEmail) {
       return NextResponse.json(
-        {
-          ok: false,
-          error: "Mail configuratie mist (RESEND_API_KEY / BOOKING_TO_EMAIL / BOOKING_FROM_EMAIL).",
-          debug: {
-            hasResendKey: Boolean(resendKey),
-            hasTo: Boolean(toEmail),
-            hasFrom: Boolean(fromEmail),
-            hasReplyTo: Boolean(process.env.BOOKING_REPLYTO_EMAIL),
-            nodeEnv: process.env.NODE_ENV,
-          },
-        },
+        { ok: false, error: "Mail configuratie mist (RESEND_API_KEY / BOOKING_TO_EMAIL / BOOKING_FROM_EMAIL)." },
         { status: 500 }
       );
     }
@@ -109,11 +82,11 @@ export async function POST(req: Request) {
     const resend = new Resend(resendKey);
 
     const subject = `Nieuwe boekingsaanvraag: ${date} ${time}`;
+
     const html = `
       <div style="font-family: ui-sans-serif, system-ui; line-height:1.5">
         <h2>Nieuwe boekingsaanvraag</h2>
         <p><strong>Datum/tijd:</strong> ${esc(date)} om ${esc(time)} (${esc(timezone)})</p>
-
         <h3>Contact</h3>
         <ul>
           <li><strong>Naam:</strong> ${esc(name)}</li>
@@ -121,68 +94,58 @@ export async function POST(req: Request) {
           ${phone ? `<li><strong>Telefoon:</strong> ${esc(phone)}</li>` : ""}
           <li><strong>Voorkeur contact:</strong> ${esc(preferredContact ?? "")}</li>
         </ul>
-
         <h3>Shoot</h3>
         <ul>
           ${shootType ? `<li><strong>Type:</strong> ${esc(shootType)}</li>` : ""}
           ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
         </ul>
-
         ${message ? `<h3>Opmerking</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>` : ""}
-
         <hr/>
         <p style="font-size:12px; opacity:.7">Verstuurd via boekingsformulier.</p>
       </div>
     `;
 
+    // 1) Mail versturen
     const mailResult = await resend.emails.send({
       from: fromEmail,
-      to: [toEmail],
-      reply_to: replyTo ? [replyTo] : undefined,
+      to: toEmail,
+      reply_to: replyTo || undefined,
       subject,
       html,
     });
 
     if ((mailResult as any)?.error) {
-      return NextResponse.json({ ok: false, step: "mail", resend: mailResult }, { status: 500 });
+      return NextResponse.json({ ok: false, resend: mailResult }, { status: 500 });
     }
 
-    // ===== 2) Opslaan in Sanity =====
-    const sanity = getSanityWriteClient();
-    if (!sanity) {
-      // We laten mail wél slagen, maar melden dat opslag mist
-      return NextResponse.json({
-        ok: true,
-        warning:
-          "Sanity write config mist (SANITY_PROJECT_ID/DATASET/WRITE_TOKEN). Mail is wel verstuurd.",
-        resend: mailResult,
-      });
+    // 2) ✅ Opslaan in Sanity
+    const sanityToken = process.env.SANITY_API_TOKEN;
+    if (!sanityToken) {
+      // Als je (nog) geen token wilt zetten: dan blijft je mail werken maar geen save
+      return NextResponse.json({ ok: true, resend: mailResult, saved: false, reason: "SANITY_API_TOKEN missing" });
     }
 
-    const bookingDoc = {
-      _type: "booking",
+    const created = await sanityWriteClient.create({
+      _type: "bookingRequest",
       status: "new",
       date,
       time,
       timezone,
       name,
       email,
-      phone: phone || undefined,
-      preferredContact: preferredContact || undefined,
-      shootType: shootType || undefined,
-      location: location || undefined,
-      message: message || undefined,
-      source: "website",
+      phone,
+      preferredContact,
+      consent,
+
+      shootType,
+      location,
+      message,
+
+      resendId: (mailResult as any)?.data?.id ?? null,
       createdAt: new Date().toISOString(),
-    };
-
-    const sanityResult = await sanity.create(bookingDoc);
-
-    return NextResponse.json({
-      ok: true,
-      resend: mailResult,
-      sanity: { id: sanityResult._id },
     });
+
+    return NextResponse.json({ ok: true, resend: mailResult, saved: true, bookingId: created._id });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message ?? "Onbekende fout" }, { status: 500 });
   }
