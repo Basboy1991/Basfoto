@@ -1,6 +1,6 @@
 // sanity.config.ts
 import { defineConfig } from "sanity";
-import { structureTool } from "sanity/structure";
+import { deskTool } from "sanity/desk";
 import { visionTool } from "@sanity/vision";
 
 import { schemaTypes } from "./sanity/schemaTypes";
@@ -21,7 +21,7 @@ export default defineConfig({
   },
 
   plugins: [
-    structureTool({ structure }),
+    deskTool({ structure }),
     visionTool(),
   ],
 });
