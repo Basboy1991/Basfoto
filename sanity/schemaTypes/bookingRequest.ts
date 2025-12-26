@@ -2,8 +2,9 @@ import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "bookingRequest",
-  title: "Boekingsaanvragen",
+  title: "Boekingsaanvraag",
   type: "document",
+
   fields: [
     defineField({
       name: "createdAt",
@@ -17,71 +18,70 @@ export default defineType({
       name: "status",
       title: "Status",
       type: "string",
-      initialValue: "nieuw",
+      initialValue: "new",
       options: {
         list: [
-          { title: "Nieuw", value: "nieuw" },
-          { title: "In behandeling", value: "in_behandeling" },
-          { title: "Bevestigd", value: "bevestigd" },
-          { title: "Afgewezen", value: "afgewezen" },
+          { title: "Nieuw", value: "new" },
+          { title: "In behandeling", value: "in_progress" },
+          { title: "Bevestigd", value: "confirmed" },
+          { title: "Afgehandeld", value: "done" },
+          { title: "Geannuleerd", value: "cancelled" },
         ],
+        layout: "radio",
       },
+      validation: (Rule) => Rule.required(),
     }),
 
-    // ✅ keuze uit availability
-    defineField({ name: "date", title: "Datum", type: "date", validation: (R) => R.required() }),
+    defineField({ name: "date", title: "Datum", type: "string" }),
+    defineField({ name: "time", title: "Tijd", type: "string" }),
+    defineField({ name: "timezone", title: "Tijdzone", type: "string" }),
+
+    defineField({ name: "shootType", title: "Type shoot", type: "string" }),
+    defineField({ name: "package", title: "Pakket", type: "string" }),
+    defineField({ name: "location", title: "Locatie", type: "string" }),
+
     defineField({
-      name: "time",
-      title: "Starttijd",
+      name: "name",
+      title: "Naam",
       type: "string",
-      validation: (R) => R.required(),
+      validation: (Rule) => Rule.required(),
     }),
-    defineField({ name: "timezone", title: "Timezone", type: "string" }),
-
-    // ✅ shoot info
-    defineField({
-      name: "shootType",
-      title: "Type shoot",
-      type: "string",
-      validation: (R) => R.required(),
-      options: {
-        list: [
-          { title: "Gezin", value: "gezin" },
-          { title: "Huisdieren", value: "huisdieren" },
-          { title: "Zwangerschap", value: "zwangerschap" },
-          { title: "Koppel", value: "koppel" },
-          { title: "Anders", value: "anders" },
-        ],
-      },
-    }),
-    defineField({ name: "package", title: "Pakket (optioneel)", type: "string" }),
-    defineField({ name: "location", title: "Locatie / omgeving", type: "string" }),
-
-    // ✅ contact
-    defineField({ name: "name", title: "Naam", type: "string", validation: (R) => R.required() }),
     defineField({
       name: "email",
       title: "E-mail",
       type: "string",
-      validation: (R) => R.required(),
+      validation: (Rule) => Rule.required(),
     }),
-    defineField({ name: "phone", title: "Telefoon (optioneel)", type: "string" }),
+    defineField({ name: "phone", title: "Telefoon", type: "string" }),
 
-    // ✅ inhoud
     defineField({
       name: "message",
-      title: "Opmerkingen / wensen",
+      title: "Bericht / Opmerking",
       type: "text",
-      rows: 6,
-      validation: (R) => R.required(),
+      rows: 5,
     }),
 
-    // ✅ marketing / privacy (optioneel)
     defineField({
       name: "consent",
-      title: "Toestemming (privacy)",
+      title: "Toestemming gegeven",
       type: "boolean",
-      initialValue: true,
+      readOnly: true,
     }),
   ],
+
+  preview: {
+    select: {
+      title: "name",
+      date: "date",
+      time: "time",
+      status: "status",
+      email: "email",
+    },
+    prepare({ title, date, time, status, email }) {
+      return {
+        title: title || "(geen naam)",
+        subtitle: `${date ?? "—"} ${time ?? ""} • ${status ?? "—"} • ${email ?? ""}`.trim(),
+      };
+    },
+  },
 });
