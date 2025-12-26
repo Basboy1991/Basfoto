@@ -1,5 +1,4 @@
 // sanity/structure.ts
-import type { StructureResolver } from "sanity/desk";
 import {
   CalendarIcon,
   DocumentIcon,
@@ -9,9 +8,7 @@ import {
   CogIcon,
 } from "@sanity/icons";
 
-const SINGLETONS = new Set(["homePage", "availabilitySettings"]);
-
-export const structure: StructureResolver = (S) =>
+export const structure = (S: any) =>
   S.list()
     .title("Content")
     .items([
@@ -19,7 +16,12 @@ export const structure: StructureResolver = (S) =>
       S.listItem()
         .title("Home")
         .icon(HomeIcon)
-        .child(S.document().schemaType("homePage").documentId("homePage").title("Home")),
+        .child(
+          S.document()
+            .schemaType("homePage")
+            .documentId("homePage")
+            .title("Home")
+        ),
 
       // Pagina’s
       S.listItem()
@@ -45,7 +47,7 @@ export const structure: StructureResolver = (S) =>
         .icon(TagIcon)
         .child(S.documentTypeList("package").title("Pakketten")),
 
-      // Beschikbaarheid (singleton)
+      // Beschikbaarheid (singleton/settings)
       S.listItem()
         .title("Beschikbaarheid")
         .icon(CogIcon)
@@ -116,22 +118,17 @@ export const structure: StructureResolver = (S) =>
 
       S.divider(),
 
-      // Alles wat je niet hierboven hebt gezet:
-      ...S.documentTypeListItems().filter((listItem) => {
-        const id = listItem.getId() as string;
-        return ![
-          "homePage",
-          "sitePage",
-          "portfolioItem",
-          "album",
-          "package",
-          "availabilitySettings",
-          "bookingRequest",
-        ].includes(id);
-      }),
-    ])
-    // ✅ voorkomt dat singletons als “nieuwe” documenten aangemaakt worden via intent
-    .canHandleIntent((intentName, params) => {
-      if (intentName === "create" && params?.type && SINGLETONS.has(params.type)) return false;
-      return true;
-    });
+      // Rest
+      ...S.documentTypeListItems().filter(
+        (listItem: any) =>
+          ![
+            "homePage",
+            "sitePage",
+            "portfolioItem",
+            "album",
+            "package",
+            "availabilitySettings",
+            "bookingRequest",
+          ].includes(listItem.getId() as string)
+      ),
+    ]);
