@@ -7,5 +7,5 @@ export const sanityWriteClient = createClient({
   dataset,
   apiVersion,
   useCdn: false,
-  token: process.env.SANITY_API_WRITE_TOKEN, // 👈 ALLEEN write token
+  token: process.env.SANITY_API_WRITE_TOKEN, // ✅ server-only token
 });
