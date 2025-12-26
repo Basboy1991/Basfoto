@@ -1,10 +1,11 @@
+// sanity/structure.ts
 import type { StructureBuilder } from "sanity/structure";
 
 export const structure = (S: StructureBuilder) =>
   S.list()
     .title("Content")
     .items([
-      // ✅ BOOKING REQUESTS (met handige filters)
+      // ✅ Boekingen (met filters)
       S.listItem()
         .title("Boekingen")
         .child(
@@ -12,48 +13,42 @@ export const structure = (S: StructureBuilder) =>
             .title("Boekingen")
             .items([
               S.listItem()
-                .title("Alle aanvragen")
-                .child(S.documentTypeList("bookingRequest").title("Alle aanvragen")),
-
-              S.listItem()
                 .title("Nieuw")
                 .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Nieuw")
+                  S.documentList()
+                    .title("Nieuwe aanvragen")
                     .filter('_type == "bookingRequest" && status == "new"')
-                ),
-
-              S.listItem()
-                .title("In behandeling")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("In behandeling")
-                    .filter('_type == "bookingRequest" && status == "in_progress"')
+                    .defaultOrdering([
+                      { field: "_createdAt", direction: "desc" },
+                    ])
                 ),
 
               S.listItem()
                 .title("Bevestigd")
                 .child(
-                  S.documentTypeList("bookingRequest")
+                  S.documentList()
                     .title("Bevestigd")
                     .filter('_type == "bookingRequest" && status == "confirmed"')
+                    .defaultOrdering([
+                      { field: "_createdAt", direction: "desc" },
+                    ])
                 ),
 
               S.listItem()
-                .title("Afgehandeld")
+                .title("Afgewezen")
                 .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Afgehandeld")
-                    .filter('_type == "bookingRequest" && status == "done"')
+                  S.documentList()
+                    .title("Afgewezen")
+                    .filter('_type == "bookingRequest" && status == "declined"')
+                    .defaultOrdering([
+                      { field: "_createdAt", direction: "desc" },
+                    ])
                 ),
 
-              S.listItem()
-                .title("Geannuleerd")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Geannuleerd")
-                    .filter('_type == "bookingRequest" && status == "cancelled"')
-                ),
+              S.divider(),
+
+              // Alles
+              S.documentTypeList("bookingRequest").title("Alle aanvragen"),
             ])
         ),
 
@@ -68,30 +63,33 @@ export const structure = (S: StructureBuilder) =>
 
       S.divider(),
 
-      // ✅ Singleton instellingen (availability)
+      // ✅ Settings (singleton)
       S.listItem()
-        .title("Beschikbaarheid")
+        .title("Beschikbaarheid (Settings)")
         .child(
           S.editor()
             .id("availabilitySettings")
             .schemaType("availabilitySettings")
             .documentId("availabilitySettings")
-            .title("Beschikbaarheid instellingen")
+            .title("Beschikbaarheid")
         ),
 
       S.divider(),
 
-      // ✅ Alles wat je niet al handmatig hierboven zet
-      ...S.documentTypeListItems().filter(
-        (listItem) =>
+      // ✅ Alles wat je niet expliciet hierboven toont
+      ...S.documentTypeListItems().filter((listItem) => {
+        const id = listItem.getId() as string | undefined;
+        return (
+          id &&
           ![
+            "bookingRequest",
             "homePage",
             "sitePage",
             "portfolioItem",
             "album",
             "package",
             "availabilitySettings",
-            "bookingRequest",
-          ].includes(listItem.getId() as string)
-      ),
+          ].includes(id)
+        );
+      }),
     ]);
