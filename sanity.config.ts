@@ -1,5 +1,6 @@
+// sanity.config.ts
 import { defineConfig } from "sanity";
-import { deskTool } from "sanity/desk";
+import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
 
 import { schemaTypes } from "./sanity/schemaTypes";
@@ -8,19 +9,20 @@ import { projectId, dataset } from "./sanity/env";
 
 export default defineConfig({
   name: "default",
-  title: "Bas-fotografie Studio",
+  title: "Bas Fotografie",
 
   projectId,
   dataset,
 
-  plugins: [
-    deskTool({
-      structure,
-    }),
-    visionTool(),
-  ],
+  // ✅ Studio draait op /studio
+  basePath: "/studio",
 
   schema: {
     types: schemaTypes,
   },
+
+  plugins: [
+    structureTool({ structure }),
+    visionTool(),
+  ],
 });
