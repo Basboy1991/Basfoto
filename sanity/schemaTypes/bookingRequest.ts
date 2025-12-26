@@ -1,14 +1,10 @@
-import { defineType, defineField } from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "bookingRequest",
-  title: "Boekingsaanvraag",
+  title: "Boeking aanvragen",
   type: "document",
-
   fields: [
-    // =========================
-    // STATUS & PLANNING
-    // =========================
     defineField({
       name: "status",
       title: "Status",
@@ -17,58 +13,32 @@ export default defineType({
       options: {
         list: [
           { title: "Nieuw", value: "new" },
+          { title: "Bezig", value: "in_progress" },
           { title: "Bevestigd", value: "confirmed" },
           { title: "Afgewezen", value: "rejected" },
-          { title: "Afgehandeld", value: "done" },
         ],
         layout: "radio",
       },
       validation: (Rule) => Rule.required(),
     }),
 
-    defineField({
-      name: "date",
-      title: "Datum",
-      type: "date",
-      validation: (Rule) => Rule.required(),
-    }),
+    defineField({ name: "date", title: "Datum", type: "date", validation: (Rule) => Rule.required() }),
+    defineField({ name: "time", title: "Starttijd", type: "string", validation: (Rule) => Rule.required() }),
+    defineField({ name: "timezone", title: "Tijdzone", type: "string" }),
 
-    defineField({
-      name: "time",
-      title: "Starttijd",
-      type: "string",
-      validation: (Rule) => Rule.required(),
-    }),
-
-    defineField({
-      name: "timezone",
-      title: "Tijdzone",
-      type: "string",
-      initialValue: "Europe/Amsterdam",
-    }),
-
-    // =========================
-    // CONTACTGEGEVENS
-    // =========================
     defineField({
       name: "name",
       title: "Naam",
       type: "string",
       validation: (Rule) => Rule.required(),
     }),
-
     defineField({
       name: "email",
-      title: "E-mailadres",
+      title: "E-mail",
       type: "string",
       validation: (Rule) => Rule.required().email(),
     }),
-
-    defineField({
-      name: "phone",
-      title: "Telefoonnummer",
-      type: "string",
-    }),
+    defineField({ name: "phone", title: "Telefoon", type: "string" }),
 
     defineField({
       name: "preferredContact",
@@ -83,67 +53,49 @@ export default defineType({
       },
     }),
 
-    // =========================
-    // SHOOT INFORMATIE
-    // =========================
-    defineField({
-      name: "shootType",
-      title: "Type shoot",
-      type: "string",
-    }),
+    defineField({ name: "shootType", title: "Type shoot", type: "string" }),
+    defineField({ name: "location", title: "Locatie / plaats", type: "string" }),
 
-    defineField({
-      name: "location",
-      title: "Locatie / plaats",
-      type: "string",
-    }),
+    defineField({ name: "message", title: "Opmerking", type: "text" }),
 
-    defineField({
-      name: "message",
-      title: "Opmerking van klant",
-      type: "text",
-      rows: 4,
-    }),
-
-    // =========================
-    // META / TECHNISCH
-    // =========================
     defineField({
       name: "consent",
-      title: "Toestemming gegeven",
+      title: "Toestemming",
       type: "boolean",
-      readOnly: true,
+      validation: (Rule) => Rule.required(),
     }),
 
     defineField({
-      name: "resendId",
-      title: "Resend mail ID",
-      type: "string",
-      readOnly: true,
-    }),
-
-    defineField({
-      name: "createdAt",
-      title: "Aangemaakt op",
+      name: "submittedAt",
+      title: "Ingediend op",
       type: "datetime",
-      readOnly: true,
+      initialValue: () => new Date().toISOString(),
     }),
   ],
 
-  // =========================
-  // PREVIEW IN LIJST
-  // =========================
   preview: {
     select: {
-      name: "name",
+      title: "name",
+      subtitle: "email",
       date: "date",
       time: "time",
       status: "status",
     },
-    prepare({ name, date, time, status }) {
+    prepare({ title, subtitle, date, time, status }) {
+      const statusLabel =
+        status === "new"
+          ? "Nieuw"
+          : status === "in_progress"
+          ? "Bezig"
+          : status === "confirmed"
+          ? "Bevestigd"
+          : status === "rejected"
+          ? "Afgewezen"
+          : status;
+
       return {
-        title: name || "Onbekende aanvraag",
-        subtitle: `${date ?? "?"} • ${time ?? "?"} • ${status ?? "new"}`,
+        title: title || "Boeking aanvraag",
+        subtitle: `${subtitle || ""} • ${date || ""} ${time || ""} • ${statusLabel}`,
       };
     },
   },
