@@ -9,6 +9,38 @@ import { getAvailabilityForRange } from "@/lib/availability";
 
 import BookingWidget from "@/components/BookingWidget";
 
+type BookedSlot = {
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  status?: string;
+};
+
+function applyBookedSlots(days: any[], booked: BookedSlot[]) {
+  if (!booked?.length) return days;
+
+  const map = new Map<string, Set<string>>();
+  for (const b of booked) {
+    const day = (b.date || "").slice(0, 10);
+    const t = (b.time || "").slice(0, 5);
+    if (!day || !t) continue;
+
+    if (!map.has(day)) map.set(day, new Set());
+    map.get(day)!.add(t);
+  }
+
+  return days.map((d) => {
+    const blocked = map.get(d.date);
+    if (!blocked?.size) return d;
+
+    const times = (d.times ?? []).filter((t: string) => !blocked.has(t));
+    return {
+      ...d,
+      isOpen: times.length > 0 ? d.isOpen : false,
+      times,
+    };
+  });
+}
+
 export default async function BoekPage() {
   const contact = siteConfig.contact;
 
@@ -24,7 +56,25 @@ export default async function BoekPage() {
   toDate.setDate(toDate.getDate() + advance);
   const to = toDate.toISOString().slice(0, 10);
 
-  const days = getAvailabilityForRange(settings, from, to);
+  // 1) basis availability berekenen uit settings
+  const daysBase = getAvailabilityForRange(settings, from, to);
+
+  // 2) geboekte slots ophalen (alles behalve cancelled)
+  const booked: BookedSlot[] = await sanityClient.fetch(
+    `*[
+      _type == "bookingRequest" &&
+      date >= $from && date <= $to &&
+      !(status in ["cancelled"])
+    ]{
+      date,
+      time,
+      status
+    }`,
+    { from, to }
+  );
+
+  // 3) geboekte tijden verwijderen uit de availability
+  const days = applyBookedSlots(daysBase, booked);
 
   const responseTime = contact?.responseTime ?? "Meestal reactie dezelfde dag";
 
