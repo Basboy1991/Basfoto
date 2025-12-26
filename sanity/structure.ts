@@ -5,83 +5,106 @@ export const structure: StructureResolver = (S) =>
   S.list()
     .title("Content")
     .items([
-      // ✅ Boekingen (alleen als schema type bestaat)
+      // Pagina’s / albums
+      S.documentTypeListItem("sitePage").title("Pagina’s"),
+      S.documentTypeListItem("album").title("Albums"),
+      S.documentTypeListItem("homePage").title("Home"),
+      S.documentTypeListItem("portfolioItem").title("Portfolio"),
+      S.documentTypeListItem("package").title("Pakketten"),
+
+      S.divider(),
+
+      // Availability settings (singleton)
+      S.listItem()
+        .title("Beschikbaarheid (instellingen)")
+        .id("availabilitySettingsSingleton")
+        .child(
+          S.editor()
+            .id("availabilitySettings")
+            .schemaType("availabilitySettings")
+            .documentId("availabilitySettings")
+            .title("Beschikbaarheid (instellingen)")
+        ),
+
+      S.divider(),
+
+      // Boekingen / aanvragen
       S.listItem()
         .title("Boekingen")
+        .id("bookingsRoot")
         .child(
           S.list()
             .title("Boekingen")
             .items([
+              // ✅ Dit is nu WEL goed: ListItem -> child(DocumentList)
               S.listItem()
                 .title("Nieuw")
+                .id("bookingRequestsNew")
                 .child(
-                  S.documentList()
-                    .title("Nieuwe aanvragen")
-                    .filter('_type == "bookingRequest" && status == "new"')
+                  S.documentTypeList("bookingRequest")
+                    .title("Nieuw")
+                    .filter('_type == "bookingRequest" && (status == "new" || !defined(status))')
                     .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                 ),
 
               S.listItem()
                 .title("Bevestigd")
+                .id("bookingRequestsConfirmed")
                 .child(
-                  S.documentList()
+                  S.documentTypeList("bookingRequest")
                     .title("Bevestigd")
                     .filter('_type == "bookingRequest" && status == "confirmed"')
                     .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                 ),
 
               S.listItem()
-                .title("Afgewezen")
+                .title("Afgerond")
+                .id("bookingRequestsDone")
                 .child(
-                  S.documentList()
-                    .title("Afgewezen")
-                    .filter('_type == "bookingRequest" && status == "declined"')
+                  S.documentTypeList("bookingRequest")
+                    .title("Afgerond")
+                    .filter('_type == "bookingRequest" && status == "done"')
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                ),
+
+              S.listItem()
+                .title("Spam / genegeerd")
+                .id("bookingRequestsSpam")
+                .child(
+                  S.documentTypeList("bookingRequest")
+                    .title("Spam / genegeerd")
+                    .filter('_type == "bookingRequest" && status == "spam"')
                     .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                 ),
 
               S.divider(),
-              S.documentTypeList("bookingRequest").title("Alle aanvragen"),
+
+              // ✅ “Alle aanvragen” – ook als ListItem met child()
+              S.listItem()
+                .title("Alle aanvragen")
+                .id("bookingRequestsAll")
+                .child(
+                  S.documentTypeList("bookingRequest")
+                    .title("Alle aanvragen")
+                    .filter('_type == "bookingRequest"')
+                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+                ),
             ])
         ),
 
       S.divider(),
 
-      // ✅ Content
-      S.documentTypeListItem("homePage").title("Home"),
-      S.documentTypeListItem("sitePage").title("Pagina’s"),
-      S.documentTypeListItem("portfolioItem").title("Portfolio"),
-      S.documentTypeListItem("album").title("Albums"),
-      S.documentTypeListItem("package").title("Pakketten"),
-
-      S.divider(),
-
-      // ✅ Settings singleton
-      S.listItem()
-        .title("Beschikbaarheid (Settings)")
-        .child(
-          S.editor()
-            .id("availabilitySettings")
-            .schemaType("availabilitySettings")
-            .documentId("availabilitySettings")
-            .title("Beschikbaarheid")
-        ),
-
-      S.divider(),
-
-      // ✅ Overig (alles wat niet hierboven staat)
-      ...S.documentTypeListItems().filter((listItem) => {
-        const id = listItem.getId() as string | undefined;
-        return (
-          id &&
+      // Alles wat je verder nog hebt (behalve wat we al expliciet plaatsen)
+      ...S.documentTypeListItems().filter(
+        (listItem) =>
           ![
-            "bookingRequest",
-            "homePage",
             "sitePage",
-            "portfolioItem",
             "album",
+            "homePage",
+            "portfolioItem",
             "package",
             "availabilitySettings",
-          ].includes(id)
-        );
-      }),
+            "bookingRequest",
+          ].includes(listItem.getId() as string)
+      ),
     ]);
