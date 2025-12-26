@@ -9,7 +9,7 @@ export const dataset =
 export const apiVersion =
   process.env.NEXT_PUBLIC_SANITY_API_VERSION ||
   process.env.SANITY_API_VERSION ||
-  "2025-01-01";
+  "2024-01-01";
 
 if (!projectId) {
   throw new Error("Missing Sanity projectId (NEXT_PUBLIC_SANITY_PROJECT_ID or SANITY_PROJECT_ID)");
