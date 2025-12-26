@@ -29,3 +29,4 @@ export const schemaTypes = [
   authorType,
   categoryType,
 ];
+
