@@ -14,15 +14,11 @@ export default defineConfig({
   projectId,
   dataset,
 
-  // ✅ Studio draait op /studio
   basePath: "/studio",
 
   schema: {
     types: schemaTypes,
   },
 
-  plugins: [
-    structureTool({ structure }),
-    visionTool(),
-  ],
+  plugins: [structureTool({ structure }), visionTool()],
 });
