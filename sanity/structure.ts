@@ -1,6 +1,15 @@
 // sanity/structure.ts
-import type { StructureResolver } from "sanity/structure";
-import { CalendarIcon, DocumentIcon, HomeIcon, ImageIcon, TagIcon, CogIcon } from "@sanity/icons";
+import type { StructureResolver } from "sanity/desk";
+import {
+  CalendarIcon,
+  DocumentIcon,
+  HomeIcon,
+  ImageIcon,
+  TagIcon,
+  CogIcon,
+} from "@sanity/icons";
+
+const SINGLETONS = new Set(["homePage", "availabilitySettings"]);
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -36,11 +45,16 @@ export const structure: StructureResolver = (S) =>
         .icon(TagIcon)
         .child(S.documentTypeList("package").title("Pakketten")),
 
-      // Beschikbaarheid (settings)
+      // Beschikbaarheid (singleton)
       S.listItem()
         .title("Beschikbaarheid")
         .icon(CogIcon)
-        .child(S.document().schemaType("availabilitySettings").documentId("availabilitySettings").title("Beschikbaarheid")),
+        .child(
+          S.document()
+            .schemaType("availabilitySettings")
+            .documentId("availabilitySettings")
+            .title("Beschikbaarheid")
+        ),
 
       S.divider(),
 
@@ -90,7 +104,6 @@ export const structure: StructureResolver = (S) =>
 
               S.divider(),
 
-              // Alle aanvragen
               S.listItem()
                 .title("Alle aanvragen")
                 .child(
@@ -104,16 +117,21 @@ export const structure: StructureResolver = (S) =>
       S.divider(),
 
       // Alles wat je niet hierboven hebt gezet:
-      ...S.documentTypeListItems().filter(
-        (listItem) =>
-          ![
-            "homePage",
-            "sitePage",
-            "portfolioItem",
-            "album",
-            "package",
-            "availabilitySettings",
-            "bookingRequest",
-          ].includes(listItem.getId() as string)
-      ),
-    ]);
+      ...S.documentTypeListItems().filter((listItem) => {
+        const id = listItem.getId() as string;
+        return ![
+          "homePage",
+          "sitePage",
+          "portfolioItem",
+          "album",
+          "package",
+          "availabilitySettings",
+          "bookingRequest",
+        ].includes(id);
+      }),
+    ])
+    // ✅ voorkomt dat singletons als “nieuwe” documenten aangemaakt worden via intent
+    .canHandleIntent((intentName, params) => {
+      if (intentName === "create" && params?.type && SINGLETONS.has(params.type)) return false;
+      return true;
+    });
