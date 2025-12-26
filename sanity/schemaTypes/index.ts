@@ -1,10 +1,13 @@
 import sitePage from "./sitePage";
 import album from "./album";
-import homePage from "./homePage";
-import packageType from "./package";
+import booking from "./booking";
 import availabilitySettings from "./availabilitySettings";
-import bookingRequest from "./bookingRequest";
+// + al je andere types…
 
-export const schema = {
-  types: [sitePage, album, homePage, packageType, availabilitySettings, bookingRequest],
-};
+export const schemaTypes = [
+  sitePage,
+  album,
+  booking,
+  availabilitySettings,
+  // ...
+];
