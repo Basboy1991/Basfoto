@@ -1,152 +1,150 @@
-// app/api/booking/route.ts
-import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import { sanityWriteClient } from "@/lib/sanity.write";
+import { defineType, defineField } from "sanity";
 
-type BookingPayload = {
-  date: string;
-  time: string;
-  timezone: string;
+export default defineType({
+  name: "bookingRequest",
+  title: "Boekingsaanvraag",
+  type: "document",
 
-  name: string;
-  email: string;
-  phone?: string;
+  fields: [
+    // =========================
+    // STATUS & PLANNING
+    // =========================
+    defineField({
+      name: "status",
+      title: "Status",
+      type: "string",
+      initialValue: "new",
+      options: {
+        list: [
+          { title: "Nieuw", value: "new" },
+          { title: "Bevestigd", value: "confirmed" },
+          { title: "Afgewezen", value: "rejected" },
+          { title: "Afgehandeld", value: "done" },
+        ],
+        layout: "radio",
+      },
+      validation: (Rule) => Rule.required(),
+    }),
 
-  shootType?: string;
-  location?: string;
-  message?: string;
+    defineField({
+      name: "date",
+      title: "Datum",
+      type: "date",
+      validation: (Rule) => Rule.required(),
+    }),
 
-  preferredContact?: "whatsapp" | "email" | "phone";
-  consent?: boolean;
+    defineField({
+      name: "time",
+      title: "Starttijd",
+      type: "string",
+      validation: (Rule) => Rule.required(),
+    }),
 
-  company?: string; // honeypot
-};
+    defineField({
+      name: "timezone",
+      title: "Tijdzone",
+      type: "string",
+      initialValue: "Europe/Amsterdam",
+    }),
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+    // =========================
+    // CONTACTGEGEVENS
+    // =========================
+    defineField({
+      name: "name",
+      title: "Naam",
+      type: "string",
+      validation: (Rule) => Rule.required(),
+    }),
 
-function esc(s: string) {
-  return s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
-}
+    defineField({
+      name: "email",
+      title: "E-mailadres",
+      type: "string",
+      validation: (Rule) => Rule.required().email(),
+    }),
 
-export async function POST(req: Request) {
-  try {
-    const body = (await req.json()) as Partial<BookingPayload>;
+    defineField({
+      name: "phone",
+      title: "Telefoonnummer",
+      type: "string",
+    }),
 
-    // Honeypot
-    if (body.company && String(body.company).trim().length > 0) {
-      return NextResponse.json({ ok: true });
-    }
+    defineField({
+      name: "preferredContact",
+      title: "Voorkeur contact",
+      type: "string",
+      options: {
+        list: [
+          { title: "WhatsApp", value: "whatsapp" },
+          { title: "E-mail", value: "email" },
+          { title: "Bellen", value: "phone" },
+        ],
+      },
+    }),
 
-    const date = String(body.date ?? "").trim();
-    const time = String(body.time ?? "").trim();
-    const timezone = String(body.timezone ?? "Europe/Amsterdam").trim();
+    // =========================
+    // SHOOT INFORMATIE
+    // =========================
+    defineField({
+      name: "shootType",
+      title: "Type shoot",
+      type: "string",
+    }),
 
-    const name = String(body.name ?? "").trim();
-    const email = String(body.email ?? "").trim();
-    const phone = String(body.phone ?? "").trim() || undefined;
+    defineField({
+      name: "location",
+      title: "Locatie / plaats",
+      type: "string",
+    }),
 
-    const shootType = String(body.shootType ?? "").trim() || undefined;
-    const location = String(body.location ?? "").trim() || undefined;
-    const message = String(body.message ?? "").trim() || undefined;
+    defineField({
+      name: "message",
+      title: "Opmerking van klant",
+      type: "text",
+      rows: 4,
+    }),
 
-    const preferredContact = (body.preferredContact ?? "whatsapp") as BookingPayload["preferredContact"];
-    const consent = Boolean(body.consent);
+    // =========================
+    // META / TECHNISCH
+    // =========================
+    defineField({
+      name: "consent",
+      title: "Toestemming gegeven",
+      type: "boolean",
+      readOnly: true,
+    }),
 
-    // Validatie
-    const errors: Record<string, string> = {};
-    if (!date) errors.date = "Kies een datum.";
-    if (!time) errors.time = "Kies een tijd.";
-    if (!name) errors.name = "Naam is verplicht.";
-    if (!email || !isValidEmail(email)) errors.email = "Vul een geldig e-mailadres in.";
-    if (!consent) errors.consent = "Toestemming is verplicht.";
+    defineField({
+      name: "resendId",
+      title: "Resend mail ID",
+      type: "string",
+      readOnly: true,
+    }),
 
-    if (Object.keys(errors).length) {
-      return NextResponse.json({ ok: false, errors }, { status: 400 });
-    }
+    defineField({
+      name: "createdAt",
+      title: "Aangemaakt op",
+      type: "datetime",
+      readOnly: true,
+    }),
+  ],
 
-    // Resend env
-    const resendKey = process.env.RESEND_API_KEY;
-    const toEmail = process.env.BOOKING_TO_EMAIL;
-    const fromEmail = process.env.BOOKING_FROM_EMAIL;
-    const replyTo = process.env.BOOKING_REPLYTO_EMAIL || email;
-
-    if (!resendKey || !toEmail || !fromEmail) {
-      return NextResponse.json(
-        { ok: false, error: "Mail configuratie mist (RESEND_API_KEY / BOOKING_TO_EMAIL / BOOKING_FROM_EMAIL)." },
-        { status: 500 }
-      );
-    }
-
-    const resend = new Resend(resendKey);
-
-    const subject = `Nieuwe boekingsaanvraag: ${date} ${time}`;
-
-    const html = `
-      <div style="font-family: ui-sans-serif, system-ui; line-height:1.5">
-        <h2>Nieuwe boekingsaanvraag</h2>
-        <p><strong>Datum/tijd:</strong> ${esc(date)} om ${esc(time)} (${esc(timezone)})</p>
-        <h3>Contact</h3>
-        <ul>
-          <li><strong>Naam:</strong> ${esc(name)}</li>
-          <li><strong>Email:</strong> ${esc(email)}</li>
-          ${phone ? `<li><strong>Telefoon:</strong> ${esc(phone)}</li>` : ""}
-          <li><strong>Voorkeur contact:</strong> ${esc(preferredContact ?? "")}</li>
-        </ul>
-        <h3>Shoot</h3>
-        <ul>
-          ${shootType ? `<li><strong>Type:</strong> ${esc(shootType)}</li>` : ""}
-          ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
-        </ul>
-        ${message ? `<h3>Opmerking</h3><p>${esc(message).replace(/\n/g, "<br/>")}</p>` : ""}
-        <hr/>
-        <p style="font-size:12px; opacity:.7">Verstuurd via boekingsformulier.</p>
-      </div>
-    `;
-
-    // 1) Mail versturen
-    const mailResult = await resend.emails.send({
-      from: fromEmail,
-      to: toEmail,
-      reply_to: replyTo || undefined,
-      subject,
-      html,
-    });
-
-    if ((mailResult as any)?.error) {
-      return NextResponse.json({ ok: false, resend: mailResult }, { status: 500 });
-    }
-
-    // 2) ✅ Opslaan in Sanity
-    const sanityToken = process.env.SANITY_API_TOKEN;
-    if (!sanityToken) {
-      // Als je (nog) geen token wilt zetten: dan blijft je mail werken maar geen save
-      return NextResponse.json({ ok: true, resend: mailResult, saved: false, reason: "SANITY_API_TOKEN missing" });
-    }
-
-    const created = await sanityWriteClient.create({
-      _type: "bookingRequest",
-      status: "new",
-      date,
-      time,
-      timezone,
-      name,
-      email,
-      phone,
-      preferredContact,
-      consent,
-
-      shootType,
-      location,
-      message,
-
-      resendId: (mailResult as any)?.data?.id ?? null,
-      createdAt: new Date().toISOString(),
-    });
-
-    return NextResponse.json({ ok: true, resend: mailResult, saved: true, bookingId: created._id });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? "Onbekende fout" }, { status: 500 });
-  }
-}
+  // =========================
+  // PREVIEW IN LIJST
+  // =========================
+  preview: {
+    select: {
+      name: "name",
+      date: "date",
+      time: "time",
+      status: "status",
+    },
+    prepare({ name, date, time, status }) {
+      return {
+        title: name || "Onbekende aanvraag",
+        subtitle: `${date ?? "?"} • ${time ?? "?"} • ${status ?? "new"}`,
+      };
+    },
+  },
+});
