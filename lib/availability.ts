@@ -155,3 +155,40 @@ export function getAvailabilityForRange(
     };
   });
 }
+
+// lib/availability.ts
+export type BookedSlot = {
+  date: string;    // YYYY-MM-DD
+  time: string;    // "10:00"
+  status?: string; // optional
+};
+
+export function applyBookedSlots(
+  days: DayAvailability[],
+  booked: BookedSlot[]
+): DayAvailability[] {
+  if (!booked?.length) return days;
+
+  const map = new Map<string, Set<string>>();
+  for (const b of booked) {
+    const day = (b.date || "").slice(0, 10);
+    const t = (b.time || "").slice(0, 5);
+    if (!day || !t) continue;
+
+    if (!map.has(day)) map.set(day, new Set());
+    map.get(day)!.add(t);
+  }
+
+  return days.map((d) => {
+    const blocked = map.get(d.date);
+    if (!blocked?.size) return d;
+
+    const times = (d.times ?? []).filter((t) => !blocked.has(t));
+    return {
+      ...d,
+      // als alle tijden weg zijn => dag is effectief dicht
+      isOpen: times.length > 0 ? d.isOpen : false,
+      times,
+    };
+  });
+}
