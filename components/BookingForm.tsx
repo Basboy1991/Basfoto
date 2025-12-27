@@ -14,7 +14,7 @@ export default function BookingForm({
   date: string | null;
   time: string | null;
   timezone: string;
-  onSuccess?: (info?: { date: string; time: string }) => void;
+  onSuccess?: (slot: { date: string; time: string }) => void;
 }) {
   const router = useRouter();
 
@@ -39,9 +39,8 @@ export default function BookingForm({
     const form = new FormData(formEl);
     const consent = form.get("consent") === "on";
 
+    // ✅ count komt uit input als string
     const countRaw = String(form.get("count") ?? "").trim();
-    const count =
-      countRaw === "" ? undefined : Number.isFinite(Number(countRaw)) ? Number(countRaw) : undefined;
 
     const payload = {
       date,
@@ -52,7 +51,7 @@ export default function BookingForm({
       email: String(form.get("email") ?? "").trim(),
       phone: String(form.get("phone") ?? "").trim(),
 
-      count, // ✅ aantal personen/dieren
+      count: countRaw, // route normaliseert dit naar number|undefined
 
       shootType: String(form.get("shootType") ?? "").trim(),
       location: String(form.get("location") ?? "").trim(),
@@ -61,7 +60,7 @@ export default function BookingForm({
       preferredContact: String(form.get("preferredContact") ?? "whatsapp"),
       consent,
 
-      company: String(form.get("company") ?? "").trim(), // honeypot
+      company: String(form.get("company") ?? "").trim(),
     };
 
     try {
@@ -83,13 +82,16 @@ export default function BookingForm({
         throw new Error(msg);
       }
 
+      // ✅ SUPER BELANGRIJK: gebruik response date/time (niet lokale state)
+      const bookedDate = String(data?.date ?? date);
+      const bookedTime = String(data?.time ?? time);
+
       setStatus("success");
       formEl.reset();
 
-      // ✅ geef exact geboekte slot terug (niet afhankelijk van widget-state timing)
-      onSuccess?.({ date, time });
+      onSuccess?.({ date: bookedDate, time: bookedTime });
 
-      // ✅ herlaad server components
+      // optioneel: server refresh (mag, maar UI werkt al door onSuccess)
       router.refresh();
     } catch (err: any) {
       setStatus("error");
@@ -99,11 +101,14 @@ export default function BookingForm({
 
   return (
     <section
-      className="mx-auto mt-6 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
+      className="mx-auto mt-5 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h3 className="text-lg font-semibold text-[var(--text)]">Aanvraag</h3>
+        <h3 className="text-lg font-semibold text-[var(--text)]">
+          Aanvraag versturen
+        </h3>
+
         <p className="mt-1 text-sm italic text-[var(--text-soft)]">
           {canSend ? (
             <>
@@ -117,21 +122,27 @@ export default function BookingForm({
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3">
         {/* Honeypot */}
-        <input name="company" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+        <input
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          className="hidden"
+          aria-hidden="true"
+        />
 
-        {/* compacter: 2 kolommen */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
             <input
               name="name"
               required
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
+              placeholder="Je naam"
             />
           </div>
 
-          <div className="col-span-2 md:col-span-1">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
             <input
               name="email"
@@ -139,46 +150,38 @@ export default function BookingForm({
               required
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
+              placeholder="jij@mail.nl"
             />
           </div>
 
-          <div className="col-span-2 md:col-span-1">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
             <input
               name="phone"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
+              placeholder="06…"
             />
           </div>
 
-          <div className="col-span-2 md:col-span-1">
-            <label className="text-sm font-medium text-[var(--text)]">Voorkeur</label>
-            <select
-              name="preferredContact"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              defaultValue="whatsapp"
-            >
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">E-mail</option>
-              <option value="phone">Bellen</option>
-            </select>
-          </div>
-
-          {/* ✅ count veld */}
-          <div className="col-span-2 md:col-span-1">
-            <label className="text-sm font-medium text-[var(--text)]">Aantal personen/dieren</label>
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Aantal personen / huisdieren
+            </label>
             <input
               name="count"
+              type="number"
+              min={1}
               inputMode="numeric"
-              pattern="[0-9]*"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
-              placeholder="bijv. 4"
+              placeholder="Bijv. 3"
             />
           </div>
+        </div>
 
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
             <select
               name="shootType"
@@ -195,7 +198,7 @@ export default function BookingForm({
             </select>
           </div>
 
-          <div className="col-span-2">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
             <input
               name="location"
@@ -204,34 +207,38 @@ export default function BookingForm({
               placeholder="Westland, strand, park…"
             />
           </div>
-
-          <div className="col-span-2">
-            <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
-            <textarea
-              name="message"
-              rows={3}
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-            />
-          </div>
         </div>
 
-        <label className="mt-1 flex items-start gap-3 text-sm text-[var(--text-soft)]">
+        <div>
+          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
+          <textarea
+            name="message"
+            rows={3}
+            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+            style={{ border: "1px solid var(--border)" }}
+            placeholder="Wensen, stijl, etc."
+          />
+        </div>
+
+        <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
           <input type="checkbox" name="consent" required className="mt-1" />
-          <span>Ik geef toestemming om mijn gegevens te gebruiken om contact op te nemen. *</span>
+          <span>Ik geef toestemming om contact op te nemen. *</span>
         </label>
 
         <button
           type="submit"
           disabled={!canSend || status === "sending"}
-          className="mt-2 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
+          className="mt-1 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
           style={{ background: "var(--accent-strong)" }}
         >
           {status === "sending" ? "Versturen…" : "Verstuur aanvraag"}
         </button>
 
         {status === "success" ? (
-          <div className="rounded-2xl bg-white/60 p-3 text-center text-sm" style={{ border: "1px solid var(--border)" }}>
+          <div
+            className="rounded-2xl bg-white/60 p-3 text-center text-sm"
+            style={{ border: "1px solid var(--border)" }}
+          >
             ✅ Verstuurd! Ik neem snel contact met je op.
           </div>
         ) : null}
