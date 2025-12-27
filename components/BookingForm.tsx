@@ -1,3 +1,4 @@
+// components/BookingForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -48,7 +49,7 @@ export default function BookingForm({
       email: String(form.get("email") ?? "").trim(),
       phone: String(form.get("phone") ?? "").trim(),
 
-      count: countRaw,
+      count: countRaw, // route.ts normaliseert dit naar number|undefined
 
       shootType: String(form.get("shootType") ?? "").trim(),
       location: String(form.get("location") ?? "").trim(),
@@ -57,6 +58,7 @@ export default function BookingForm({
       preferredContact: String(form.get("preferredContact") ?? "whatsapp"),
       consent,
 
+      // honeypot
       company: String(form.get("company") ?? "").trim(),
     };
 
@@ -71,7 +73,13 @@ export default function BookingForm({
       const data = await res.json().catch(() => null);
       console.log("BOOKING RESPONSE", res.status, data);
 
+      // ✅ Als slot net bezet is (409), laat de UI dat slot direct verwijderen
       if (!res.ok) {
+        if (res.status === 409 && data?.code === "SLOT_TAKEN" && data?.date && data?.time) {
+          onSuccess?.({ date: String(data.date), time: String(data.time) });
+          router.refresh();
+        }
+
         const msg =
           data?.errors
             ? Object.values(data.errors).join(" ")
@@ -79,7 +87,7 @@ export default function BookingForm({
         throw new Error(msg);
       }
 
-      // ✅ liefst response (maar fallback kan)
+      // ✅ Gebruik response date/time (server is leidend)
       const bookedDate = String(data?.date ?? date);
       const bookedTime = String(data?.time ?? time);
 
@@ -87,8 +95,6 @@ export default function BookingForm({
       formEl.reset();
 
       onSuccess?.({ date: bookedDate, time: bookedTime });
-
-      // refresh mag blijven
       router.refresh();
     } catch (err: any) {
       setStatus("error");
@@ -115,8 +121,16 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3">
-        <input name="company" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
+        {/* Honeypot */}
+        <input
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          className="hidden"
+          aria-hidden="true"
+        />
 
+        {/* Compacter: 2 kolommen op md, alles strak */}
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
@@ -165,6 +179,44 @@ export default function BookingForm({
               placeholder="Bijv. 3"
             />
           </div>
+
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
+            <select
+              name="shootType"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              style={{ border: "1px solid var(--border)" }}
+              defaultValue=""
+            >
+              <option value="">Kies…</option>
+              <option value="Gezin">Gezin</option>
+              <option value="Huisdier">Huisdier</option>
+              <option value="Koppel">Koppel</option>
+              <option value="Portret">Portret</option>
+              <option value="Anders">Anders</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
+            <input
+              name="location"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              style={{ border: "1px solid var(--border)" }}
+              placeholder="Westland, strand, park…"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
+          <textarea
+            name="message"
+            rows={3}
+            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+            style={{ border: "1px solid var(--border)" }}
+            placeholder="Wensen, stijl, etc."
+          />
         </div>
 
         <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
@@ -182,13 +234,19 @@ export default function BookingForm({
         </button>
 
         {status === "success" ? (
-          <div className="rounded-2xl bg-white/60 p-3 text-center text-sm" style={{ border: "1px solid var(--border)" }}>
+          <div
+            className="rounded-2xl bg-white/60 p-3 text-center text-sm"
+            style={{ border: "1px solid var(--border)" }}
+          >
             ✅ Verstuurd! Ik neem snel contact met je op.
           </div>
         ) : null}
 
         {status === "error" ? (
-          <div className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700" style={{ border: "1px solid var(--border)" }}>
+          <div
+            className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700"
+            style={{ border: "1px solid var(--border)" }}
+          >
             {error ?? "Er ging iets mis."}
           </div>
         ) : null}
