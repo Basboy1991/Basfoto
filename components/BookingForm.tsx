@@ -26,7 +26,6 @@ export default function BookingForm({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    // ✅ direct vastpakken, anders kan currentTarget "weg" zijn na await
     const formEl = e.currentTarget;
 
     if (!date || !time) {
@@ -73,19 +72,20 @@ export default function BookingForm({
       console.log("BOOKING RESPONSE", res.status, data);
 
       if (!res.ok) {
-        const msg = data?.errors
-          ? Object.values(data.errors).join(" ")
-          : data?.error ?? "Er ging iets mis. Probeer opnieuw.";
+        const msg =
+          data?.errors
+            ? Object.values(data.errors).join(" ")
+            : data?.error ?? "Er ging iets mis. Probeer opnieuw.";
         throw new Error(msg);
       }
 
       setStatus("success");
       formEl.reset();
 
-      // ✅ reset ook datum/tijd in parent (BookingWidget)
+      // ✅ reset selectie in parent
       onSuccess?.();
 
-      // ✅ BELANGRIJK: laat page.tsx opnieuw renderen zodat de geboekte tijd verdwijnt
+      // ✅ HEEL BELANGRIJK: opnieuw server data ophalen (page.tsx draait opnieuw)
       router.refresh();
     } catch (err: any) {
       setStatus("error");
@@ -99,9 +99,7 @@ export default function BookingForm({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h3 className="text-xl font-semibold text-[var(--text)]">
-          Aanvraag versturen
-        </h3>
+        <h3 className="text-xl font-semibold text-[var(--text)]">Aanvraag versturen</h3>
 
         <p className="mt-2 text-sm italic text-[var(--text-soft)]">
           {canSend ? (
@@ -115,7 +113,7 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={onSubmit} className="mt-6 grid gap-4">
-        {/* Honeypot (niet zichtbaar) */}
+        {/* Honeypot */}
         <input
           name="company"
           tabIndex={-1}
@@ -126,9 +124,7 @@ export default function BookingForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Naam *
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
             <input
               name="name"
               required
@@ -139,9 +135,7 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              E-mail *
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
             <input
               name="email"
               type="email"
@@ -153,9 +147,7 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Telefoon
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
             <input
               name="phone"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -165,9 +157,7 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Voorkeur contact
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Voorkeur contact</label>
             <select
               name="preferredContact"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -183,9 +173,7 @@ export default function BookingForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Type shoot
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
             <select
               name="shootType"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -202,9 +190,7 @@ export default function BookingForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Locatie / plaats
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
             <input
               name="location"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
@@ -215,9 +201,7 @@ export default function BookingForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-[var(--text)]">
-            Opmerking
-          </label>
+          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
           <textarea
             name="message"
             rows={4}
@@ -229,10 +213,7 @@ export default function BookingForm({
 
         <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
           <input type="checkbox" name="consent" required className="mt-1" />
-          <span>
-            Ik geef toestemming om mijn gegevens te gebruiken om contact op te
-            nemen. *
-          </span>
+          <span>Ik geef toestemming om mijn gegevens te gebruiken om contact op te nemen. *</span>
         </label>
 
         <button
