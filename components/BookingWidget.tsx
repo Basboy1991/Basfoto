@@ -1,21 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import AvailabilityPicker from "@/components/AvailabilityPicker";
+import { useEffect, useMemo, useState } from "react";
 import BookingForm from "@/components/BookingForm";
 import type { DayAvailability } from "@/lib/availability";
 
-function normDate(s: string) {
-  return String(s || "").trim().slice(0, 10);
-}
-
 function normTime(s: string) {
   const t = String(s || "").trim();
-  return t.length >= 5 ? t.slice(0, 5) : t; // "10:00:00" -> "10:00"
+  return t.length >= 5 ? t.slice(0, 5) : t;
 }
 
-function slotKey(date: string, time: string) {
-  return `${normDate(date)}|${normTime(time)}`;
+function formatDutchDayLabel(isoDate: string) {
+  // isoDate: YYYY-MM-DD
+  const [y, m, d] = isoDate.split("-").map((x) => Number(x));
+  const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
+
+  const dayNames = ["zo", "ma", "di", "wo", "do", "vr", "za"];
+  const day = dayNames[dt.getDay()] ?? "";
+
+  const dd = String(d ?? "").padStart(2, "0");
+  const mm = String(m ?? "").padStart(2, "0");
+  const yyyy = String(y ?? "");
+
+  return `${day} ${dd}-${mm}-${yyyy}`;
 }
 
 export default function BookingWidget({
@@ -25,137 +31,167 @@ export default function BookingWidget({
   days: DayAvailability[];
   timezone: string;
 }) {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  // ✅ lokale state zodat we een slot direct kunnen verwijderen uit de UI na succes
+  const [daysState, setDaysState] = useState<DayAvailability[]>(days);
 
-  // ✅ dit is de “waarheid” voor de UI (optimistic hide)
-  const [blocked, setBlocked] = useState<Set<string>>(() => new Set());
+  // ✅ als server opnieuw rendert (router.refresh), sync weer naar nieuwste data
+  useEffect(() => {
+    setDaysState(days);
+  }, [days]);
 
-  // ✅ filter server-days altijd met blocked slots
-  const daysFiltered = useMemo<DayAvailability[]>(() => {
-    if (!blocked.size) return days;
+  const openDays = useMemo(() => {
+    return (daysState ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0);
+  }, [daysState]);
 
-    return days.map((d) => {
-      const date = normDate(d.date);
-      const times = (d.times ?? [])
-        .map(normTime)
-        .filter((t) => !blocked.has(slotKey(date, t)));
-
-      return {
-        ...d,
-        times,
-        isOpen: times.length > 0,
-      };
-    });
-  }, [days, blocked]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("");
 
   const selectedDay = useMemo(() => {
     if (!selectedDate) return null;
-    return daysFiltered.find((d) => d.date === selectedDate) ?? null;
-  }, [daysFiltered, selectedDate]);
+    return openDays.find((d) => d.date === selectedDate) ?? null;
+  }, [openDays, selectedDate]);
 
-  const times = selectedDay?.times ?? [];
+  const times = useMemo(() => {
+    return (selectedDay?.times ?? []).map(normTime);
+  }, [selectedDay]);
+
+  // Als gekozen datum niet meer bestaat (door refresh/filter), reset selectie
+  useEffect(() => {
+    if (selectedDate && !openDays.some((d) => d.date === selectedDate)) {
+      setSelectedDate("");
+      setSelectedTime("");
+    }
+  }, [openDays, selectedDate]);
+
+  // Als tijd niet meer bestaat bij die datum, reset tijd
+  useEffect(() => {
+    if (selectedTime && !times.includes(normTime(selectedTime))) {
+      setSelectedTime("");
+    }
+  }, [times, selectedTime]);
 
   return (
     <section
-      className="mx-auto mt-12 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+      className="mx-auto mt-12 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-[var(--text)]">
-          Beschikbaarheid
-        </h2>
-        <p className="mt-2 text-sm italic text-[var(--text-soft)]">
-          Kies eerst een datum en daarna een starttijd. (Tijdzone: {timezone})
+        <h2 className="text-xl font-semibold text-[var(--text)]">Beschikbaarheid</h2>
+        <p className="mt-1 text-sm italic text-[var(--text-soft)]">
+          Kies een datum en tijd. (Tijdzone: {timezone})
         </p>
       </div>
 
-      <div className="mt-6">
-        <AvailabilityPicker
-          days={daysFiltered}
-          timezone={timezone}
-          selectedDate={selectedDate}
-          onSelectDate={(date) => {
-            setSelectedDate(date);
-            setSelectedTime(null);
-          }}
-        />
-      </div>
+      {/* DROPDOWNS: ook op mobiel 1 regel (2 kolommen) */}
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        {/* DATUM */}
+        <div>
+          <label className="text-sm font-medium text-[var(--text)]">Datum</label>
 
-      <div className="mt-6">
-        {!selectedDate ? (
-          <p className="text-center text-sm text-[var(--text-soft)]">
-            Selecteer een datum om tijden te zien.
-          </p>
-        ) : times.length === 0 ? (
-          <div
-            className="rounded-2xl bg-white/60 p-4 text-center text-sm text-[var(--text-soft)]"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            Geen tijden beschikbaar op <strong>{selectedDate}</strong>.
+          <div className="relative mt-2">
+            <select
+              className="w-full appearance-none rounded-2xl bg-white/70 px-4 py-3 pr-10 text-sm"
+              style={{ border: "1px solid var(--border)" }}
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setSelectedTime("");
+              }}
+            >
+              <option value="">
+                {openDays.length ? "Selecteer…" : "Geen data"}
+              </option>
+
+              {openDays.map((d) => (
+                <option key={d.date} value={d.date}>
+                  {formatDutchDayLabel(d.date)}
+                </option>
+              ))}
+            </select>
+
+            {/* ▼ chevron */}
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-soft)]">
+              ▼
+            </span>
           </div>
-        ) : (
-          <>
-            <p className="mb-3 text-center text-sm font-medium text-[var(--text)]">
-              Beschikbare tijden op {selectedDate}
-            </p>
+        </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {times.map((t) => {
-                const active = selectedTime === t;
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setSelectedTime(t)}
-                    className="rounded-2xl px-4 py-3 text-sm font-semibold transition"
-                    style={{
-                      border: "1px solid var(--border)",
-                      background: active
-                        ? "var(--accent-strong)"
-                        : "rgba(255,255,255,0.7)",
-                      color: active ? "white" : "var(--text)",
-                    }}
-                  >
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+        {/* TIJD */}
+        <div>
+          <label className="text-sm font-medium text-[var(--text)]">Tijd</label>
+
+          <div className="relative mt-2">
+            <select
+              className="w-full appearance-none rounded-2xl bg-white/70 px-4 py-3 pr-10 text-sm disabled:opacity-60"
+              style={{ border: "1px solid var(--border)" }}
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              disabled={!selectedDate || times.length === 0}
+            >
+              <option value="">
+                {!selectedDate ? "Kies datum…" : times.length ? "Selecteer…" : "Geen tijden"}
+              </option>
+
+              {times.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+
+            {/* ▼ chevron */}
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-soft)]">
+              ▼
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-8">
+      {/* Keuze samenvatting */}
+      <div className="mt-5">
         <div
-          className="rounded-2xl bg-white/60 p-4 text-center"
+          className="rounded-2xl bg-white/60 p-3 text-center"
           style={{ border: "1px solid var(--border)" }}
         >
           <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
-            {selectedDate ? selectedDate : "—"}{" "}
+            {selectedDate ? formatDutchDayLabel(selectedDate) : "—"}{" "}
             {selectedTime ? `om ${selectedTime}` : ""}
           </p>
         </div>
       </div>
 
+      {/* FORM */}
       <BookingForm
-        date={selectedDate}
-        time={selectedTime}
+        date={selectedDate || null}
+        time={selectedTime || null}
         timezone={timezone}
         onSuccess={() => {
-          // ✅ meteen uit UI halen (en het kan niet terugkomen door stale days)
+          // ✅ slot direct uit de UI halen
           if (selectedDate && selectedTime) {
-            const k = slotKey(selectedDate, selectedTime);
-            setBlocked((prev) => {
-              const next = new Set(prev);
-              next.add(k);
-              return next;
-            });
+            const bookedDate = selectedDate;
+            const bookedTime = normTime(selectedTime);
+
+            setDaysState((prev) =>
+              prev.map((d) => {
+                if (d.date !== bookedDate) return d;
+
+                const newTimes = (d.times ?? [])
+                  .map(normTime)
+                  .filter((x) => x !== bookedTime);
+
+                return {
+                  ...d,
+                  times: newTimes,
+                  isOpen: newTimes.length > 0,
+                };
+              })
+            );
           }
 
-          setSelectedDate(null);
-          setSelectedTime(null);
+          // reset selectie
+          setSelectedDate("");
+          setSelectedTime("");
         }}
       />
     </section>
