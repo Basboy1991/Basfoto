@@ -14,4 +14,196 @@ function formatDutchDayLabel(isoDate: string) {
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
   const dayNames = ["zo", "ma", "di", "wo", "do", "vr", "za"];
   const day = dayNames[dt.getDay()] ?? "";
-  const dd = String(d ?? "").padStart(
+  const dd = String(d ?? "").padStart(2, "0");
+  const mm = String(m ?? "").padStart(2, "0");
+  const yyyy = String(y ?? "");
+  return `${day} ${dd}-${mm}-${yyyy}`;
+}
+
+type BlockedSlot = { date: string; time: string };
+
+function applyBlockedSlots(days: DayAvailability[], blocked: BlockedSlot[]) {
+  if (!blocked.length) return days;
+
+  const map = new Map<string, Set<string>>();
+  for (const b of blocked) {
+    const day = String(b.date || "").slice(0, 10);
+    const t = normTime(b.time);
+    if (!day || !t) continue;
+    if (!map.has(day)) map.set(day, new Set());
+    map.get(day)!.add(t);
+  }
+
+  return days.map((d) => {
+    const blockedTimes = map.get(d.date);
+    if (!blockedTimes?.size) return d;
+
+    const newTimes = (d.times ?? []).map(normTime).filter((t) => !blockedTimes.has(t));
+    return {
+      ...d,
+      times: newTimes,
+      isOpen: newTimes.length > 0,
+    };
+  });
+}
+
+export default function BookingWidget({
+  days,
+  timezone,
+}: {
+  days: DayAvailability[];
+  timezone: string;
+}) {
+  // ✅ Optimistisch blokkeren (blijft werken ondanks router.refresh)
+  const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
+
+  // Als server eventually ook up-to-date is, kun je (optioneel) blockedSlots opschonen.
+  // Niet verplicht — kan gewoon blijven staan.
+  useEffect(() => {
+    // remove blocked slots that no longer exist in server days anyway (optioneel)
+    setBlockedSlots((prev) =>
+      prev.filter((b) => {
+        const day = days.find((d) => d.date === String(b.date).slice(0, 10));
+        if (!day) return true;
+        const stillExists = (day.times ?? []).map(normTime).includes(normTime(b.time));
+        // Als het server-slot al weg is, hoeven we hem niet meer optimistisch te blokkeren
+        return stillExists;
+      })
+    );
+  }, [days]);
+
+  const daysMerged = useMemo(() => applyBlockedSlots(days, blockedSlots), [days, blockedSlots]);
+
+  const openDays = useMemo(
+    () => (daysMerged ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0),
+    [daysMerged]
+  );
+
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("");
+
+  const selectedDay = useMemo(() => {
+    if (!selectedDate) return null;
+    return openDays.find((d) => d.date === selectedDate) ?? null;
+  }, [openDays, selectedDate]);
+
+  const times = useMemo(() => (selectedDay?.times ?? []).map(normTime), [selectedDay]);
+
+  // ✅ datum weggevallen? reset
+  useEffect(() => {
+    if (selectedDate && !openDays.some((d) => d.date === selectedDate)) {
+      setSelectedDate("");
+      setSelectedTime("");
+    }
+  }, [openDays, selectedDate]);
+
+  // ✅ tijd weggevallen? reset
+  useEffect(() => {
+    if (selectedTime && !times.includes(normTime(selectedTime))) {
+      setSelectedTime("");
+    }
+  }, [times, selectedTime]);
+
+  return (
+    <section
+      className="mx-auto mt-12 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
+      style={{ border: "1px solid var(--border)" }}
+    >
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-[var(--text)]">Beschikbaarheid</h2>
+        <p className="mt-1 text-sm italic text-[var(--text-soft)]">
+          Kies een datum en tijd. (Tijdzone: {timezone})
+        </p>
+      </div>
+
+      {/* DROPDOWNS: mobiel ook 1 regel */}
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        {/* DATUM */}
+        <div>
+          <label className="text-sm font-medium text-[var(--text)]">Datum</label>
+          <div className="relative mt-2">
+            <select
+              className="w-full appearance-none rounded-2xl bg-white/70 px-4 py-3 pr-10 text-sm"
+              style={{ border: "1px solid var(--border)" }}
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setSelectedTime("");
+              }}
+            >
+              <option value="">{openDays.length ? "Selecteer…" : "Geen data"}</option>
+              {openDays.map((d) => (
+                <option key={d.date} value={d.date}>
+                  {formatDutchDayLabel(d.date)}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-soft)]">
+              ▼
+            </span>
+          </div>
+        </div>
+
+        {/* TIJD */}
+        <div>
+          <label className="text-sm font-medium text-[var(--text)]">Tijd</label>
+          <div className="relative mt-2">
+            <select
+              className="w-full appearance-none rounded-2xl bg-white/70 px-4 py-3 pr-10 text-sm disabled:opacity-60"
+              style={{ border: "1px solid var(--border)" }}
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              disabled={!selectedDate || times.length === 0}
+            >
+              <option value="">
+                {!selectedDate ? "Kies datum…" : times.length ? "Selecteer…" : "Geen tijden"}
+              </option>
+              {times.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-soft)]">
+              ▼
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* keuze */}
+      <div className="mt-5">
+        <div
+          className="rounded-2xl bg-white/60 p-3 text-center"
+          style={{ border: "1px solid var(--border)" }}
+        >
+          <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
+          <p className="mt-1 text-sm text-[var(--text-soft)]">
+            {selectedDate ? formatDutchDayLabel(selectedDate) : "—"}{" "}
+            {selectedTime ? `om ${selectedTime}` : ""}
+          </p>
+        </div>
+      </div>
+
+      <BookingForm
+        date={selectedDate || null}
+        time={selectedTime || null}
+        timezone={timezone}
+        onSuccess={({ date: bookedDate, time: bookedTime }) => {
+          const bd = String(bookedDate).slice(0, 10);
+          const bt = normTime(bookedTime);
+
+          // ✅ blokkeer slot direct (optimistisch)
+          setBlockedSlots((prev) => {
+            if (prev.some((p) => p.date === bd && normTime(p.time) === bt)) return prev;
+            return [...prev, { date: bd, time: bt }];
+          });
+
+          // ✅ reset dropdowns
+          setSelectedDate("");
+          setSelectedTime("");
+        }}
+      />
+    </section>
+  );
+}
