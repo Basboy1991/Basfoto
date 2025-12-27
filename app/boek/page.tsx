@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 
-import { sanityClient } from "@/lib/sanity.client";
+import { sanityClient, sanityClientFresh } from "@/lib/sanity.client";
 import { availabilitySettingsQuery } from "@/lib/sanity.queries";
 import { getAvailabilityForRange } from "@/lib/availability";
 
@@ -45,6 +45,7 @@ function applyBookedSlots(days: DayAvailability[], booked: BookedSlot[]) {
 export default async function BoekPage() {
   const contact = siteConfig.contact;
 
+  // Settings mag via CDN (snel)
   const settings = await sanityClient.fetch(availabilitySettingsQuery);
 
   const advance = Number(settings?.advanceDays ?? 45);
@@ -60,8 +61,8 @@ export default async function BoekPage() {
   // 1) basis availability berekenen uit settings
   const daysBase: DayAvailability[] = getAvailabilityForRange(settings, from, to);
 
-  // 2) geboekte slots ophalen (alles behalve cancelled)
-  const booked: BookedSlot[] = await sanityClient.fetch(
+  // 2) ✅ geboekte slots ophalen ZONDER CDN (altijd vers)
+  const booked: BookedSlot[] = await sanityClientFresh.fetch(
     `*[
       _type == "bookingRequest" &&
       date >= $from && date <= $to &&
