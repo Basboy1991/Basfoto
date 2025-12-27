@@ -29,10 +29,8 @@ export default function BookingWidget({
 }) {
   const [daysState, setDaysState] = useState<DayAvailability[]>(days);
 
-  // sync bij router.refresh / server rerender
-  useEffect(() => {
-    setDaysState(days);
-  }, [days]);
+  // ✅ bij refresh/server-update opnieuw syncen
+  useEffect(() => setDaysState(days), [days]);
 
   const openDays = useMemo(
     () => (daysState ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0),
@@ -49,7 +47,7 @@ export default function BookingWidget({
 
   const times = useMemo(() => (selectedDay?.times ?? []).map(normTime), [selectedDay]);
 
-  // als datum wegvalt door filtering -> reset
+  // ✅ als datum/tijd ongeldig wordt na filtering: reset
   useEffect(() => {
     if (selectedDate && !openDays.some((d) => d.date === selectedDate)) {
       setSelectedDate("");
@@ -57,7 +55,6 @@ export default function BookingWidget({
     }
   }, [openDays, selectedDate]);
 
-  // als tijd wegvalt -> reset tijd
   useEffect(() => {
     if (selectedTime && !times.includes(normTime(selectedTime))) {
       setSelectedTime("");
@@ -76,7 +73,7 @@ export default function BookingWidget({
         </p>
       </div>
 
-      {/* 2 dropdowns op 1 regel (ook mobiel) */}
+      {/* DROPDOWNS: mobiel ook 1 regel */}
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm font-medium text-[var(--text)]">Datum</label>
@@ -129,9 +126,11 @@ export default function BookingWidget({
         </div>
       </div>
 
-      {/* samenvatting */}
       <div className="mt-5">
-        <div className="rounded-2xl bg-white/60 p-3 text-center" style={{ border: "1px solid var(--border)" }}>
+        <div
+          className="rounded-2xl bg-white/60 p-3 text-center"
+          style={{ border: "1px solid var(--border)" }}
+        >
           <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
             {selectedDate ? formatDutchDayLabel(selectedDate) : "—"}{" "}
@@ -144,22 +143,20 @@ export default function BookingWidget({
         date={selectedDate || null}
         time={selectedTime || null}
         timezone={timezone}
-        onSuccess={(info) => {
-          // ✅ ALTIJD verwijderen op basis van teruggegeven slot
-          const bookedDate = info?.date ?? selectedDate;
-          const bookedTime = normTime(info?.time ?? selectedTime);
+        onSuccess={({ date: bookedDate, time: bookedTime }) => {
+          const bd = String(bookedDate).slice(0, 10);
+          const bt = normTime(bookedTime);
 
-          if (bookedDate && bookedTime) {
-            setDaysState((prev) =>
-              prev.map((d) => {
-                if (d.date !== bookedDate) return d;
-                const newTimes = (d.times ?? []).map(normTime).filter((x) => x !== bookedTime);
-                return { ...d, times: newTimes, isOpen: newTimes.length > 0 };
-              })
-            );
-          }
+          // ✅ HIER gebeurt de echte filtering (op response)
+          setDaysState((prev) =>
+            prev.map((d) => {
+              if (d.date !== bd) return d;
+              const newTimes = (d.times ?? []).map(normTime).filter((x) => x !== bt);
+              return { ...d, times: newTimes, isOpen: newTimes.length > 0 };
+            })
+          );
 
-          // reset dropdowns
+          // ✅ dropdowns resetten
           setSelectedDate("");
           setSelectedTime("");
         }}
