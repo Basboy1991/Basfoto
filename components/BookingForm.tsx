@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 
 type Status = "idle" | "sending" | "success" | "error";
 
+function normTime(s: string) {
+  const t = String(s || "").trim();
+  return t.length >= 5 ? t.slice(0, 5) : t;
+}
+
 export default function BookingForm({
   date,
   time,
@@ -14,7 +19,7 @@ export default function BookingForm({
   date: string | null;
   time: string | null;
   timezone: string;
-  onSuccess?: () => void;
+  onSuccess?: (slot: { date: string; time: string }) => void;
 }) {
   const router = useRouter();
 
@@ -39,30 +44,26 @@ export default function BookingForm({
     const form = new FormData(formEl);
     const consent = form.get("consent") === "on";
 
-    const countRaw = String(form.get("count") ?? "").trim();
-    const count = countRaw ? Number(countRaw) : undefined;
-
     const payload = {
       date,
-      time,
+      time: normTime(time),
       timezone,
 
       name: String(form.get("name") ?? "").trim(),
       email: String(form.get("email") ?? "").trim(),
       phone: String(form.get("phone") ?? "").trim(),
 
-      shootType: String(form.get("shootType") ?? "").trim(),
-      // ✅ nieuw veld
-      count: Number.isFinite(count as number) && (count as number) > 0 ? (count as number) : undefined,
+      // (als je later count toevoegt, hier meegeven)
+      // count: Number(form.get("count") ?? "") || undefined,
 
+      shootType: String(form.get("shootType") ?? "").trim(),
       location: String(form.get("location") ?? "").trim(),
       message: String(form.get("message") ?? "").trim(),
 
       preferredContact: String(form.get("preferredContact") ?? "whatsapp"),
       consent,
 
-      // honeypot
-      company: String(form.get("company") ?? "").trim(),
+      company: String(form.get("company") ?? "").trim(), // honeypot
     };
 
     try {
@@ -87,7 +88,10 @@ export default function BookingForm({
       setStatus("success");
       formEl.reset();
 
-      onSuccess?.();
+      // ✅ Geef het geboekte slot terug (super belangrijk)
+      onSuccess?.({ date, time: normTime(time) });
+
+      // ✅ herlaadt server components (voor verse days vanuit Sanity)
       router.refresh();
     } catch (err: any) {
       setStatus("error");
@@ -115,7 +119,6 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3">
-        {/* Honeypot */}
         <input
           name="company"
           tabIndex={-1}
@@ -126,43 +129,43 @@ export default function BookingForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm text-[var(--text-soft)]">Naam *</label>
+            <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
             <input
               name="name"
               required
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="Je naam"
             />
           </div>
 
           <div>
-            <label className="text-sm text-[var(--text-soft)]">E-mail *</label>
+            <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
             <input
               name="email"
               type="email"
               required
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="jij@mail.nl"
             />
           </div>
 
           <div>
-            <label className="text-sm text-[var(--text-soft)]">Telefoon</label>
+            <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
             <input
               name="phone"
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="06…"
             />
           </div>
 
           <div>
-            <label className="text-sm text-[var(--text-soft)]">Voorkeur contact</label>
+            <label className="text-sm font-medium text-[var(--text)]">Voorkeur contact</label>
             <select
               name="preferredContact"
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
               defaultValue="whatsapp"
             >
@@ -173,12 +176,12 @@ export default function BookingForm({
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="md:col-span-1">
-            <label className="text-sm text-[var(--text-soft)]">Type shoot</label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
             <select
               name="shootType"
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
               defaultValue=""
             >
@@ -191,27 +194,11 @@ export default function BookingForm({
             </select>
           </div>
 
-          {/* ✅ nieuw veld */}
-          <div className="md:col-span-1">
-            <label className="text-sm text-[var(--text-soft)]">
-              Aantal personen / dieren
-            </label>
-            <input
-              name="count"
-              type="number"
-              min={1}
-              inputMode="numeric"
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="Bijv. 2"
-            />
-          </div>
-
-          <div className="md:col-span-1">
-            <label className="text-sm text-[var(--text-soft)]">Locatie / plaats</label>
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
             <input
               name="location"
-              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="Westland, strand, park…"
             />
@@ -219,13 +206,13 @@ export default function BookingForm({
         </div>
 
         <div>
-          <label className="text-sm text-[var(--text-soft)]">Opmerking</label>
+          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
           <textarea
             name="message"
             rows={3}
-            className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
             style={{ border: "1px solid var(--border)" }}
-            placeholder="Wensen, stijl, extra info…"
+            placeholder="Aantal personen/dieren, stijl, wensen, etc."
           />
         </div>
 
@@ -237,7 +224,7 @@ export default function BookingForm({
         <button
           type="submit"
           disabled={!canSend || status === "sending"}
-          className="mt-2 inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white transition disabled:opacity-60"
+          className="mt-1 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
           style={{ background: "var(--accent-strong)" }}
         >
           {status === "sending" ? "Versturen…" : "Verstuur aanvraag"}
