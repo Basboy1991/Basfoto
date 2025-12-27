@@ -17,7 +17,6 @@ export default function BookingForm({
   onSuccess?: (slot: { date: string; time: string }) => void;
 }) {
   const router = useRouter();
-
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +37,6 @@ export default function BookingForm({
 
     const form = new FormData(formEl);
     const consent = form.get("consent") === "on";
-
-    // ✅ count komt uit input als string
     const countRaw = String(form.get("count") ?? "").trim();
 
     const payload = {
@@ -51,7 +48,7 @@ export default function BookingForm({
       email: String(form.get("email") ?? "").trim(),
       phone: String(form.get("phone") ?? "").trim(),
 
-      count: countRaw, // route normaliseert dit naar number|undefined
+      count: countRaw,
 
       shootType: String(form.get("shootType") ?? "").trim(),
       location: String(form.get("location") ?? "").trim(),
@@ -82,7 +79,7 @@ export default function BookingForm({
         throw new Error(msg);
       }
 
-      // ✅ SUPER BELANGRIJK: gebruik response date/time (niet lokale state)
+      // ✅ liefst response (maar fallback kan)
       const bookedDate = String(data?.date ?? date);
       const bookedTime = String(data?.time ?? time);
 
@@ -91,7 +88,7 @@ export default function BookingForm({
 
       onSuccess?.({ date: bookedDate, time: bookedTime });
 
-      // optioneel: server refresh (mag, maar UI werkt al door onSuccess)
+      // refresh mag blijven
       router.refresh();
     } catch (err: any) {
       setStatus("error");
@@ -105,10 +102,7 @@ export default function BookingForm({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h3 className="text-lg font-semibold text-[var(--text)]">
-          Aanvraag versturen
-        </h3>
-
+        <h3 className="text-lg font-semibold text-[var(--text)]">Aanvraag versturen</h3>
         <p className="mt-1 text-sm italic text-[var(--text-soft)]">
           {canSend ? (
             <>
@@ -121,14 +115,7 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3">
-        {/* Honeypot */}
-        <input
-          name="company"
-          tabIndex={-1}
-          autoComplete="off"
-          className="hidden"
-          aria-hidden="true"
-        />
+        <input name="company" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
@@ -180,46 +167,6 @@ export default function BookingForm({
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
-            <select
-              name="shootType"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              defaultValue=""
-            >
-              <option value="">Kies…</option>
-              <option value="Gezin">Gezin</option>
-              <option value="Huisdier">Huisdier</option>
-              <option value="Koppel">Koppel</option>
-              <option value="Portret">Portret</option>
-              <option value="Anders">Anders</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
-            <input
-              name="location"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="Westland, strand, park…"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
-          <textarea
-            name="message"
-            rows={3}
-            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-            style={{ border: "1px solid var(--border)" }}
-            placeholder="Wensen, stijl, etc."
-          />
-        </div>
-
         <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
           <input type="checkbox" name="consent" required className="mt-1" />
           <span>Ik geef toestemming om contact op te nemen. *</span>
@@ -235,19 +182,13 @@ export default function BookingForm({
         </button>
 
         {status === "success" ? (
-          <div
-            className="rounded-2xl bg-white/60 p-3 text-center text-sm"
-            style={{ border: "1px solid var(--border)" }}
-          >
+          <div className="rounded-2xl bg-white/60 p-3 text-center text-sm" style={{ border: "1px solid var(--border)" }}>
             ✅ Verstuurd! Ik neem snel contact met je op.
           </div>
         ) : null}
 
         {status === "error" ? (
-          <div
-            className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700"
-            style={{ border: "1px solid var(--border)" }}
-          >
+          <div className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700" style={{ border: "1px solid var(--border)" }}>
             {error ?? "Er ging iets mis."}
           </div>
         ) : null}
