@@ -7,13 +7,16 @@ export const dynamic = "force-dynamic";
 // export const runtime = "nodejs";
 
 type BookingPayload = {
-  date: string;     // YYYY-MM-DD
-  time: string;     // HH:mm
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
   timezone: string; // Europe/Amsterdam
 
   name: string;
   email: string;
   phone?: string;
+
+  // ✅ nieuw veld
+  count?: number; // aantal personen/dieren
 
   shootType?: string;
   location?: string;
@@ -68,6 +71,15 @@ export async function POST(req: Request) {
     const email = String(body.email ?? "").trim();
     const phone = String(body.phone ?? "").trim();
 
+    // ✅ count normaliseren (mag leeg zijn)
+    const rawCount = body.count;
+    const countNum =
+      rawCount === null || rawCount === undefined || rawCount === ""
+        ? undefined
+        : Number(rawCount);
+    const count =
+      typeof countNum === "number" && Number.isFinite(countNum) ? countNum : undefined;
+
     const shootType = String(body.shootType ?? "").trim();
     const location = String(body.location ?? "").trim();
     const message = String(body.message ?? "").trim();
@@ -84,6 +96,13 @@ export async function POST(req: Request) {
     if (!email || !isValidEmail(email)) errors.email = "Vul een geldig e-mailadres in.";
     if (!consent) errors.consent = "Toestemming is verplicht.";
 
+    // (optioneel) als je count verplicht wil maken:
+    // if (!count || count < 1) errors.count = "Vul het aantal personen/dieren in.";
+
+    if (count !== undefined && count < 1) {
+      errors.count = "Aantal moet minimaal 1 zijn.";
+    }
+
     if (Object.keys(errors).length > 0) {
       return NextResponse.json({ ok: false, errors }, { status: 400 });
     }
@@ -92,7 +111,6 @@ export async function POST(req: Request) {
     // 1️⃣ OPSLAAN IN SANITY (met unieke slot-id)
     // =========================
     const sanity = getSanityWriteClient();
-
     const _id = slotId(date, time);
 
     let created: any;
@@ -111,6 +129,9 @@ export async function POST(req: Request) {
         email,
         phone: phone || undefined,
 
+        // ✅ nieuw veld opslaan
+        count: count ?? undefined,
+
         preferredContact,
         shootType: shootType || undefined,
         location: location || undefined,
@@ -119,7 +140,6 @@ export async function POST(req: Request) {
         consent,
       });
     } catch (err: any) {
-      // ✅ Als slot al bestaat -> conflict / dubbel geboekt
       const status = err?.statusCode || err?.response?.statusCode;
 
       if (status === 409) {
@@ -164,6 +184,7 @@ export async function POST(req: Request) {
 
           <h3>Shoot</h3>
           <ul>
+            ${count ? `<li><strong>Aantal:</strong> ${esc(String(count))}</li>` : ""}
             ${shootType ? `<li><strong>Type:</strong> ${esc(shootType)}</li>` : ""}
             ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
           </ul>
@@ -183,7 +204,6 @@ export async function POST(req: Request) {
         html,
       });
 
-      // mail fail ≠ 500 (opslaan is al gelukt)
       if ((result as any)?.error) {
         return NextResponse.json({ ok: true, createdId: created._id, mailError: true });
       }
