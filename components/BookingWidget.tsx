@@ -39,11 +39,7 @@ function applyBlockedSlots(days: DayAvailability[], blocked: BlockedSlot[]) {
     if (!blockedTimes?.size) return d;
 
     const newTimes = (d.times ?? []).map(normTime).filter((t) => !blockedTimes.has(t));
-    return {
-      ...d,
-      times: newTimes,
-      isOpen: newTimes.length > 0,
-    };
+    return { ...d, times: newTimes, isOpen: newTimes.length > 0 };
   });
 }
 
@@ -54,20 +50,17 @@ export default function BookingWidget({
   days: DayAvailability[];
   timezone: string;
 }) {
-  // ✅ Optimistisch blokkeren (blijft werken ondanks router.refresh)
+  // ✅ dit is de sleutel: optimistisch “blocked slots”
   const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
 
-  // Als server eventually ook up-to-date is, kun je (optioneel) blockedSlots opschonen.
-  // Niet verplicht — kan gewoon blijven staan.
+  // (optioneel) opschonen als server het slot inmiddels ook al verwijderd toont
   useEffect(() => {
-    // remove blocked slots that no longer exist in server days anyway (optioneel)
     setBlockedSlots((prev) =>
       prev.filter((b) => {
         const day = days.find((d) => d.date === String(b.date).slice(0, 10));
         if (!day) return true;
-        const stillExists = (day.times ?? []).map(normTime).includes(normTime(b.time));
-        // Als het server-slot al weg is, hoeven we hem niet meer optimistisch te blokkeren
-        return stillExists;
+        const exists = (day.times ?? []).map(normTime).includes(normTime(b.time));
+        return exists; // bestaat nog? dan keep optimistisch blok
       })
     );
   }, [days]);
@@ -79,8 +72,8 @@ export default function BookingWidget({
     [daysMerged]
   );
 
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
 
   const selectedDay = useMemo(() => {
     if (!selectedDate) return null;
@@ -89,7 +82,7 @@ export default function BookingWidget({
 
   const times = useMemo(() => (selectedDay?.times ?? []).map(normTime), [selectedDay]);
 
-  // ✅ datum weggevallen? reset
+  // datum weg? reset
   useEffect(() => {
     if (selectedDate && !openDays.some((d) => d.date === selectedDate)) {
       setSelectedDate("");
@@ -97,7 +90,7 @@ export default function BookingWidget({
     }
   }, [openDays, selectedDate]);
 
-  // ✅ tijd weggevallen? reset
+  // tijd weg? reset
   useEffect(() => {
     if (selectedTime && !times.includes(normTime(selectedTime))) {
       setSelectedTime("");
@@ -116,9 +109,8 @@ export default function BookingWidget({
         </p>
       </div>
 
-      {/* DROPDOWNS: mobiel ook 1 regel */}
+      {/* dropdowns: mobiel 1 regel */}
       <div className="mt-5 grid grid-cols-2 gap-3">
-        {/* DATUM */}
         <div>
           <label className="text-sm font-medium text-[var(--text)]">Datum</label>
           <div className="relative mt-2">
@@ -144,7 +136,6 @@ export default function BookingWidget({
           </div>
         </div>
 
-        {/* TIJD */}
         <div>
           <label className="text-sm font-medium text-[var(--text)]">Tijd</label>
           <div className="relative mt-2">
@@ -171,12 +162,8 @@ export default function BookingWidget({
         </div>
       </div>
 
-      {/* keuze */}
       <div className="mt-5">
-        <div
-          className="rounded-2xl bg-white/60 p-3 text-center"
-          style={{ border: "1px solid var(--border)" }}
-        >
+        <div className="rounded-2xl bg-white/60 p-3 text-center" style={{ border: "1px solid var(--border)" }}>
           <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
             {selectedDate ? formatDutchDayLabel(selectedDate) : "—"}{" "}
@@ -193,13 +180,10 @@ export default function BookingWidget({
           const bd = String(bookedDate).slice(0, 10);
           const bt = normTime(bookedTime);
 
-          // ✅ blokkeer slot direct (optimistisch)
-          setBlockedSlots((prev) => {
-            if (prev.some((p) => p.date === bd && normTime(p.time) === bt)) return prev;
-            return [...prev, { date: bd, time: bt }];
-          });
+          // ✅ slot direct weg in UI
+          setBlockedSlots((prev) => [...prev, { date: bd, time: bt }]);
 
-          // ✅ reset dropdowns
+          // reset dropdowns
           setSelectedDate("");
           setSelectedTime("");
         }}
