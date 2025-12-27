@@ -5,24 +5,34 @@ import { siteConfig } from "@/config/site";
 
 import { sanityClient, sanityClientFresh } from "@/lib/sanity.client";
 import { availabilitySettingsQuery } from "@/lib/sanity.queries";
-import { getAvailabilityForRange } from "@/lib/availability";
+import { getAvailabilityForRange, type DayAvailability } from "@/lib/availability";
 
 import BookingWidget from "@/components/BookingWidget";
-import type { DayAvailability } from "@/lib/availability";
 
 type BookedSlot = {
   date: string; // YYYY-MM-DD
-  time: string; // HH:mm
+  time: string; // HH:mm (of soms HH:mm:ss)
   status?: string;
 };
+
+function normDate(s: string) {
+  return String(s || "").trim().slice(0, 10);
+}
+
+function normTime(s: string) {
+  // maakt van "12:00", "12:00:00", "12:00 " -> "12:00"
+  const t = String(s || "").trim();
+  return t.length >= 5 ? t.slice(0, 5) : t;
+}
 
 function applyBookedSlots(days: DayAvailability[], booked: BookedSlot[]) {
   if (!booked?.length) return days;
 
   const map = new Map<string, Set<string>>();
+
   for (const b of booked) {
-    const day = (b.date || "").slice(0, 10);
-    const t = (b.time || "").slice(0, 5);
+    const day = normDate(b.date);
+    const t = normTime(b.time);
     if (!day || !t) continue;
 
     if (!map.has(day)) map.set(day, new Set());
@@ -33,7 +43,11 @@ function applyBookedSlots(days: DayAvailability[], booked: BookedSlot[]) {
     const blocked = map.get(d.date);
     if (!blocked?.size) return d;
 
-    const times = (d.times ?? []).filter((t) => !blocked.has(t));
+    // ✅ normalize ook de availability tijden vóór vergelijking
+    const times = (d.times ?? [])
+      .map((t) => normTime(t))
+      .filter((t) => !blocked.has(t));
+
     return {
       ...d,
       isOpen: times.length > 0 ? d.isOpen : false,
@@ -58,10 +72,10 @@ export default async function BoekPage() {
   toDate.setDate(toDate.getDate() + advance);
   const to = toDate.toISOString().slice(0, 10);
 
-  // 1) basis availability berekenen uit settings
+  // 1) basis availability
   const daysBase: DayAvailability[] = getAvailabilityForRange(settings, from, to);
 
-  // 2) ✅ geboekte slots ophalen ZONDER CDN (altijd vers)
+  // 2) ✅ geboekte slots ophalen: ZONDER CDN + GEEN Next-cache
   const booked: BookedSlot[] = await sanityClientFresh.fetch(
     `*[
       _type == "bookingRequest" &&
@@ -72,10 +86,15 @@ export default async function BoekPage() {
       time,
       status
     }`,
-    { from, to }
+    { from, to },
+    {
+      // ✅ dit voorkomt dat Next alsnog cached
+      cache: "no-store",
+      next: { revalidate: 0 },
+    }
   );
 
-  // 3) geboekte tijden verwijderen uit de availability
+  // 3) filter booked uit availability
   const days = applyBookedSlots(daysBase, booked);
 
   const responseTime = contact?.responseTime ?? "Meestal reactie dezelfde dag";
