@@ -16,7 +16,7 @@ type BookingPayload = {
   email: string;
   phone?: string;
 
-  // ✅ nieuw veld (form stuurt vaak string)
+  // form stuurt soms string
   count?: number | string; // aantal personen/huisdieren
 
   shootType?: string;
@@ -55,6 +55,23 @@ function slotId(date: string, time: string) {
   return `bookingRequest.${safeDate}.${safeTime}`;
 }
 
+function normalizeCount(raw: unknown): number | undefined {
+  if (raw === null || raw === undefined) return undefined;
+
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : undefined;
+  }
+
+  if (typeof raw === "string") {
+    const s = raw.trim();
+    if (s === "") return undefined;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  return undefined;
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Partial<BookingPayload>;
@@ -72,15 +89,7 @@ export async function POST(req: Request) {
     const email = String(body.email ?? "").trim();
     const phone = String(body.phone ?? "").trim();
 
-    // ✅ count normaliseren (mag leeg zijn) — TS safe
-    const rawCount = (body as any).count as unknown;
-
-    const count =
-      typeof rawCount === "number"
-        ? rawCount
-        : typeof rawCount === "string" && rawCount.trim() !== ""
-          ? Number(rawCount)
-          : undefined;
+    const count = normalizeCount((body as any).count);
 
     const shootType = String(body.shootType ?? "").trim();
     const location = String(body.location ?? "").trim();
@@ -129,7 +138,6 @@ export async function POST(req: Request) {
         email,
         phone: phone || undefined,
 
-        // ✅ nieuw veld opslaan
         count: count ?? undefined,
 
         preferredContact,
@@ -140,7 +148,6 @@ export async function POST(req: Request) {
         consent,
       });
     } catch (err: any) {
-      // ✅ Als slot al bestaat -> conflict / dubbel geboekt
       const status = err?.statusCode || err?.response?.statusCode;
 
       if (status === 409) {
@@ -149,6 +156,8 @@ export async function POST(req: Request) {
             ok: false,
             error: "Deze tijd is net geboekt. Kies een andere tijd.",
             code: "SLOT_TAKEN",
+            date,
+            time,
           },
           { status: 409 }
         );
@@ -205,13 +214,27 @@ export async function POST(req: Request) {
         html,
       });
 
-      // mail fail ≠ 500 (opslaan is al gelukt)
       if ((result as any)?.error) {
-        return NextResponse.json({ ok: true, createdId: created._id, mailError: true });
+        // opslag gelukt, mail niet — geen 500
+        return NextResponse.json({
+          ok: true,
+          createdId: created._id,
+          date,
+          time,
+          count,
+          mailError: true,
+        });
       }
     }
 
-    return NextResponse.json({ ok: true, createdId: created._id });
+    // ✅ BELANGRIJK: geef date/time terug zodat client exact weet wat geboekt is
+    return NextResponse.json({
+      ok: true,
+      createdId: created._id,
+      date,
+      time,
+      count,
+    });
   } catch (e: any) {
     console.error("Booking API error:", e);
     return NextResponse.json(
