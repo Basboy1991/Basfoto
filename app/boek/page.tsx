@@ -1,4 +1,6 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
@@ -43,7 +45,7 @@ function applyBookedSlots(days: DayAvailability[], booked: BookedSlot[]) {
     const blocked = map.get(d.date);
     if (!blocked?.size) return d;
 
-    // ✅ normalize ook de availability tijden vóór vergelijking
+    // normalize ook de availability tijden vóór vergelijking
     const times = (d.times ?? [])
       .map((t) => normTime(t))
       .filter((t) => !blocked.has(t));
@@ -75,7 +77,7 @@ export default async function BoekPage() {
   // 1) basis availability
   const daysBase: DayAvailability[] = getAvailabilityForRange(settings, from, to);
 
-  // 2) ✅ geboekte slots ophalen: ZONDER CDN + GEEN Next-cache
+  // 2) geboekte slots ophalen: ZONDER CDN
   const booked: BookedSlot[] = await sanityClientFresh.fetch(
     `*[
       _type == "bookingRequest" &&
@@ -86,12 +88,7 @@ export default async function BoekPage() {
       time,
       status
     }`,
-    { from, to },
-    {
-      // ✅ dit voorkomt dat Next alsnog cached
-      cache: "no-store",
-      next: { revalidate: 0 },
-    }
+    { from, to }
   );
 
   // 3) filter booked uit availability
