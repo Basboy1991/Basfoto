@@ -8,6 +8,7 @@ import { availabilitySettingsQuery } from "@/lib/sanity.queries";
 import { getAvailabilityForRange } from "@/lib/availability";
 
 import BookingWidget from "@/components/BookingWidget";
+import type { DayAvailability } from "@/lib/availability";
 
 type BookedSlot = {
   date: string; // YYYY-MM-DD
@@ -15,7 +16,7 @@ type BookedSlot = {
   status?: string;
 };
 
-function applyBookedSlots(days: any[], booked: BookedSlot[]) {
+function applyBookedSlots(days: DayAvailability[], booked: BookedSlot[]) {
   if (!booked?.length) return days;
 
   const map = new Map<string, Set<string>>();
@@ -32,7 +33,7 @@ function applyBookedSlots(days: any[], booked: BookedSlot[]) {
     const blocked = map.get(d.date);
     if (!blocked?.size) return d;
 
-    const times = (d.times ?? []).filter((t: string) => !blocked.has(t));
+    const times = (d.times ?? []).filter((t) => !blocked.has(t));
     return {
       ...d,
       isOpen: times.length > 0 ? d.isOpen : false,
@@ -57,7 +58,7 @@ export default async function BoekPage() {
   const to = toDate.toISOString().slice(0, 10);
 
   // 1) basis availability berekenen uit settings
-  const daysBase = getAvailabilityForRange(settings, from, to);
+  const daysBase: DayAvailability[] = getAvailabilityForRange(settings, from, to);
 
   // 2) geboekte slots ophalen (alles behalve cancelled)
   const booked: BookedSlot[] = await sanityClient.fetch(
@@ -109,7 +110,9 @@ export default async function BoekPage() {
               style={{ border: "1px solid var(--border)" }}
             >
               <p className="text-sm font-semibold text-[var(--text)]">{b.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--text-soft)]">{b.text}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--text-soft)]">
+                {b.text}
+              </p>
             </div>
           ))}
         </div>
@@ -127,3 +130,4 @@ export default async function BoekPage() {
     </>
   );
 }
+```0
