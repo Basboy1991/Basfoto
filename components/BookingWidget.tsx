@@ -5,16 +5,16 @@ import AvailabilityPicker from "@/components/AvailabilityPicker";
 import BookingForm from "@/components/BookingForm";
 import type { DayAvailability } from "@/lib/availability";
 
-function normTime(s: string) {
-  const t = String(s || "").trim();
-  return t.length >= 5 ? t.slice(0, 5) : t;
-}
-
 function normDate(s: string) {
   return String(s || "").trim().slice(0, 10);
 }
 
-function keyFor(date: string, time: string) {
+function normTime(s: string) {
+  const t = String(s || "").trim();
+  return t.length >= 5 ? t.slice(0, 5) : t; // "10:00:00" -> "10:00"
+}
+
+function slotKey(date: string, time: string) {
   return `${normDate(date)}|${normTime(time)}`;
 }
 
@@ -28,10 +28,10 @@ export default function BookingWidget({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  // ✅ lokale “blocked slots” (optimistisch + blijft weg ook als server nog even stale is)
+  // ✅ dit is de “waarheid” voor de UI (optimistic hide)
   const [blocked, setBlocked] = useState<Set<string>>(() => new Set());
 
-  // ✅ altijd de server-days filteren met lokale blocked set
+  // ✅ filter server-days altijd met blocked slots
   const daysFiltered = useMemo<DayAvailability[]>(() => {
     if (!blocked.size) return days;
 
@@ -39,7 +39,7 @@ export default function BookingWidget({
       const date = normDate(d.date);
       const times = (d.times ?? [])
         .map(normTime)
-        .filter((t) => !blocked.has(keyFor(date, t)));
+        .filter((t) => !blocked.has(slotKey(date, t)));
 
       return {
         ...d,
@@ -62,13 +62,14 @@ export default function BookingWidget({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-[var(--text)]">Beschikbaarheid</h2>
+        <h2 className="text-xl font-semibold text-[var(--text)]">
+          Beschikbaarheid
+        </h2>
         <p className="mt-2 text-sm italic text-[var(--text-soft)]">
           Kies eerst een datum en daarna een starttijd. (Tijdzone: {timezone})
         </p>
       </div>
 
-      {/* DATUM PICKER */}
       <div className="mt-6">
         <AvailabilityPicker
           days={daysFiltered}
@@ -81,7 +82,6 @@ export default function BookingWidget({
         />
       </div>
 
-      {/* TIJDEN */}
       <div className="mt-6">
         {!selectedDate ? (
           <p className="text-center text-sm text-[var(--text-soft)]">
@@ -126,7 +126,6 @@ export default function BookingWidget({
         )}
       </div>
 
-      {/* SELECTIE SAMENVATTING */}
       <div className="mt-8">
         <div
           className="rounded-2xl bg-white/60 p-4 text-center"
@@ -134,20 +133,20 @@ export default function BookingWidget({
         >
           <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
-            {selectedDate ? selectedDate : "—"} {selectedTime ? `om ${selectedTime}` : ""}
+            {selectedDate ? selectedDate : "—"}{" "}
+            {selectedTime ? `om ${selectedTime}` : ""}
           </p>
         </div>
       </div>
 
-      {/* FORM */}
       <BookingForm
         date={selectedDate}
         time={selectedTime}
         timezone={timezone}
         onSuccess={() => {
-          // ✅ blokkeer slot lokaal (blijft weg, ook als server nog even stale is)
+          // ✅ meteen uit UI halen (en het kan niet terugkomen door stale days)
           if (selectedDate && selectedTime) {
-            const k = keyFor(selectedDate, selectedTime);
+            const k = slotKey(selectedDate, selectedTime);
             setBlocked((prev) => {
               const next = new Set(prev);
               next.add(k);
