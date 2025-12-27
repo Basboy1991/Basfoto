@@ -221,3 +221,15 @@ export const availabilitySettingsQuery = `
     }
   }
 `;
+export const bookingRequestsForRangeQuery = /* groq */ `
+  *[
+    _type == "bookingRequest" &&
+    date >= $from && date <= $to &&
+    status != "cancelled"
+  ]{
+    _id,
+    date,
+    time,
+    status
+  }
+`;
