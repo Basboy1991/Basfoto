@@ -11,17 +11,16 @@ function normTime(s: string) {
 
 function formatDutchDayLabel(isoDate: string) {
   // isoDate: YYYY-MM-DD
-  const [y, m, d] = isoDate.split("-").map((x) => Number(x));
+  const [y, m, d] = isoDate.split("-").map(Number);
   const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
 
   const dayNames = ["zo", "ma", "di", "wo", "do", "vr", "za"];
   const day = dayNames[dt.getDay()] ?? "";
 
-  const dd = String(d ?? "").padStart(2, "0");
-  const mm = String(m ?? "").padStart(2, "0");
-  const yyyy = String(y ?? "");
+  const dd = String(d).padStart(2, "0");
+  const mm = String(m).padStart(2, "0");
 
-  return `${day} ${dd}-${mm}-${yyyy}`;
+  return `${day} ${dd}-${mm}-${y}`;
 }
 
 export default function BookingWidget({
@@ -31,16 +30,24 @@ export default function BookingWidget({
   days: DayAvailability[];
   timezone: string;
 }) {
-  // ✅ lokale state zodat we een slot direct kunnen verwijderen uit de UI na succes
+  /**
+   * ✅ Lokale kopie zodat we direct een tijdslot
+   * uit de UI kunnen verwijderen na boeken
+   */
   const [daysState, setDaysState] = useState<DayAvailability[]>(days);
 
-  // ✅ als server opnieuw rendert (router.refresh), sync weer naar nieuwste data
+  /**
+   * ✅ Na router.refresh() syncen we opnieuw
+   * naar de server-waarheid
+   */
   useEffect(() => {
     setDaysState(days);
   }, [days]);
 
   const openDays = useMemo(() => {
-    return (daysState ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0);
+    return (daysState ?? []).filter(
+      (d) => d.isOpen && (d.times?.length ?? 0) > 0
+    );
   }, [daysState]);
 
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -55,7 +62,10 @@ export default function BookingWidget({
     return (selectedDay?.times ?? []).map(normTime);
   }, [selectedDay]);
 
-  // Als gekozen datum niet meer bestaat (door refresh/filter), reset selectie
+  /**
+   * ✅ Als datum verdwijnt (bijv. na refresh),
+   * reset selectie
+   */
   useEffect(() => {
     if (selectedDate && !openDays.some((d) => d.date === selectedDate)) {
       setSelectedDate("");
@@ -63,7 +73,10 @@ export default function BookingWidget({
     }
   }, [openDays, selectedDate]);
 
-  // Als tijd niet meer bestaat bij die datum, reset tijd
+  /**
+   * ✅ Als tijd verdwijnt bij gekozen datum,
+   * reset alleen tijd
+   */
   useEffect(() => {
     if (selectedTime && !times.includes(normTime(selectedTime))) {
       setSelectedTime("");
@@ -76,17 +89,21 @@ export default function BookingWidget({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-[var(--text)]">Beschikbaarheid</h2>
+        <h2 className="text-xl font-semibold text-[var(--text)]">
+          Beschikbaarheid
+        </h2>
         <p className="mt-1 text-sm italic text-[var(--text-soft)]">
           Kies een datum en tijd. (Tijdzone: {timezone})
         </p>
       </div>
 
-      {/* DROPDOWNS: ook op mobiel 1 regel (2 kolommen) */}
+      {/* ✅ DROPDOWNS – mobiel 1 regel */}
       <div className="mt-5 grid grid-cols-2 gap-3">
         {/* DATUM */}
         <div>
-          <label className="text-sm font-medium text-[var(--text)]">Datum</label>
+          <label className="text-sm font-medium text-[var(--text)]">
+            Datum
+          </label>
 
           <div className="relative mt-2">
             <select
@@ -109,7 +126,6 @@ export default function BookingWidget({
               ))}
             </select>
 
-            {/* ▼ chevron */}
             <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-soft)]">
               ▼
             </span>
@@ -118,7 +134,9 @@ export default function BookingWidget({
 
         {/* TIJD */}
         <div>
-          <label className="text-sm font-medium text-[var(--text)]">Tijd</label>
+          <label className="text-sm font-medium text-[var(--text)]">
+            Tijd
+          </label>
 
           <div className="relative mt-2">
             <select
@@ -129,7 +147,11 @@ export default function BookingWidget({
               disabled={!selectedDate || times.length === 0}
             >
               <option value="">
-                {!selectedDate ? "Kies datum…" : times.length ? "Selecteer…" : "Geen tijden"}
+                {!selectedDate
+                  ? "Kies datum…"
+                  : times.length
+                  ? "Selecteer…"
+                  : "Geen tijden"}
               </option>
 
               {times.map((t) => (
@@ -139,7 +161,6 @@ export default function BookingWidget({
               ))}
             </select>
 
-            {/* ▼ chevron */}
             <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-soft)]">
               ▼
             </span>
@@ -147,13 +168,15 @@ export default function BookingWidget({
         </div>
       </div>
 
-      {/* Keuze samenvatting */}
+      {/* SAMENVATTING */}
       <div className="mt-5">
         <div
           className="rounded-2xl bg-white/60 p-3 text-center"
           style={{ border: "1px solid var(--border)" }}
         >
-          <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
+          <p className="text-sm font-medium text-[var(--text)]">
+            Jouw keuze
+          </p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
             {selectedDate ? formatDutchDayLabel(selectedDate) : "—"}{" "}
             {selectedTime ? `om ${selectedTime}` : ""}
@@ -166,28 +189,30 @@ export default function BookingWidget({
         date={selectedDate || null}
         time={selectedTime || null}
         timezone={timezone}
-        onSuccess={() => {
-          // ✅ slot direct uit de UI halen
-          if (selectedDate && selectedTime) {
-            const bookedDate = selectedDate;
-            const bookedTime = normTime(selectedTime);
+        onSuccess={({ date, time }) => {
+          const bookedDate = date;
+          const bookedTime = normTime(time);
 
-            setDaysState((prev) =>
-              prev.map((d) => {
-                if (d.date !== bookedDate) return d;
+          /**
+           * ✅ HIER ZIT DE FIX:
+           * we verwijderen het slot op basis
+           * van het échte geboekte resultaat
+           */
+          setDaysState((prev) =>
+            prev.map((d) => {
+              if (d.date !== bookedDate) return d;
 
-                const newTimes = (d.times ?? [])
-                  .map(normTime)
-                  .filter((x) => x !== bookedTime);
+              const newTimes = (d.times ?? [])
+                .map(normTime)
+                .filter((t) => t !== bookedTime);
 
-                return {
-                  ...d,
-                  times: newTimes,
-                  isOpen: newTimes.length > 0,
-                };
-              })
-            );
-          }
+              return {
+                ...d,
+                times: newTimes,
+                isOpen: newTimes.length > 0,
+              };
+            })
+          );
 
           // reset selectie
           setSelectedDate("");
