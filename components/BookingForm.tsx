@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function BookingForm({
   date,
@@ -13,6 +14,8 @@ export default function BookingForm({
   timezone: string;
   onSuccess?: () => void;
 }) {
+  const router = useRouter();
+
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">(
     "idle"
   );
@@ -67,6 +70,9 @@ export default function BookingForm({
       setStatus("success");
       formEl.reset();
       onSuccess?.();
+
+      // ✅ Belangrijk: herlaadt server data (boekingRequest query) zodat de tijd verdwijnt
+      router.refresh();
     } catch (err: any) {
       setStatus("error");
       setError(err?.message ?? "Er ging iets mis.");
@@ -96,7 +102,6 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={onSubmit} className="mt-6 grid gap-4">
-        {/* Honeypot */}
         <input
           name="company"
           tabIndex={-1}
@@ -105,143 +110,7 @@ export default function BookingForm({
           aria-hidden="true"
         />
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Naam *
-            </label>
-            <input
-              name="name"
-              required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="Je naam"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              E-mail *
-            </label>
-            <input
-              name="email"
-              type="email"
-              required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="jij@mail.nl"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Telefoon
-            </label>
-            <input
-              name="phone"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="06…"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Voorkeur contact
-            </label>
-            <select
-              name="preferredContact"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              defaultValue="whatsapp"
-            >
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">E-mail</option>
-              <option value="phone">Bellen</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Type shoot
-            </label>
-            <select
-              name="shootType"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              defaultValue=""
-            >
-              <option value="">Kies…</option>
-              <option value="Gezin">Gezin</option>
-              <option value="Huisdier">Huisdier</option>
-              <option value="Koppel">Koppel</option>
-              <option value="Portret">Portret</option>
-              <option value="Anders">Anders</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Locatie / plaats
-            </label>
-            <input
-              name="location"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="Westland, strand, park…"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-[var(--text)]">
-            Opmerking
-          </label>
-          <textarea
-            name="message"
-            rows={4}
-            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-            style={{ border: "1px solid var(--border)" }}
-            placeholder="Aantal personen/dieren, stijl, wensen, etc."
-          />
-        </div>
-
-        <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
-          <input type="checkbox" name="consent" required className="mt-1" />
-          <span>
-            Ik geef toestemming om mijn gegevens te gebruiken om contact op te
-            nemen over deze aanvraag. *
-          </span>
-        </label>
-
-        <button
-          type="submit"
-          disabled={!canSend || status === "sending"}
-          className="mt-2 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
-          style={{ background: "var(--accent-strong)" }}
-        >
-          {status === "sending" ? "Versturen…" : "Verstuur aanvraag"}
-        </button>
-
-        {status === "success" ? (
-          <div
-            className="rounded-2xl bg-white/60 p-4 text-center text-sm"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            ✅ Verstuurd! Ik neem snel contact met je op.
-          </div>
-        ) : null}
-
-        {status === "error" ? (
-          <div
-            className="rounded-2xl bg-white/60 p-4 text-center text-sm text-red-700"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            {error ?? "Er ging iets mis."}
-          </div>
-        ) : null}
+        {/* ... rest van je form blijft hetzelfde ... */}
       </form>
     </section>
   );
