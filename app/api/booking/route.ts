@@ -1,3 +1,4 @@
+// app/api/booking/route.ts
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSanityWriteClient } from "@/lib/sanity.write";
@@ -15,8 +16,8 @@ type BookingPayload = {
   email: string;
   phone?: string;
 
-  // ✅ nieuw veld
-  count?: number; // aantal personen/dieren
+  // ✅ nieuw veld (form stuurt vaak string)
+  count?: number | string; // aantal personen/huisdieren
 
   shootType?: string;
   location?: string;
@@ -71,14 +72,15 @@ export async function POST(req: Request) {
     const email = String(body.email ?? "").trim();
     const phone = String(body.phone ?? "").trim();
 
-    // ✅ count normaliseren (mag leeg zijn)
-    const rawCount = body.count;
-    const countNum =
-      rawCount === null || rawCount === undefined || rawCount === ""
-        ? undefined
-        : Number(rawCount);
+    // ✅ count normaliseren (mag leeg zijn) — TS safe
+    const rawCount = (body as any).count as unknown;
+
     const count =
-      typeof countNum === "number" && Number.isFinite(countNum) ? countNum : undefined;
+      typeof rawCount === "number"
+        ? rawCount
+        : typeof rawCount === "string" && rawCount.trim() !== ""
+          ? Number(rawCount)
+          : undefined;
 
     const shootType = String(body.shootType ?? "").trim();
     const location = String(body.location ?? "").trim();
@@ -96,10 +98,8 @@ export async function POST(req: Request) {
     if (!email || !isValidEmail(email)) errors.email = "Vul een geldig e-mailadres in.";
     if (!consent) errors.consent = "Toestemming is verplicht.";
 
-    // (optioneel) als je count verplicht wil maken:
-    // if (!count || count < 1) errors.count = "Vul het aantal personen/dieren in.";
-
-    if (count !== undefined && count < 1) {
+    // count optioneel, maar als ingevuld: moet geldig zijn
+    if (count !== undefined && (!Number.isFinite(count) || count < 1)) {
       errors.count = "Aantal moet minimaal 1 zijn.";
     }
 
@@ -140,6 +140,7 @@ export async function POST(req: Request) {
         consent,
       });
     } catch (err: any) {
+      // ✅ Als slot al bestaat -> conflict / dubbel geboekt
       const status = err?.statusCode || err?.response?.statusCode;
 
       if (status === 409) {
@@ -184,7 +185,7 @@ export async function POST(req: Request) {
 
           <h3>Shoot</h3>
           <ul>
-            ${count ? `<li><strong>Aantal:</strong> ${esc(String(count))}</li>` : ""}
+            ${count !== undefined ? `<li><strong>Aantal:</strong> ${esc(String(count))}</li>` : ""}
             ${shootType ? `<li><strong>Type:</strong> ${esc(shootType)}</li>` : ""}
             ${location ? `<li><strong>Locatie:</strong> ${esc(location)}</li>` : ""}
           </ul>
@@ -204,6 +205,7 @@ export async function POST(req: Request) {
         html,
       });
 
+      // mail fail ≠ 500 (opslaan is al gelukt)
       if ((result as any)?.error) {
         return NextResponse.json({ ok: true, createdId: created._id, mailError: true });
       }
