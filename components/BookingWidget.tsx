@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AvailabilityPicker from "@/components/AvailabilityPicker";
 import BookingForm from "@/components/BookingForm";
 import type { DayAvailability } from "@/lib/availability";
@@ -10,6 +10,14 @@ function normTime(s: string) {
   return t.length >= 5 ? t.slice(0, 5) : t;
 }
 
+function normDate(s: string) {
+  return String(s || "").trim().slice(0, 10);
+}
+
+function keyFor(date: string, time: string) {
+  return `${normDate(date)}|${normTime(time)}`;
+}
+
 export default function BookingWidget({
   days,
   timezone,
@@ -17,21 +25,34 @@ export default function BookingWidget({
   days: DayAvailability[];
   timezone: string;
 }) {
-  // ✅ lokale state zodat we meteen een tijdslot kunnen “wegstrepen”
-  const [daysState, setDaysState] = useState<DayAvailability[]>(days);
-
-  // ✅ als de server opnieuw rendert (router.refresh), syncen we weer naar de nieuwste days
-  useEffect(() => {
-    setDaysState(days);
-  }, [days]);
-
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
+  // ✅ lokale “blocked slots” (optimistisch + blijft weg ook als server nog even stale is)
+  const [blocked, setBlocked] = useState<Set<string>>(() => new Set());
+
+  // ✅ altijd de server-days filteren met lokale blocked set
+  const daysFiltered = useMemo<DayAvailability[]>(() => {
+    if (!blocked.size) return days;
+
+    return days.map((d) => {
+      const date = normDate(d.date);
+      const times = (d.times ?? [])
+        .map(normTime)
+        .filter((t) => !blocked.has(keyFor(date, t)));
+
+      return {
+        ...d,
+        times,
+        isOpen: times.length > 0,
+      };
+    });
+  }, [days, blocked]);
+
   const selectedDay = useMemo(() => {
     if (!selectedDate) return null;
-    return daysState.find((d) => d.date === selectedDate) ?? null;
-  }, [daysState, selectedDate]);
+    return daysFiltered.find((d) => d.date === selectedDate) ?? null;
+  }, [daysFiltered, selectedDate]);
 
   const times = selectedDay?.times ?? [];
 
@@ -41,9 +62,7 @@ export default function BookingWidget({
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-[var(--text)]">
-          Beschikbaarheid
-        </h2>
+        <h2 className="text-xl font-semibold text-[var(--text)]">Beschikbaarheid</h2>
         <p className="mt-2 text-sm italic text-[var(--text-soft)]">
           Kies eerst een datum en daarna een starttijd. (Tijdzone: {timezone})
         </p>
@@ -52,7 +71,7 @@ export default function BookingWidget({
       {/* DATUM PICKER */}
       <div className="mt-6">
         <AvailabilityPicker
-          days={daysState}
+          days={daysFiltered}
           timezone={timezone}
           selectedDate={selectedDate}
           onSelectDate={(date) => {
@@ -115,8 +134,7 @@ export default function BookingWidget({
         >
           <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
-            {selectedDate ? selectedDate : "—"}{" "}
-            {selectedTime ? `om ${selectedTime}` : ""}
+            {selectedDate ? selectedDate : "—"} {selectedTime ? `om ${selectedTime}` : ""}
           </p>
         </div>
       </div>
@@ -127,28 +145,16 @@ export default function BookingWidget({
         time={selectedTime}
         timezone={timezone}
         onSuccess={() => {
-          // ✅ slot direct uit UI halen (dit is de kern)
+          // ✅ blokkeer slot lokaal (blijft weg, ook als server nog even stale is)
           if (selectedDate && selectedTime) {
-            const bookedDate = selectedDate;
-            const bookedTime = normTime(selectedTime);
-
-            setDaysState((prev) =>
-              prev.map((d) => {
-                if (d.date !== bookedDate) return d;
-                const newTimes = (d.times ?? [])
-                  .map(normTime)
-                  .filter((x) => x !== bookedTime);
-
-                return {
-                  ...d,
-                  times: newTimes,
-                  isOpen: newTimes.length > 0,
-                };
-              })
-            );
+            const k = keyFor(selectedDate, selectedTime);
+            setBlocked((prev) => {
+              const next = new Set(prev);
+              next.add(k);
+              return next;
+            });
           }
 
-          // reset selectie
           setSelectedDate(null);
           setSelectedTime(null);
         }}
