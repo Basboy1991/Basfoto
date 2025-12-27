@@ -29,16 +29,15 @@ export default function BookingWidget({
 }) {
   const [daysState, setDaysState] = useState<DayAvailability[]>(days);
 
-  // ✅ resetKey force-remount dropdowns (fix: datum blijft staan)
-  const [resetKey, setResetKey] = useState(0);
-
+  // sync bij router.refresh / server rerender
   useEffect(() => {
     setDaysState(days);
   }, [days]);
 
-  const openDays = useMemo(() => {
-    return (daysState ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0);
-  }, [daysState]);
+  const openDays = useMemo(
+    () => (daysState ?? []).filter((d) => d.isOpen && (d.times?.length ?? 0) > 0),
+    [daysState]
+  );
 
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
@@ -50,16 +49,15 @@ export default function BookingWidget({
 
   const times = useMemo(() => (selectedDay?.times ?? []).map(normTime), [selectedDay]);
 
-  // Als gekozen datum niet meer bestaat, reset selectie
+  // als datum wegvalt door filtering -> reset
   useEffect(() => {
     if (selectedDate && !openDays.some((d) => d.date === selectedDate)) {
       setSelectedDate("");
       setSelectedTime("");
-      setResetKey((k) => k + 1);
     }
   }, [openDays, selectedDate]);
 
-  // Als tijd niet meer bestaat, reset tijd
+  // als tijd wegvalt -> reset tijd
   useEffect(() => {
     if (selectedTime && !times.includes(normTime(selectedTime))) {
       setSelectedTime("");
@@ -78,14 +76,12 @@ export default function BookingWidget({
         </p>
       </div>
 
-      {/* DROPDOWNS: mobiel 1 regel */}
+      {/* 2 dropdowns op 1 regel (ook mobiel) */}
       <div className="mt-5 grid grid-cols-2 gap-3">
-        {/* DATUM */}
         <div>
           <label className="text-sm font-medium text-[var(--text)]">Datum</label>
           <div className="relative mt-2">
             <select
-              key={`date-${resetKey}`}
               className="w-full appearance-none rounded-2xl bg-white/70 px-4 py-3 pr-10 text-sm"
               style={{ border: "1px solid var(--border)" }}
               value={selectedDate}
@@ -107,12 +103,10 @@ export default function BookingWidget({
           </div>
         </div>
 
-        {/* TIJD */}
         <div>
           <label className="text-sm font-medium text-[var(--text)]">Tijd</label>
           <div className="relative mt-2">
             <select
-              key={`time-${resetKey}-${selectedDate}`}
               className="w-full appearance-none rounded-2xl bg-white/70 px-4 py-3 pr-10 text-sm disabled:opacity-60"
               style={{ border: "1px solid var(--border)" }}
               value={selectedTime}
@@ -135,12 +129,9 @@ export default function BookingWidget({
         </div>
       </div>
 
-      {/* Samenvatting */}
+      {/* samenvatting */}
       <div className="mt-5">
-        <div
-          className="rounded-2xl bg-white/60 p-3 text-center"
-          style={{ border: "1px solid var(--border)" }}
-        >
+        <div className="rounded-2xl bg-white/60 p-3 text-center" style={{ border: "1px solid var(--border)" }}>
           <p className="text-sm font-medium text-[var(--text)]">Jouw keuze</p>
           <p className="mt-1 text-sm text-[var(--text-soft)]">
             {selectedDate ? formatDutchDayLabel(selectedDate) : "—"}{" "}
@@ -149,34 +140,28 @@ export default function BookingWidget({
         </div>
       </div>
 
-      {/* FORM */}
       <BookingForm
         date={selectedDate || null}
         time={selectedTime || null}
         timezone={timezone}
-        onSuccess={({ date, time }) => {
-          const bookedDate = date;
-          const bookedTime = normTime(time);
+        onSuccess={(info) => {
+          // ✅ ALTIJD verwijderen op basis van teruggegeven slot
+          const bookedDate = info?.date ?? selectedDate;
+          const bookedTime = normTime(info?.time ?? selectedTime);
 
-          // ✅ filter slot direct uit UI
-          setDaysState((prev) =>
-            prev.map((d) => {
-              if (d.date !== bookedDate) return d;
+          if (bookedDate && bookedTime) {
+            setDaysState((prev) =>
+              prev.map((d) => {
+                if (d.date !== bookedDate) return d;
+                const newTimes = (d.times ?? []).map(normTime).filter((x) => x !== bookedTime);
+                return { ...d, times: newTimes, isOpen: newTimes.length > 0 };
+              })
+            );
+          }
 
-              const newTimes = (d.times ?? []).map(normTime).filter((x) => x !== bookedTime);
-
-              return {
-                ...d,
-                times: newTimes,
-                isOpen: newTimes.length > 0,
-              };
-            })
-          );
-
-          // ✅ reset dropdowns + force remount
+          // reset dropdowns
           setSelectedDate("");
           setSelectedTime("");
-          setResetKey((k) => k + 1);
         }}
       />
     </section>
