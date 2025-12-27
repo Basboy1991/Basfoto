@@ -39,6 +39,9 @@ export default function BookingForm({
     const form = new FormData(formEl);
     const consent = form.get("consent") === "on";
 
+    const countRaw = String(form.get("count") ?? "").trim();
+    const count = countRaw ? Number(countRaw) : undefined;
+
     const payload = {
       date,
       time,
@@ -49,6 +52,9 @@ export default function BookingForm({
       phone: String(form.get("phone") ?? "").trim(),
 
       shootType: String(form.get("shootType") ?? "").trim(),
+      // ✅ nieuw veld
+      count: Number.isFinite(count as number) && (count as number) > 0 ? (count as number) : undefined,
+
       location: String(form.get("location") ?? "").trim(),
       message: String(form.get("message") ?? "").trim(),
 
@@ -82,7 +88,7 @@ export default function BookingForm({
       formEl.reset();
 
       onSuccess?.();
-      router.refresh(); // ✅ herlaadt server components
+      router.refresh();
     } catch (err: any) {
       setStatus("error");
       setError(err?.message ?? "Er ging iets mis. Probeer opnieuw.");
@@ -91,15 +97,13 @@ export default function BookingForm({
 
   return (
     <section
-      className="mx-auto mt-8 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-6 md:p-8"
+      className="mx-auto mt-6 max-w-4xl rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-center">
-        <h3 className="text-xl font-semibold text-[var(--text)]">
-          Aanvraag versturen
-        </h3>
+        <h3 className="text-lg font-semibold text-[var(--text)]">Aanvraag versturen</h3>
 
-        <p className="mt-2 text-sm italic text-[var(--text-soft)]">
+        <p className="mt-1 text-sm italic text-[var(--text-soft)]">
           {canSend ? (
             <>
               Je kiest: <strong>{date}</strong> om <strong>{time}</strong>
@@ -110,7 +114,8 @@ export default function BookingForm({
         </p>
       </div>
 
-      <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+      <form onSubmit={onSubmit} className="mt-5 grid gap-3">
+        {/* Honeypot */}
         <input
           name="company"
           tabIndex={-1}
@@ -121,43 +126,43 @@ export default function BookingForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
+            <label className="text-sm text-[var(--text-soft)]">Naam *</label>
             <input
               name="name"
               required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="Je naam"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
+            <label className="text-sm text-[var(--text-soft)]">E-mail *</label>
             <input
               name="email"
               type="email"
               required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="jij@mail.nl"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
+            <label className="text-sm text-[var(--text-soft)]">Telefoon</label>
             <input
               name="phone"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="06…"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">Voorkeur contact</label>
+            <label className="text-sm text-[var(--text-soft)]">Voorkeur contact</label>
             <select
               name="preferredContact"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
               style={{ border: "1px solid var(--border)" }}
               defaultValue="whatsapp"
             >
@@ -168,12 +173,12 @@ export default function BookingForm({
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Type shoot</label>
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="md:col-span-1">
+            <label className="text-sm text-[var(--text-soft)]">Type shoot</label>
             <select
               name="shootType"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
               style={{ border: "1px solid var(--border)" }}
               defaultValue=""
             >
@@ -186,11 +191,27 @@ export default function BookingForm({
             </select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Locatie / plaats</label>
+          {/* ✅ nieuw veld */}
+          <div className="md:col-span-1">
+            <label className="text-sm text-[var(--text-soft)]">
+              Aantal personen / dieren
+            </label>
+            <input
+              name="count"
+              type="number"
+              min={1}
+              inputMode="numeric"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
+              style={{ border: "1px solid var(--border)" }}
+              placeholder="Bijv. 2"
+            />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="text-sm text-[var(--text-soft)]">Locatie / plaats</label>
             <input
               name="location"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
               style={{ border: "1px solid var(--border)" }}
               placeholder="Westland, strand, park…"
             />
@@ -198,13 +219,13 @@ export default function BookingForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-[var(--text)]">Opmerking</label>
+          <label className="text-sm text-[var(--text-soft)]">Opmerking</label>
           <textarea
             name="message"
-            rows={4}
-            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+            rows={3}
+            className="mt-1 w-full rounded-xl bg-white/70 px-3 py-2 text-sm"
             style={{ border: "1px solid var(--border)" }}
-            placeholder="Aantal personen/dieren, stijl, wensen, etc."
+            placeholder="Wensen, stijl, extra info…"
           />
         </div>
 
@@ -216,7 +237,7 @@ export default function BookingForm({
         <button
           type="submit"
           disabled={!canSend || status === "sending"}
-          className="mt-2 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
+          className="mt-2 inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white transition disabled:opacity-60"
           style={{ background: "var(--accent-strong)" }}
         >
           {status === "sending" ? "Versturen…" : "Verstuur aanvraag"}
@@ -224,7 +245,7 @@ export default function BookingForm({
 
         {status === "success" ? (
           <div
-            className="rounded-2xl bg-white/60 p-4 text-center text-sm"
+            className="rounded-2xl bg-white/60 p-3 text-center text-sm"
             style={{ border: "1px solid var(--border)" }}
           >
             ✅ Verstuurd! Ik neem snel contact met je op.
@@ -233,7 +254,7 @@ export default function BookingForm({
 
         {status === "error" ? (
           <div
-            className="rounded-2xl bg-white/60 p-4 text-center text-sm text-red-700"
+            className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700"
             style={{ border: "1px solid var(--border)" }}
           >
             {error ?? "Er ging iets mis."}
