@@ -1,0 +1,19 @@
+// app/robots.ts
+import type { MetadataRoute } from "next";
+import { siteConfig } from "@/config/site";
+
+export default function robots(): MetadataRoute.Robots {
+  const base = siteConfig.url.replace(/\/$/, "");
+
+  return {
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        // als je straks een /studio route hebt:
+        // disallow: ["/studio", "/api"],
+      },
+    ],
+    sitemap: `${base}/sitemap.xml`,
+  };
+}
