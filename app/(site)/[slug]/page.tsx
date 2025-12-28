@@ -1,4 +1,3 @@
-// app/(site)/[slug]/page.tsx
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
@@ -6,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { pageBySlugQuery, sitePageSeoQuery } from "@/lib/sanity.queries";
-import { buildMetadataFromSeo } from "@/lib/seo";
+import { urlFor } from "@/lib/sanity.image";
 
 import PageMedia from "@/components/PageMedia";
 import { PortableText } from "@portabletext/react";
@@ -25,28 +24,60 @@ function getPlainText(block?: PTBlock) {
     .trim();
 }
 
-type Props = { params: { slug: string } };
+// ✅ Matcht jouw Next build types: params is Promise
+type Props = {
+  params: Promise<{ slug: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug: params.slug });
+  const { slug } = await params;
 
-  return buildMetadataFromSeo(seo, {
-    pathname: `/${params.slug}`,
-    fallbackTitle: "Bas Fotografie",
-    fallbackDescription: "Fotograaf in Westland en omgeving.",
-  });
+  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug });
+  if (!seo) return {};
+
+  const title = String(seo.seoTitle || seo.title || "").trim() || undefined;
+  const description = String(seo.seoDescription || "").trim() || undefined;
+
+  const ogImageUrl = seo.seoImage
+    ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
+    : undefined;
+
+  const canonical = seo.canonicalUrl ? String(seo.canonicalUrl) : undefined;
+
+  return {
+    title,
+    description,
+    robots: seo.noIndex ? { index: false, follow: false } : undefined,
+    alternates: canonical ? { canonical } : undefined,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: ogImageUrl ? [{ url: ogImageUrl, width: 1200, height: 630 }] : undefined,
+    },
+    twitter: {
+      card: ogImageUrl ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
+    },
+  };
 }
 
 export default async function SitePage({ params }: Props) {
-  const page = await sanityClient.fetch(pageBySlugQuery, { slug: params.slug });
+  const { slug } = await params;
+
+  const page = await sanityClient.fetch(pageBySlugQuery, { slug });
   if (!page) notFound();
 
+  // ✅ eerste block verwijderen als het hetzelfde is als intro
   let content = page.content ?? [];
   const intro = String(page.intro ?? "").trim();
 
   if (intro && Array.isArray(content) && content.length > 0) {
     const first = content[0] as PTBlock;
     const firstText = getPlainText(first);
+
     if (firstText && firstText.toLowerCase() === intro.toLowerCase()) {
       content = content.slice(1);
     }
@@ -61,7 +92,9 @@ export default async function SitePage({ params }: Props) {
       ) : null}
 
       {intro ? (
-        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">{intro}</p>
+        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
+          {intro}
+        </p>
       ) : null}
 
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
