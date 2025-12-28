@@ -240,4 +240,14 @@ export const bookingRequestsForRangeQuery = /* groq */ `
     time,
     status
   }
+export const sitePageSeoQuery = `
+*[_type == "sitePage" && slug.current == $slug][0]{
+  title,
+  seoTitle,
+  seoDescription,
+  seoImage,
+  canonicalUrl,
+  noIndex
+}
+`;
 `;
