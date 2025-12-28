@@ -11,6 +11,16 @@ import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
 import { urlFor } from "@/lib/sanity.image";
 
+/* =========================
+   Types
+========================= */
+
+type PageProps = {
+  params: {
+    slug: string;
+  };
+};
+
 type PTBlock = {
   _type: string;
   children?: { _type: string; text?: string }[];
@@ -24,44 +34,55 @@ function getPlainText(block?: PTBlock) {
     .trim();
 }
 
-type PageProps = {
-  params: { slug: string };
-};
+/* =========================
+   SEO
+========================= */
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: PageProps
+): Promise<Metadata> {
   const { slug } = params;
 
   const seo = await sanityClient.fetch(sitePageSeoQuery, { slug });
   if (!seo) return {};
 
-  const title = String(seo.seoTitle || seo.title || "").trim() || undefined;
-  const description = String(seo.seoDescription || "").trim() || undefined;
+  const title = seo.seoTitle || seo.title;
+  const description = seo.seoDescription || undefined;
 
-  const ogImageUrl = seo.seoImage
-    ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
-    : undefined;
-
-  const canonical = seo.canonicalUrl ? String(seo.canonicalUrl) : undefined;
+  const ogImage =
+    seo.seoImage
+      ? urlFor(seo.seoImage)
+          .width(1200)
+          .height(630)
+          .fit("crop")
+          .url()
+      : undefined;
 
   return {
     title,
     description,
     robots: seo.noIndex ? { index: false, follow: false } : undefined,
-    alternates: canonical ? { canonical } : undefined,
+    alternates: seo.canonicalUrl
+      ? { canonical: seo.canonicalUrl }
+      : undefined,
     openGraph: {
       title,
       description,
       type: "website",
-      images: ogImageUrl ? [{ url: ogImageUrl, width: 1200, height: 630 }] : undefined,
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
-      card: ogImageUrl ? "summary_large_image" : "summary",
+      card: ogImage ? "summary_large_image" : "summary",
       title,
       description,
-      images: ogImageUrl ? [ogImageUrl] : undefined,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
+
+/* =========================
+   PAGE
+========================= */
 
 export default async function SitePage({ params }: PageProps) {
   const { slug } = params;
@@ -72,11 +93,9 @@ export default async function SitePage({ params }: PageProps) {
   let content = page.content ?? [];
   const intro = String(page.intro ?? "").trim();
 
-  if (intro && Array.isArray(content) && content.length > 0) {
-    const first = content[0] as PTBlock;
-    const firstText = getPlainText(first);
-
-    if (firstText && firstText.toLowerCase() === intro.toLowerCase()) {
+  if (intro && content.length > 0) {
+    const firstText = getPlainText(content[0]);
+    if (firstText.toLowerCase() === intro.toLowerCase()) {
       content = content.slice(1);
     }
   }
@@ -89,21 +108,24 @@ export default async function SitePage({ params }: PageProps) {
         </div>
       ) : null}
 
-      {intro ? (
+      {intro && (
         <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
           {intro}
         </p>
-      ) : null}
+      )}
 
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
       </h1>
 
-      {content?.length ? (
+      {content.length > 0 && (
         <div className="prose prose-zinc mt-8 max-w-none">
-          <PortableText value={content} components={portableTextComponents} />
+          <PortableText
+            value={content}
+            components={portableTextComponents}
+          />
         </div>
-      ) : null}
+      )}
     </article>
   );
 }
