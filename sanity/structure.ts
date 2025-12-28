@@ -14,10 +14,7 @@ export const structure: StructureResolver = (S) =>
           S.list()
             .title("Pagina’s")
             .items([
-              // Homepage singleton
-              S.listItem()
-                .title("Homepage")
-                .child(S.document().schemaType("homePage").documentId("homePage")),
+              S.documentTypeListItem("homePage").title("Homepage"),
 
               // Statische / generieke pagina's
               S.documentTypeListItem("sitePage").title("Site pagina’s"),
