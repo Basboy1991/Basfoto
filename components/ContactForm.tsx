@@ -1,4 +1,3 @@
-// components/ContactForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -22,10 +21,9 @@ export default function ContactForm() {
       name: String(form.get("name") ?? "").trim(),
       email: String(form.get("email") ?? "").trim(),
       phone: String(form.get("phone") ?? "").trim(),
-      preferredContact: String(form.get("preferredContact") ?? "whatsapp"),
+      subject: String(form.get("subject") ?? "").trim(),
       message: String(form.get("message") ?? "").trim(),
       consent: form.get("consent") === "on",
-
       // honeypot
       company: String(form.get("company") ?? "").trim(),
     };
@@ -52,7 +50,7 @@ export default function ContactForm() {
       formEl.reset();
     } catch (err: any) {
       setStatus("error");
-      setError(err?.message ?? "Er ging iets mis. Probeer opnieuw.");
+      setError(err?.message ?? "Er ging iets mis.");
     }
   }
 
@@ -69,7 +67,7 @@ export default function ContactForm() {
       </div>
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3">
-        {/* Honeypot */}
+        {/* honeypot */}
         <input
           name="company"
           tabIndex={-1}
@@ -78,8 +76,8 @@ export default function ContactForm() {
           aria-hidden="true"
         />
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 sm:col-span-1">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
             <input
               name="name"
@@ -90,7 +88,7 @@ export default function ContactForm() {
             />
           </div>
 
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
             <input
               name="email"
@@ -102,7 +100,7 @@ export default function ContactForm() {
             />
           </div>
 
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
             <input
               name="phone"
@@ -112,18 +110,14 @@ export default function ContactForm() {
             />
           </div>
 
-          <div className="col-span-2 sm:col-span-1">
-            <label className="text-sm font-medium text-[var(--text)]">Voorkeur contact</label>
-            <select
-              name="preferredContact"
-              defaultValue="whatsapp"
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">Onderwerp</label>
+            <input
+              name="subject"
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
-            >
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">E-mail</option>
-              <option value="phone">Bellen</option>
-            </select>
+              placeholder="Bijv. gezinsfotoshoot"
+            />
           </div>
         </div>
 
@@ -131,11 +125,11 @@ export default function ContactForm() {
           <label className="text-sm font-medium text-[var(--text)]">Bericht *</label>
           <textarea
             name="message"
-            rows={4}
             required
+            rows={4}
             className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
             style={{ border: "1px solid var(--border)" }}
-            placeholder="Waar kan ik je mee helpen?"
+            placeholder="Vertel kort wat je zoekt + voorkeur datum/locatie…"
           />
         </div>
 
