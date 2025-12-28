@@ -5,41 +5,17 @@ import { notFound } from "next/navigation";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { pageBySlugQuery, sitePageSeoQuery } from "@/lib/sanity.queries";
-
 import PageMedia from "@/components/PageMedia";
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
 import { urlFor } from "@/lib/sanity.image";
 
 /* =========================
-   Types
-========================= */
-
-type PageProps = {
-  params: {
-    slug: string;
-  };
-};
-
-type PTBlock = {
-  _type: string;
-  children?: { _type: string; text?: string }[];
-};
-
-function getPlainText(block?: PTBlock) {
-  if (!block || block._type !== "block") return "";
-  return (block.children ?? [])
-    .map((c) => (c?._type === "span" ? c.text ?? "" : ""))
-    .join("")
-    .trim();
-}
-
-/* =========================
    SEO
 ========================= */
 
 export async function generateMetadata(
-  { params }: PageProps
+  { params }: any
 ): Promise<Metadata> {
   const { slug } = params;
 
@@ -51,11 +27,7 @@ export async function generateMetadata(
 
   const ogImage =
     seo.seoImage
-      ? urlFor(seo.seoImage)
-          .width(1200)
-          .height(630)
-          .fit("crop")
-          .url()
+      ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
       : undefined;
 
   return {
@@ -84,7 +56,7 @@ export async function generateMetadata(
    PAGE
 ========================= */
 
-export default async function SitePage({ params }: PageProps) {
+export default async function SitePage({ params }: any) {
   const { slug } = params;
 
   const page = await sanityClient.fetch(pageBySlugQuery, { slug });
@@ -92,13 +64,6 @@ export default async function SitePage({ params }: PageProps) {
 
   let content = page.content ?? [];
   const intro = String(page.intro ?? "").trim();
-
-  if (intro && content.length > 0) {
-    const firstText = getPlainText(content[0]);
-    if (firstText.toLowerCase() === intro.toLowerCase()) {
-      content = content.slice(1);
-    }
-  }
 
   return (
     <article className="mx-auto max-w-3xl">
@@ -118,7 +83,7 @@ export default async function SitePage({ params }: PageProps) {
         {page.title}
       </h1>
 
-      {content.length > 0 && (
+      {content?.length > 0 && (
         <div className="prose prose-zinc mt-8 max-w-none">
           <PortableText
             value={content}
