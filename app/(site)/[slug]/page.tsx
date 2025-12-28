@@ -1,8 +1,7 @@
-// app/(site)/[slug]/page.tsx
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { pageBySlugQuery, sitePageSeoQuery } from "@/lib/sanity.queries";
@@ -10,12 +9,7 @@ import { pageBySlugQuery, sitePageSeoQuery } from "@/lib/sanity.queries";
 import PageMedia from "@/components/PageMedia";
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
-
 import { urlFor } from "@/lib/sanity.image";
-
-type Props = {
-  params: { slug: string };
-};
 
 type PTBlock = {
   _type: string;
@@ -30,55 +24,59 @@ function getPlainText(block?: PTBlock) {
     .trim();
 }
 
-function getBaseUrl() {
-  // zet in Vercel: NEXT_PUBLIC_SITE_URL=https://basfoto.vercel.app
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://basfoto.vercel.app";
-}
+/**
+ * ✅ Next.js 16: params is een Promise
+ */
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug: params.slug });
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug });
 
   if (!seo) return {};
 
-  const baseUrl = getBaseUrl();
-  const title = seo?.seoTitle || seo?.title || "Bas-fotografie";
-  const description = seo?.seoDescription || undefined;
+  const title = (seo.seoTitle || seo.title || "").trim();
+  const description = (seo.seoDescription || "").trim();
 
-  const canonical =
-    seo?.canonicalUrl?.trim() ||
-    `${baseUrl}/${encodeURIComponent(params.slug)}`;
-
-  const ogImage =
-    seo?.seoImage
+  const ogImageUrl =
+    seo.seoImage
       ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
       : undefined;
 
+  // canonical: alleen als ingevuld, anders laat je Next default canonical doen
+  const canonical = seo.canonicalUrl ? String(seo.canonicalUrl) : undefined;
+
   return {
-    title,
-    description,
-    alternates: { canonical },
-    robots: seo?.noIndex ? { index: false, follow: false } : undefined,
+    title: title || undefined,
+    description: description || undefined,
+    robots: seo.noIndex ? { index: false, follow: false } : undefined,
+    alternates: canonical ? { canonical } : undefined,
     openGraph: {
+      title: title || undefined,
+      description: description || undefined,
       type: "website",
-      url: canonical,
-      title,
-      description,
-      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : undefined,
+      images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
-      title,
-      description,
-      images: ogImage ? [ogImage] : undefined,
+      card: ogImageUrl ? "summary_large_image" : "summary",
+      title: title || undefined,
+      description: description || undefined,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
     },
   };
 }
 
-export default async function SitePage({ params }: Props) {
-  const page = await sanityClient.fetch(pageBySlugQuery, { slug: params.slug });
+export default async function SitePage({ params }: PageProps) {
+  const { slug } = await params;
+
+  const page = await sanityClient.fetch(pageBySlugQuery, { slug });
+
   if (!page) notFound();
 
-  // Intro duplication filter (zelfde als je Over-mij logic)
+  // ✅ Als eerste PortableText regel exact gelijk is aan intro -> verwijderen
   let content = page.content ?? [];
   const intro = (page.intro ?? "").trim();
 
@@ -93,22 +91,26 @@ export default async function SitePage({ params }: Props) {
 
   return (
     <article className="mx-auto max-w-3xl">
-      {page.media && page.media.length > 0 && (
+      {/* Media / slideshow */}
+      {page.media && page.media.length > 0 ? (
         <div className="mb-8">
           <PageMedia media={page.media} />
         </div>
-      )}
+      ) : null}
 
+      {/* Intro */}
       {intro ? (
         <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
           {intro}
         </p>
       ) : null}
 
+      {/* Titel */}
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
       </h1>
 
+      {/* Content */}
       {content?.length ? (
         <div className="prose prose-zinc mt-8 max-w-none">
           <PortableText value={content} components={portableTextComponents} />
