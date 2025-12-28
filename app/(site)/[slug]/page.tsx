@@ -1,3 +1,4 @@
+// app/(site)/[slug]/page.tsx
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
@@ -5,65 +6,51 @@ import { notFound } from "next/navigation";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { pageBySlugQuery, sitePageSeoQuery } from "@/lib/sanity.queries";
+import { buildMetadataFromSeo } from "@/lib/seo";
+
 import PageMedia from "@/components/PageMedia";
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
-import { urlFor } from "@/lib/sanity.image";
 
-/* =========================
-   SEO
-========================= */
+type PTBlock = {
+  _type: string;
+  children?: { _type: string; text?: string }[];
+};
 
-export async function generateMetadata(
-  { params }: any
-): Promise<Metadata> {
-  const { slug } = params;
-
-  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug });
-  if (!seo) return {};
-
-  const title = seo.seoTitle || seo.title;
-  const description = seo.seoDescription || undefined;
-
-  const ogImage =
-    seo.seoImage
-      ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
-      : undefined;
-
-  return {
-    title,
-    description,
-    robots: seo.noIndex ? { index: false, follow: false } : undefined,
-    alternates: seo.canonicalUrl
-      ? { canonical: seo.canonicalUrl }
-      : undefined,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      images: ogImage ? [{ url: ogImage }] : undefined,
-    },
-    twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
-      title,
-      description,
-      images: ogImage ? [ogImage] : undefined,
-    },
-  };
+function getPlainText(block?: PTBlock) {
+  if (!block || block._type !== "block") return "";
+  return (block.children ?? [])
+    .map((c) => (c?._type === "span" ? c.text ?? "" : ""))
+    .join("")
+    .trim();
 }
 
-/* =========================
-   PAGE
-========================= */
+type Props = { params: { slug: string } };
 
-export default async function SitePage({ params }: any) {
-  const { slug } = params;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug: params.slug });
 
-  const page = await sanityClient.fetch(pageBySlugQuery, { slug });
+  return buildMetadataFromSeo(seo, {
+    pathname: `/${params.slug}`,
+    fallbackTitle: "Bas Fotografie",
+    fallbackDescription: "Fotograaf in Westland en omgeving.",
+  });
+}
+
+export default async function SitePage({ params }: Props) {
+  const page = await sanityClient.fetch(pageBySlugQuery, { slug: params.slug });
   if (!page) notFound();
 
   let content = page.content ?? [];
   const intro = String(page.intro ?? "").trim();
+
+  if (intro && Array.isArray(content) && content.length > 0) {
+    const first = content[0] as PTBlock;
+    const firstText = getPlainText(first);
+    if (firstText && firstText.toLowerCase() === intro.toLowerCase()) {
+      content = content.slice(1);
+    }
+  }
 
   return (
     <article className="mx-auto max-w-3xl">
@@ -73,24 +60,19 @@ export default async function SitePage({ params }: any) {
         </div>
       ) : null}
 
-      {intro && (
-        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
-          {intro}
-        </p>
-      )}
+      {intro ? (
+        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">{intro}</p>
+      ) : null}
 
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
       </h1>
 
-      {content?.length > 0 && (
+      {content?.length ? (
         <div className="prose prose-zinc mt-8 max-w-none">
-          <PortableText
-            value={content}
-            components={portableTextComponents}
-          />
+          <PortableText value={content} components={portableTextComponents} />
         </div>
-      )}
+      ) : null}
     </article>
   );
 }
