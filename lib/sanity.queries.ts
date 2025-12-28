@@ -264,3 +264,28 @@ export const bookingRequestsForRangeQuery = /* groq */ `
     status
   }
 `;
+/* =========================
+   FAQ
+========================= */
+
+export const faqPageQuery = /* groq */ `
+  *[_type == "faqPage"][0]{
+    title,
+    intro,
+    items[]{
+      question,
+      answer
+    }
+  }
+`;
+
+export const faqPageSeoQuery = /* groq */ `
+  *[_type == "faqPage"][0]{
+    title,
+    seoTitle,
+    seoDescription,
+    seoImage,
+    canonicalUrl,
+    noIndex
+  }
+`;
