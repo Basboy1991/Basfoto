@@ -1,12 +1,77 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import { sanityClient } from "@/lib/sanity.client";
-import { pageBySlugQuery } from "@/lib/sanity.queries";
+import {
+  pageBySlugQuery,
+  sitePageSeoQuery,
+} from "@/lib/sanity.queries";
+
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
 import PageMedia from "@/components/PageMedia";
+import { urlFor } from "@/lib/sanity.image";
 import { notFound } from "next/navigation";
 
+/* =========================
+   SEO
+========================= */
+export async function generateMetadata(): Promise<Metadata> {
+  const slug = "over-mij";
+
+  const page = await sanityClient.fetch(sitePageSeoQuery, { slug });
+
+  if (!page) {
+    return {
+      title: "Pagina niet gevonden | Bas Fotografie",
+      robots: "noindex, nofollow",
+    };
+  }
+
+  const title =
+    page.seoTitle ?? `${page.title} | Bas Fotografie`;
+
+  const description =
+    page.seoDescription ??
+    "Fotografie door Bas – actief in Westland en omgeving.";
+
+  const ogImage = page.seoImage
+    ? urlFor(page.seoImage).width(1200).height(630).url()
+    : undefined;
+
+  const canonical =
+    page.canonicalUrl ??
+    `https://basfoto.vercel.app/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
+    robots: page.noIndex ? "noindex, nofollow" : "index, follow",
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      locale: "nl_NL",
+      url: canonical,
+      images: ogImage
+        ? [{ url: ogImage, width: 1200, height: 630 }]
+        : [],
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: ogImage ? [ogImage] : [],
+    },
+  };
+}
+
+/* =========================
+   PAGE
+========================= */
 type PTBlock = {
   _type: string;
   children?: { _type: string; text?: string }[];
@@ -21,48 +86,51 @@ function getPlainText(block?: PTBlock) {
 }
 
 export default async function OverMijPage() {
-  const page = await sanityClient.fetch(pageBySlugQuery, { slug: "over-mij" });
+  const page = await sanityClient.fetch(pageBySlugQuery, {
+    slug: "over-mij",
+  });
 
   if (!page) notFound();
 
-  // ✅ Als de eerste PortableText regel hetzelfde is als intro → wegfilteren
   let content = page.content ?? [];
   const intro = (page.intro ?? "").trim();
 
-  if (intro && Array.isArray(content) && content.length > 0) {
+  if (intro && content.length > 0) {
     const first = content[0] as PTBlock;
     const firstText = getPlainText(first);
 
-    if (firstText && firstText.toLowerCase() === intro.toLowerCase()) {
+    if (
+      firstText &&
+      firstText.toLowerCase() === intro.toLowerCase()
+    ) {
       content = content.slice(1);
     }
   }
 
   return (
     <article className="mx-auto max-w-3xl">
-      {/* Media / slideshow */}
-      {page.media && page.media.length > 0 && (
+      {page.media?.length > 0 && (
         <div className="mb-8">
           <PageMedia media={page.media} />
         </div>
       )}
 
-      {/* Intro (cursief + lichter) */}
-      {intro ? (
+      {intro && (
         <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
           {intro}
         </p>
-      ) : null}
+      )}
 
-      {/* Titel */}
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
       </h1>
 
-      {/* Content */}
       {content?.length ? (
         <div className="prose prose-zinc mt-8 max-w-none">
-          <PortableText value={content} components={portableTextComponents} />
+          <PortableText
+            value={content}
+            components={portableTextComponents}
+          />
         </div>
       ) : null}
     </article>
