@@ -1,15 +1,17 @@
+// sanity/schemaTypes/sitePage.ts
 import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "sitePage",
   title: "Site pagina",
   type: "document",
+
   fields: [
     defineField({
       name: "title",
       title: "Titel",
       type: "string",
-      validation: (Rule) => Rule.required(),
+      validation: (Rule) => Rule.required().min(3),
     }),
 
     defineField({
@@ -20,11 +22,15 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
 
+    // =========================
+    // SEO
+    // =========================
     defineField({
       name: "seoTitle",
       title: "SEO titel",
       type: "string",
-      description: "Titel voor Google (optioneel).",
+      description: "Titel voor Google (optioneel). Als leeg: gebruikt de paginatitel.",
+      validation: (Rule) => Rule.max(70).warning("Houd SEO titel liefst < 60-70 tekens."),
     }),
 
     defineField({
@@ -33,8 +39,98 @@ export default defineType({
       type: "text",
       rows: 3,
       description: "Korte beschrijving voor Google (optioneel).",
+      validation: (Rule) =>
+        Rule.max(170).warning("Houd meta description liefst rond 150-160 tekens."),
     }),
 
+    defineField({
+      name: "seoImage",
+      title: "SEO / Social image (OG image)",
+      type: "image",
+      options: { hotspot: true },
+      description:
+        "Wordt gebruikt als Open Graph afbeelding (delen op WhatsApp/Facebook/LinkedIn).",
+    }),
+
+    defineField({
+      name: "canonicalUrl",
+      title: "Canonical URL (optioneel)",
+      type: "url",
+      description:
+        "Alleen invullen als je een afwijkende canonical wil forceren (meestal leeg laten).",
+    }),
+
+    defineField({
+      name: "noIndex",
+      title: "Niet indexeren (noindex)",
+      type: "boolean",
+      initialValue: false,
+      description:
+        "Zet aan als je deze pagina niet in Google wilt (bijv. tijdelijke/bedankpagina).",
+    }),
+
+    // =========================
+    // CONTENT
+    // =========================
+    defineField({
+      name: "media",
+      title: "Header media (afbeelding/slideshow)",
+      type: "array",
+      of: [{ type: "image", options: { hotspot: true } }],
+      options: { layout: "grid" },
+      description:
+        "Sleep meerdere foto's tegelijk hierheen voor een slideshow. 1 foto = vaste header.",
+    }),
+
+    defineField({
+      name: "intro",
+      title: "Intro (zichtbaar op pagina)",
+      type: "text",
+      rows: 3,
+      description: "Korte intro onder de titel (niet de SEO description).",
+    }),
+
+    defineField({
+      name: "content",
+      title: "Inhoud",
+      type: "array",
+      of: [
+        {
+          type: "block",
+          styles: [
+            { title: "Normaal", value: "normal" },
+            { title: "Kop 2", value: "h2" },
+            { title: "Kop 3", value: "h3" },
+          ],
+          lists: [
+            { title: "Bullet", value: "bullet" },
+            { title: "Nummering", value: "number" },
+          ],
+          marks: {
+            decorators: [
+              { title: "Vet", value: "strong" },
+              { title: "Cursief", value: "em" },
+            ],
+          },
+        },
+      ],
+    }),
+  ],
+
+  preview: {
+    select: {
+      title: "title",
+      slug: "slug.current",
+      media: "media",
+    },
+    prepare({ title, slug }) {
+      return {
+        title: title ?? "Site pagina",
+        subtitle: slug ? `/${slug}` : "(geen slug)",
+      };
+    },
+  },
+});
     defineField({
       name: "media",
       title: "Header media (afbeelding/slideshow)",
