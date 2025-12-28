@@ -12,6 +12,15 @@ type SeoDoc = {
   noIndex?: boolean;
 };
 
+function toAbsoluteUrl(urlOrPath: string) {
+  // accepteert "https://..." én "/pad"
+  try {
+    return new URL(urlOrPath, siteConfig.url).toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export function buildMetadataFromSeo(
   doc: SeoDoc | null | undefined,
   opts?: { pathname?: string; fallbackTitle?: string; fallbackDescription?: string }
@@ -27,10 +36,14 @@ export function buildMetadataFromSeo(
     ? urlFor(doc.seoImage).width(1200).height(630).fit("crop").url()
     : undefined;
 
-  // canonical: Sanity veld > pathname > niets
+  const canonicalFromSanity = (doc?.canonicalUrl ?? "").trim();
+  const canonicalFromPath = opts?.pathname
+    ? new URL(opts.pathname, siteConfig.url).toString()
+    : undefined;
+
   const canonical =
-    doc?.canonicalUrl?.trim() ||
-    (opts?.pathname ? new URL(opts.pathname, siteConfig.url).toString() : undefined);
+    (canonicalFromSanity ? toAbsoluteUrl(canonicalFromSanity) : undefined) ||
+    canonicalFromPath;
 
   return {
     title,
