@@ -17,6 +17,14 @@ export const homePageQuery = `
         "lqip": asset->metadata.lqip
       }
     },
+export const homePageSeoQuery = `
+*[_type == "homePage"][0]{
+  seoTitle,
+  seoDescription,
+  seoImage,
+  noIndex
+}
+`;
     intro,
     portfolioCards[]{
       title,
