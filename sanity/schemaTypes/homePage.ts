@@ -1,10 +1,65 @@
+// sanity/schemaTypes/homePage.ts
 import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "homePage",
   title: "Homepage",
   type: "document",
+
   fields: [
+    /* =========================
+       SEO
+    ========================= */
+    defineField({
+      name: "seoTitle",
+      title: "SEO titel",
+      type: "string",
+      description:
+        "Titel voor Google (optioneel). Als leeg: fallback naar site default.",
+      validation: (Rule) =>
+        Rule.max(70).warning("Houd SEO titel liefst < 60-70 tekens."),
+    }),
+
+    defineField({
+      name: "seoDescription",
+      title: "SEO beschrijving",
+      type: "text",
+      rows: 3,
+      description:
+        "Korte omschrijving voor Google (optioneel). Als leeg: fallback naar site default.",
+      validation: (Rule) =>
+        Rule.max(170).warning("Houd meta description liefst rond 150-160 tekens."),
+    }),
+
+    defineField({
+      name: "seoImage",
+      title: "SEO / Social image (OG image)",
+      type: "image",
+      options: { hotspot: true },
+      description:
+        "Afbeelding voor delen op WhatsApp/Facebook/LinkedIn (1200x630 werkt top).",
+    }),
+
+    defineField({
+      name: "canonicalUrl",
+      title: "Canonical URL (optioneel)",
+      type: "url",
+      description:
+        "Meestal leeg laten. Alleen invullen als je een afwijkende canonical wil forceren.",
+    }),
+
+    defineField({
+      name: "noIndex",
+      title: "Niet indexeren (noindex)",
+      type: "boolean",
+      initialValue: false,
+      description:
+        "Zet aan als je deze pagina niet in Google wilt (bijv. tijdelijke test-home).",
+    }),
+
+    /* =========================
+       HERO
+    ========================= */
     defineField({
       name: "hero",
       title: "Hero",
@@ -24,6 +79,7 @@ export default defineType({
           initialValue: "left",
           validation: (Rule) => Rule.required(),
         }),
+
         defineField({
           name: "media",
           title: "Hero afbeeldingen",
@@ -37,8 +93,10 @@ export default defineType({
             }),
           ],
           options: { layout: "grid" },
-          validation: (Rule) => Rule.min(1).error("Voeg minimaal 1 hero-afbeelding toe."),
+          validation: (Rule) =>
+            Rule.min(1).error("Voeg minimaal 1 hero-afbeelding toe."),
         }),
+
         defineField({
           name: "headline",
           title: "Kopregel (gebruik Enter voor nieuwe regel)",
@@ -46,18 +104,22 @@ export default defineType({
           rows: 2,
           validation: (Rule) => Rule.required(),
         }),
+
         defineField({
           name: "subline",
           title: "Subregel",
           type: "text",
           rows: 3,
         }),
+
         defineField({
           name: "supportingLine",
           title: "Ondersteunende zin (kort, optioneel)",
           type: "string",
-          description: "Bijv: Persoonlijk, rustig en puur — met aandacht voor jouw moment.",
+          description:
+            "Bijv: Persoonlijk, rustig en puur — met aandacht voor jouw moment.",
         }),
+
         defineField({
           name: "primaryCta",
           title: "Primaire knop",
@@ -67,6 +129,7 @@ export default defineType({
             defineField({ name: "href", title: "Link", type: "string" }),
           ],
         }),
+
         defineField({
           name: "secondaryCta",
           title: "Secundaire knop",
@@ -79,6 +142,9 @@ export default defineType({
       ],
     }),
 
+    /* =========================
+       INTRO
+    ========================= */
     defineField({
       name: "intro",
       title: "Intro tekst",
@@ -102,6 +168,9 @@ export default defineType({
       validation: (Rule) => Rule.required().min(1),
     }),
 
+    /* =========================
+       PORTFOLIO CARDS
+    ========================= */
     defineField({
       name: "portfolioCards",
       title: "Portfolio kaarten",
@@ -150,6 +219,9 @@ export default defineType({
       ],
     }),
 
+    /* =========================
+       REVIEWS
+    ========================= */
     defineField({
       name: "reviews",
       title: "Reviews (uitgelicht)",
@@ -187,6 +259,9 @@ export default defineType({
       validation: (Rule) => Rule.max(6),
     }),
 
+    /* =========================
+       CTA CARD
+    ========================= */
     defineField({
       name: "cta",
       title: "Boek een shoot kaart",
@@ -213,4 +288,13 @@ export default defineType({
       ],
     }),
   ],
+
+  preview: {
+    prepare() {
+      return {
+        title: "Homepage",
+        subtitle: "Singleton document",
+      };
+    },
+  },
 });
