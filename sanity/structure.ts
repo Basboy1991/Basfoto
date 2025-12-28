@@ -11,9 +11,8 @@ export const structure: StructureResolver = (S) =>
       // SINGLETONS
       // =========================
       S.listItem()
-        .title("Homepage")
-        .schemaType("homePage")
-        .child(S.document().schemaType("homePage").documentId("homePage")),
+  .title("Home")
+  .child(S.documentTypeList("homePage").title("Homepage")),
 
       S.listItem()
         .title("Beschikbaarheid")
