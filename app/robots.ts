@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
+disallow: ["/studio", "/api"],
         // als je straks een /studio route hebt:
         // disallow: ["/studio", "/api"],
       },
