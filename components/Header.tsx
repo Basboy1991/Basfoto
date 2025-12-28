@@ -118,7 +118,7 @@ export default function Header() {
                 </p>
 
                 <Link
-                  href="/boek-een-shoot"
+                  href="/boek"
                   onClick={() => setOpen(false)}
                   className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-[var(--accent)] px-6 py-4 text-base font-semibold text-white hover:bg-[var(--accent-strong)]"
                 >
