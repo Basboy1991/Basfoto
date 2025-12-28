@@ -131,7 +131,7 @@ export default async function PortfolioDetailPage({ params }: { params: Promise<
 
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
-                href="/boek-een-shoot"
+                href="/boek"
                 className="inline-flex items-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-medium text-white hover:bg-[var(--accent-strong)]"
               >
                 Boek een shoot
