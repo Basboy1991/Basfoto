@@ -7,7 +7,7 @@ import packageType from "./schemaTypes/package";
 import availabilitySettings from "./schemaTypes/availabilitySettings";
 import bookingRequest from "./schemaTypes/bookingRequest";
 import contactRequest from "./schemaTypes/contactRequest"; // 👈 NIEUW
-import faqPagefrom "./schemaTypes/faqPage";
+import faqPage from "./schemaTypes/faqPage";
 
 export const schemaTypes = [
   sitePage,
