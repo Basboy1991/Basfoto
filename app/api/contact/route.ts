@@ -1,4 +1,3 @@
-// app/api/contact/route.ts
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSanityWriteClient } from "@/lib/sanity.write";
@@ -9,7 +8,7 @@ type ContactPayload = {
   name: string;
   email: string;
   phone?: string;
-  preferredContact?: "whatsapp" | "email" | "phone";
+  subject?: string;
   message: string;
   consent?: boolean;
   company?: string; // honeypot
@@ -35,7 +34,7 @@ export async function POST(req: Request) {
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim();
     const phone = String(body.phone ?? "").trim();
-    const preferredContact = (body.preferredContact ?? "whatsapp") as ContactPayload["preferredContact"];
+    const subject = String(body.subject ?? "").trim();
     const message = String(body.message ?? "").trim();
     const consent = Boolean(body.consent);
 
@@ -45,40 +44,36 @@ export async function POST(req: Request) {
     if (!message) errors.message = "Bericht is verplicht.";
     if (!consent) errors.consent = "Toestemming is verplicht.";
 
-    if (Object.keys(errors).length > 0) {
+    if (Object.keys(errors).length) {
       return NextResponse.json({ ok: false, errors }, { status: 400 });
     }
 
-    // (optioneel) opslaan in Sanity
-    // Als je dit niet wilt: verwijder dit blok.
-    let createdId: string | undefined;
-    try {
-      const sanity = getSanityWriteClient();
-      const created = await sanity.create({
-        _type: "contactMessage",
-        createdAt: new Date().toISOString(),
-        status: "new",
-        name,
-        email,
-        phone: phone || undefined,
-        preferredContact,
-        message,
-        consent,
-      });
-      createdId = created?._id;
-    } catch {
-      // opslaan mag falen zonder dat contact mailt — afhankelijk van wat jij wil
-    }
+    // 1) opslaan in Sanity
+    const sanity = getSanityWriteClient();
+    const created = await sanity.create({
+      _type: "contactRequest",
+      createdAt: new Date().toISOString(),
+      status: "new",
+      name,
+      email,
+      phone: phone || undefined,
+      subject: subject || undefined,
+      message,
+      consent,
+    });
 
-    // mail via Resend (optioneel)
+    // 2) email (optioneel)
     const resendKey = process.env.RESEND_API_KEY;
-    const toEmail = process.env.CONTACT_TO_EMAIL;       // ✅ nieuw
-    const fromEmail = process.env.CONTACT_FROM_EMAIL;   // ✅ nieuw
+    const toEmail = process.env.BOOKING_TO_EMAIL;   // of CONTACT_TO_EMAIL
+    const fromEmail = process.env.BOOKING_FROM_EMAIL; // of CONTACT_FROM_EMAIL
 
     if (resendKey && toEmail && fromEmail) {
       const resend = new Resend(resendKey);
 
-      const subject = `Nieuw contactbericht – ${name}`;
+      const mailSubject = subject
+        ? `Nieuw contactbericht – ${subject}`
+        : `Nieuw contactbericht`;
+
       const html = `
         <div style="font-family: system-ui, sans-serif; line-height:1.5">
           <h2>Nieuw contactbericht</h2>
@@ -86,28 +81,25 @@ export async function POST(req: Request) {
             <li><strong>Naam:</strong> ${esc(name)}</li>
             <li><strong>Email:</strong> ${esc(email)}</li>
             ${phone ? `<li><strong>Telefoon:</strong> ${esc(phone)}</li>` : ""}
-            <li><strong>Voorkeur:</strong> ${esc(String(preferredContact ?? ""))}</li>
+            ${subject ? `<li><strong>Onderwerp:</strong> ${esc(subject)}</li>` : ""}
           </ul>
           <h3>Bericht</h3>
           <p>${esc(message).replace(/\n/g, "<br/>")}</p>
-          ${createdId ? `<hr/><p style="font-size:12px;opacity:.6">Sanity ID: ${esc(createdId)}</p>` : ""}
+          <hr/>
+          <p style="font-size:12px;opacity:.6">Sanity ID: ${esc(created._id)}</p>
         </div>
       `;
 
-      const result = await resend.emails.send({
+      await resend.emails.send({
         from: fromEmail,
         to: toEmail,
         reply_to: email,
-        subject,
+        subject: mailSubject,
         html,
       });
-
-      if ((result as any)?.error) {
-        return NextResponse.json({ ok: true, createdId, mailError: true });
-      }
     }
 
-    return NextResponse.json({ ok: true, createdId });
+    return NextResponse.json({ ok: true, createdId: created._id });
   } catch (e: any) {
     console.error("Contact API error:", e);
     return NextResponse.json(
