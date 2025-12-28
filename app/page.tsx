@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { sanityClient } from "@/lib/sanity.client";
 import { homePageQuery, homePageSeoQuery } from "@/lib/sanity.queries";
 import { urlFor } from "@/lib/sanity.image";
+import { siteConfig } from "@/config/site";
 
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
@@ -18,47 +19,41 @@ import ReviewsSlider from "@/components/ReviewsSlider";
    SEO
 ========================= */
 export async function generateMetadata(): Promise<Metadata> {
-  const home = await sanityClient.fetch(homePageSeoQuery);
+  const homeSeo = await sanityClient.fetch(homePageSeoQuery);
 
-  if (!home) {
-    return {
-      title: "Bas Fotografie | Fotograaf Westland",
-      description: "Professionele fotograaf in Westland en omgeving.",
-    };
-  }
+  const fallbackTitle = "Bas Fotografie | Fotograaf Westland";
+  const fallbackDesc = "Gezins-, portret- en lifestylefotografie in Westland en omgeving.";
 
-  const title =
-    home.seoTitle ||
-    "Bas Fotografie | Fotograaf in Westland & omgeving";
+  const title = String(homeSeo?.seoTitle ?? fallbackTitle).trim();
+  const description = String(homeSeo?.seoDescription ?? fallbackDesc).trim();
 
-  const description =
-    home.seoDescription ||
-    "Gezins-, portret- en lifestylefotografie in Westland en omgeving.";
-
-  const ogImage = home.seoImage
-    ? urlFor(home.seoImage).width(1200).height(630).url()
+  const ogImageUrl = homeSeo?.seoImage
+    ? urlFor(homeSeo.seoImage).width(1200).height(630).fit("crop").url()
     : undefined;
 
   return {
     title,
     description,
 
-    robots: home.noIndex ? "noindex, nofollow" : "index, follow",
+    // ✅ Next Metadata prefers object
+    robots: homeSeo?.noIndex ? { index: false, follow: false } : { index: true, follow: true },
 
     openGraph: {
       title,
       description,
       type: "website",
       locale: "nl_NL",
-      url: "https://basfoto.vercel.app",
-      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : [],
+      url: siteConfig.url,
+      ...(ogImageUrl
+        ? { images: [{ url: ogImageUrl, width: 1200, height: 630 }] }
+        : {}),
     },
 
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
+      card: ogImageUrl ? "summary_large_image" : "summary",
       title,
       description,
-      images: ogImage ? [ogImage] : [],
+      ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },
   };
 }
@@ -73,25 +68,19 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      {/* SEO fallback H1 (screen readers) */}
       <h1 className="sr-only">Bas Fotografie – Fotograaf Westland</h1>
 
       <HeroSplit hero={home.hero} />
 
       <section className="mt-16 max-w-3xl">
         <div className="prose prose-zinc max-w-none">
-          <PortableText
-            value={home.intro}
-            components={portableTextComponents}
-          />
+          <PortableText value={home.intro} components={portableTextComponents} />
         </div>
       </section>
 
       <PortfolioCards cards={home.portfolioCards ?? []} />
 
-      {home.reviews?.length > 0 && (
-        <ReviewsSlider reviews={home.reviews} />
-      )}
+      {home.reviews?.length > 0 && <ReviewsSlider reviews={home.reviews} />}
 
       <HomeCtaCard cta={home.cta} />
     </main>
