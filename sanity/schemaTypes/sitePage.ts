@@ -29,8 +29,10 @@ export default defineType({
       name: "seoTitle",
       title: "SEO titel",
       type: "string",
-      description: "Titel voor Google (optioneel). Als leeg: gebruikt de paginatitel.",
-      validation: (Rule) => Rule.max(70).warning("Houd SEO titel liefst < 60-70 tekens."),
+      description:
+        "Titel voor Google (optioneel). Als leeg: gebruikt de paginatitel.",
+      validation: (Rule) =>
+        Rule.max(70).warning("Houd SEO titel liefst < 60-70 tekens."),
     }),
 
     defineField({
@@ -40,7 +42,9 @@ export default defineType({
       rows: 3,
       description: "Korte beschrijving voor Google (optioneel).",
       validation: (Rule) =>
-        Rule.max(170).warning("Houd meta description liefst rond 150-160 tekens."),
+        Rule.max(170).warning(
+          "Houd meta description liefst rond 150-160 tekens."
+        ),
     }),
 
     defineField({
@@ -56,8 +60,6 @@ export default defineType({
       name: "canonicalUrl",
       title: "Canonical URL (optioneel)",
       type: "url",
-      description:
-        "Alleen invullen als je een afwijkende canonical wil forceren (meestal leeg laten).",
     }),
 
     defineField({
@@ -65,8 +67,6 @@ export default defineType({
       title: "Niet indexeren (noindex)",
       type: "boolean",
       initialValue: false,
-      description:
-        "Zet aan als je deze pagina niet in Google wilt (bijv. tijdelijke/bedankpagina).",
     }),
 
     // =========================
@@ -74,20 +74,17 @@ export default defineType({
     // =========================
     defineField({
       name: "media",
-      title: "Header media (afbeelding/slideshow)",
+      title: "Header media",
       type: "array",
       of: [{ type: "image", options: { hotspot: true } }],
       options: { layout: "grid" },
-      description:
-        "Sleep meerdere foto's tegelijk hierheen voor een slideshow. 1 foto = vaste header.",
     }),
 
     defineField({
       name: "intro",
-      title: "Intro (zichtbaar op pagina)",
+      title: "Intro",
       type: "text",
       rows: 3,
-      description: "Korte intro onder de titel (niet de SEO description).",
     }),
 
     defineField({
@@ -121,7 +118,6 @@ export default defineType({
     select: {
       title: "title",
       slug: "slug.current",
-      media: "media",
     },
     prepare({ title, slug }) {
       return {
@@ -130,50 +126,4 @@ export default defineType({
       };
     },
   },
-});
-    defineField({
-      name: "media",
-      title: "Header media (afbeelding/slideshow)",
-      type: "array",
-      of: [{ type: "image", options: { hotspot: true } }],
-      options: { layout: "grid" },
-      description:
-        "Sleep meerdere foto's tegelijk hierheen voor een slideshow. 1 foto = vaste header.",
-    }),
-
-    // ✅ NIEUW: zichtbare intro (los van SEO)
-    defineField({
-      name: "intro",
-      title: "Intro (zichtbaar op pagina)",
-      type: "text",
-      rows: 3,
-      description: "Korte intro onder de titel (niet de SEO description).",
-    }),
-
-    defineField({
-      name: "content",
-      title: "Inhoud",
-      type: "array",
-      of: [
-        {
-          type: "block",
-          styles: [
-            { title: "Normaal", value: "normal" },
-            { title: "Kop 2", value: "h2" },
-            { title: "Kop 3", value: "h3" },
-          ],
-          lists: [
-            { title: "Bullet", value: "bullet" },
-            { title: "Nummering", value: "number" },
-          ],
-          marks: {
-            decorators: [
-              { title: "Vet", value: "strong" },
-              { title: "Cursief", value: "em" },
-            ],
-          },
-        },
-      ],
-    }),
-  ],
 });
