@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { siteConfig } from "@/config/site";
@@ -9,6 +9,12 @@ import { siteConfig } from "@/config/site";
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  // ✅ voorkom dubbel: /boek niet in nav-items tonen (want CTA bestaat al)
+  const navItems = useMemo(
+    () => siteConfig.nav.filter((i) => i.href !== "/boek"),
+    []
+  );
 
   // sluit menu bij navigatie
   useEffect(() => {
@@ -38,7 +44,7 @@ export default function SiteHeader() {
 
         {/* DESKTOP NAV */}
         <nav className="hidden items-center gap-6 md:flex">
-          {siteConfig.nav.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -48,7 +54,7 @@ export default function SiteHeader() {
             </Link>
           ))}
 
-          {/* Desktop CTA (optioneel maar premium) */}
+          {/* ✅ Desktop CTA */}
           <Link
             href="/boek"
             className="ml-2 inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold text-white transition"
@@ -107,7 +113,7 @@ export default function SiteHeader() {
             </div>
 
             <nav className="mt-6 grid gap-2">
-              {siteConfig.nav.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -119,7 +125,7 @@ export default function SiteHeader() {
               ))}
             </nav>
 
-            {/* ✅ Mobiele CTA: NIET portfolio, maar boeking */}
+            {/* ✅ Mobiele CTA */}
             <div className="mt-6">
               <Link
                 href="/boek"
@@ -128,8 +134,6 @@ export default function SiteHeader() {
               >
                 Boek een shoot
               </Link>
-
-              
             </div>
           </div>
         </div>
