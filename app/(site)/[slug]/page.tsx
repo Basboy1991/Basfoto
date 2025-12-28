@@ -24,13 +24,12 @@ function getPlainText(block?: PTBlock) {
     .trim();
 }
 
-/** ✅ Next.js 16: params is Promise */
 type PageProps = {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug } = params;
 
   const seo = await sanityClient.fetch(sitePageSeoQuery, { slug });
   if (!seo) return {};
@@ -38,8 +37,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = String(seo.seoTitle || seo.title || "").trim() || undefined;
   const description = String(seo.seoDescription || "").trim() || undefined;
 
-  const ogImageUrl =
-    seo.seoImage ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url() : undefined;
+  const ogImageUrl = seo.seoImage
+    ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
+    : undefined;
 
   const canonical = seo.canonicalUrl ? String(seo.canonicalUrl) : undefined;
 
@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       type: "website",
-      images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
+      images: ogImageUrl ? [{ url: ogImageUrl, width: 1200, height: 630 }] : undefined,
     },
     twitter: {
       card: ogImageUrl ? "summary_large_image" : "summary",
@@ -64,12 +64,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function SitePage({ params }: PageProps) {
-  const { slug } = await params;
+  const { slug } = params;
 
   const page = await sanityClient.fetch(pageBySlugQuery, { slug });
   if (!page) notFound();
 
-  // ✅ Als de eerste PortableText regel hetzelfde is als intro → wegfilteren
   let content = page.content ?? [];
   const intro = String(page.intro ?? "").trim();
 
@@ -91,7 +90,9 @@ export default async function SitePage({ params }: PageProps) {
       ) : null}
 
       {intro ? (
-        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">{intro}</p>
+        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
+          {intro}
+        </p>
       ) : null}
 
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
