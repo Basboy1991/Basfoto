@@ -1,134 +1,24 @@
-// sanity/structure.ts
-import {
-  CalendarIcon,
-  DocumentIcon,
-  HomeIcon,
-  ImageIcon,
-  TagIcon,
-  CogIcon,
-} from "@sanity/icons";
+import { StructureBuilder } from "sanity/structure";
 
-export const structure = (S: any) =>
+export const structure = (S: StructureBuilder) =>
   S.list()
     .title("Content")
     .items([
-      // Home (singleton)
+      // ✅ Homepage als "singleton"
       S.listItem()
-        .title("Home")
-        .icon(HomeIcon)
+        .title("Homepage")
         .child(
           S.document()
             .schemaType("homePage")
             .documentId("homePage")
-            .title("Home")
-        ),
-
-      // Pagina’s
-      S.listItem()
-        .title("Pagina’s")
-        .icon(DocumentIcon)
-        .child(S.documentTypeList("sitePage").title("Pagina’s")),
-
-      // Portfolio
-      S.listItem()
-        .title("Portfolio")
-        .icon(ImageIcon)
-        .child(S.documentTypeList("portfolioItem").title("Portfolio")),
-
-      // Albums
-      S.listItem()
-        .title("Albums")
-        .icon(ImageIcon)
-        .child(S.documentTypeList("album").title("Albums")),
-
-      // Pakketten
-      S.listItem()
-        .title("Pakketten")
-        .icon(TagIcon)
-        .child(S.documentTypeList("package").title("Pakketten")),
-
-      // Beschikbaarheid (singleton/settings)
-      S.listItem()
-        .title("Beschikbaarheid")
-        .icon(CogIcon)
-        .child(
-          S.document()
-            .schemaType("availabilitySettings")
-            .documentId("availabilitySettings")
-            .title("Beschikbaarheid")
         ),
 
       S.divider(),
 
-      // Boekingen
-      S.listItem()
-        .title("Boekingen")
-        .icon(CalendarIcon)
-        .child(
-          S.list()
-            .title("Boekingen")
-            .items([
-              S.listItem()
-                .title("Nieuw")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Nieuw")
-                    .filter('_type == "bookingRequest" && status == "new"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-
-              S.listItem()
-                .title("Bevestigd")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Bevestigd")
-                    .filter('_type == "bookingRequest" && status == "confirmed"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-
-              S.listItem()
-                .title("Afgerond")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Afgerond")
-                    .filter('_type == "bookingRequest" && status == "done"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-
-              S.listItem()
-                .title("Geannuleerd")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Geannuleerd")
-                    .filter('_type == "bookingRequest" && status == "cancelled"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-
-              S.divider(),
-
-              S.listItem()
-                .title("Alle aanvragen")
-                .child(
-                  S.documentTypeList("bookingRequest")
-                    .title("Alle aanvragen")
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-            ])
-        ),
-
-      S.divider(),
-
-      // Rest
-      ...S.documentTypeListItems().filter(
-        (listItem: any) =>
-          ![
-            "homePage",
-            "sitePage",
-            "portfolioItem",
-            "album",
-            "package",
-            "availabilitySettings",
-            "bookingRequest",
-          ].includes(listItem.getId() as string)
-      ),
+      S.documentTypeListItem("sitePage").title("Pagina’s"),
+      S.documentTypeListItem("package").title("Pakketten"),
+      S.documentTypeListItem("portfolioItem").title("Portfolio items"),
+      S.documentTypeListItem("album").title("Albums"),
+      S.documentTypeListItem("availabilitySettings").title("Beschikbaarheid"),
+      S.documentTypeListItem("bookingRequest").title("Boekingen"),
     ]);
