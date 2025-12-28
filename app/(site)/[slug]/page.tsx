@@ -24,9 +24,7 @@ function getPlainText(block?: PTBlock) {
     .trim();
 }
 
-/**
- * ✅ Next.js 16: params is een Promise
- */
+/** ✅ Next.js 16: params is Promise */
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -35,35 +33,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
 
   const seo = await sanityClient.fetch(sitePageSeoQuery, { slug });
-
   if (!seo) return {};
 
-  const title = (seo.seoTitle || seo.title || "").trim();
-  const description = (seo.seoDescription || "").trim();
+  const title = String(seo.seoTitle || seo.title || "").trim() || undefined;
+  const description = String(seo.seoDescription || "").trim() || undefined;
 
   const ogImageUrl =
-    seo.seoImage
-      ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
-      : undefined;
+    seo.seoImage ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url() : undefined;
 
-  // canonical: alleen als ingevuld, anders laat je Next default canonical doen
   const canonical = seo.canonicalUrl ? String(seo.canonicalUrl) : undefined;
 
   return {
-    title: title || undefined,
-    description: description || undefined,
+    title,
+    description,
     robots: seo.noIndex ? { index: false, follow: false } : undefined,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
-      title: title || undefined,
-      description: description || undefined,
+      title,
+      description,
       type: "website",
       images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
     },
     twitter: {
       card: ogImageUrl ? "summary_large_image" : "summary",
-      title: title || undefined,
-      description: description || undefined,
+      title,
+      description,
       images: ogImageUrl ? [ogImageUrl] : undefined,
     },
   };
@@ -73,12 +67,11 @@ export default async function SitePage({ params }: PageProps) {
   const { slug } = await params;
 
   const page = await sanityClient.fetch(pageBySlugQuery, { slug });
-
   if (!page) notFound();
 
-  // ✅ Als eerste PortableText regel exact gelijk is aan intro -> verwijderen
+  // ✅ Als de eerste PortableText regel hetzelfde is als intro → wegfilteren
   let content = page.content ?? [];
-  const intro = (page.intro ?? "").trim();
+  const intro = String(page.intro ?? "").trim();
 
   if (intro && Array.isArray(content) && content.length > 0) {
     const first = content[0] as PTBlock;
@@ -91,26 +84,20 @@ export default async function SitePage({ params }: PageProps) {
 
   return (
     <article className="mx-auto max-w-3xl">
-      {/* Media / slideshow */}
-      {page.media && page.media.length > 0 ? (
+      {page.media?.length ? (
         <div className="mb-8">
           <PageMedia media={page.media} />
         </div>
       ) : null}
 
-      {/* Intro */}
       {intro ? (
-        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
-          {intro}
-        </p>
+        <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">{intro}</p>
       ) : null}
 
-      {/* Titel */}
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
       </h1>
 
-      {/* Content */}
       {content?.length ? (
         <div className="prose prose-zinc mt-8 max-w-none">
           <PortableText value={content} components={portableTextComponents} />
