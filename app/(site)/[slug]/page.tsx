@@ -1,80 +1,22 @@
+// app/(site)/[slug]/page.tsx
 export const dynamic = "force-dynamic";
 
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { sanityClient } from "@/lib/sanity.client";
-import {
-  sitePageBySlugQuery,
-  sitePageSeoQuery,
-} from "@/lib/sanity.queries";
+import { pageBySlugQuery, sitePageSeoQuery } from "@/lib/sanity.queries";
 
+import PageMedia from "@/components/PageMedia";
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
-import PageMedia from "@/components/PageMedia";
+
 import { urlFor } from "@/lib/sanity.image";
 
-/* =========================
-   SEO
-========================= */
-export async function generateMetadata({
-  params,
-}: {
+type Props = {
   params: { slug: string };
-}): Promise<Metadata> {
-  const { slug } = params;
+};
 
-  const page = await sanityClient.fetch(sitePageSeoQuery, { slug });
-
-  if (!page) {
-    return {
-      title: "Pagina niet gevonden | Bas Fotografie",
-      robots: "noindex, nofollow",
-    };
-  }
-
-  const title =
-    page.seoTitle ?? `${page.title} | Bas Fotografie`;
-
-  const description =
-    page.seoDescription ??
-    "Fotografie door Bas – actief in Westland en omgeving.";
-
-  const ogImage = page.seoImage
-    ? urlFor(page.seoImage).width(1200).height(630).url()
-    : undefined;
-
-  const canonical =
-    page.canonicalUrl ??
-    `https://basfoto.vercel.app/${slug}`;
-
-  return {
-    title,
-    description,
-    alternates: { canonical },
-    robots: page.noIndex ? "noindex, nofollow" : "index, follow",
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      locale: "nl_NL",
-      url: canonical,
-      images: ogImage
-        ? [{ url: ogImage, width: 1200, height: 630 }]
-        : [],
-    },
-    twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
-      title,
-      description,
-      images: ogImage ? [ogImage] : [],
-    },
-  };
-}
-
-/* =========================
-   PAGE
-========================= */
 type PTBlock = {
   _type: string;
   children?: { _type: string; text?: string }[];
@@ -88,46 +30,80 @@ function getPlainText(block?: PTBlock) {
     .trim();
 }
 
-export default async function SitePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const page = await sanityClient.fetch(sitePageBySlugQuery, {
-    slug: params.slug,
-  });
+function getBaseUrl() {
+  // zet in Vercel: NEXT_PUBLIC_SITE_URL=https://basfoto.vercel.app
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://basfoto.vercel.app";
+}
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const seo = await sanityClient.fetch(sitePageSeoQuery, { slug: params.slug });
+
+  if (!seo) return {};
+
+  const baseUrl = getBaseUrl();
+  const title = seo?.seoTitle || seo?.title || "Bas-fotografie";
+  const description = seo?.seoDescription || undefined;
+
+  const canonical =
+    seo?.canonicalUrl?.trim() ||
+    `${baseUrl}/${encodeURIComponent(params.slug)}`;
+
+  const ogImage =
+    seo?.seoImage
+      ? urlFor(seo.seoImage).width(1200).height(630).fit("crop").url()
+      : undefined;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    robots: seo?.noIndex ? { index: false, follow: false } : undefined,
+    openGraph: {
+      type: "website",
+      url: canonical,
+      title,
+      description,
+      images: ogImage ? [{ url: ogImage, width: 1200, height: 630 }] : undefined,
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+  };
+}
+
+export default async function SitePage({ params }: Props) {
+  const page = await sanityClient.fetch(pageBySlugQuery, { slug: params.slug });
   if (!page) notFound();
 
+  // Intro duplication filter (zelfde als je Over-mij logic)
   let content = page.content ?? [];
   const intro = (page.intro ?? "").trim();
 
-  // voorkom dubbele intro
-  if (intro && content.length > 0) {
+  if (intro && Array.isArray(content) && content.length > 0) {
     const first = content[0] as PTBlock;
     const firstText = getPlainText(first);
 
-    if (
-      firstText &&
-      firstText.toLowerCase() === intro.toLowerCase()
-    ) {
+    if (firstText && firstText.toLowerCase() === intro.toLowerCase()) {
       content = content.slice(1);
     }
   }
 
   return (
     <article className="mx-auto max-w-3xl">
-      {page.media?.length > 0 && (
+      {page.media && page.media.length > 0 && (
         <div className="mb-8">
           <PageMedia media={page.media} />
         </div>
       )}
 
-      {intro && (
+      {intro ? (
         <p className="text-[13px] italic tracking-wide text-[var(--text-soft)]/80">
           {intro}
         </p>
-      )}
+      ) : null}
 
       <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)]">
         {page.title}
@@ -135,10 +111,7 @@ export default async function SitePage({
 
       {content?.length ? (
         <div className="prose prose-zinc mt-8 max-w-none">
-          <PortableText
-            value={content}
-            components={portableTextComponents}
-          />
+          <PortableText value={content} components={portableTextComponents} />
         </div>
       ) : null}
     </article>
