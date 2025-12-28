@@ -122,7 +122,7 @@ export default function SiteHeader() {
             {/* ✅ Mobiele CTA: NIET portfolio, maar boeking */}
             <div className="mt-6">
               <Link
-                href="/boek-een-shoot"
+                href="/boek"
                 className="inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white"
                 style={{ background: "var(--accent-strong)" }}
               >
