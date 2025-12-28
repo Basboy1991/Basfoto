@@ -50,7 +50,7 @@ export default function SiteHeader() {
 
           {/* Desktop CTA (optioneel maar premium) */}
           <Link
-            href="/boek-een-shoot"
+            href="/boek"
             className="ml-2 inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold text-white transition"
             style={{ background: "var(--accent-strong)" }}
           >
