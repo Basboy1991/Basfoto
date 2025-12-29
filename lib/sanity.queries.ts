@@ -273,6 +273,7 @@ export const faqPageQuery = /* groq */ `
     title,
     intro,
     items[]{
+      _key,
       question,
       answer
     }
