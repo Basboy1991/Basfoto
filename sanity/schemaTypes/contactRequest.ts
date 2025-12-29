@@ -1,66 +1,69 @@
+// sanity/schemaTypes/contactRequest.ts
 import { defineField, defineType } from "sanity";
 
 export default defineType({
   name: "contactRequest",
-  title: "Contactberichten",
+  title: "Contactbericht",
   type: "document",
   fields: [
+    defineField({ name: "createdAt", title: "Aangemaakt op", type: "datetime" }),
+
     defineField({
       name: "status",
       title: "Status",
       type: "string",
-      initialValue: "new",
       options: {
         list: [
           { title: "Nieuw", value: "new" },
           { title: "Beantwoord", value: "replied" },
-          { title: "Afgerond", value: "done" },
+          { title: "Afgehandeld", value: "done" },
         ],
-        layout: "radio",
       },
-      validation: (Rule) => Rule.required(),
+      initialValue: "new",
     }),
-    defineField({
-      name: "createdAt",
-      title: "Ingestuurd op",
-      type: "datetime",
-      readOnly: true,
-    }),
-    defineField({
-      name: "name",
-      title: "Naam",
-      type: "string",
-      validation: (Rule) => Rule.required(),
-    }),
-    defineField({
-      name: "email",
-      title: "E-mail",
-      type: "string",
-      validation: (Rule) => Rule.required(),
-    }),
+
+    defineField({ name: "name", title: "Naam", type: "string", validation: (Rule) => Rule.required() }),
+    defineField({ name: "email", title: "E-mail", type: "string", validation: (Rule) => Rule.required() }),
     defineField({ name: "phone", title: "Telefoon", type: "string" }),
-    defineField({ name: "subject", title: "Onderwerp", type: "string" }),
+
+    defineField({
+      name: "subject",
+      title: "Onderwerp",
+      type: "string",
+    }),
+
     defineField({
       name: "message",
       title: "Bericht",
       type: "text",
       rows: 6,
-      validation: (Rule) => Rule.required(),
+      validation: (Rule) => Rule.required().min(5),
     }),
+
+    defineField({
+      name: "preferredContact",
+      title: "Voorkeur",
+      type: "string",
+      options: {
+        list: [
+          { title: "WhatsApp", value: "whatsapp" },
+          { title: "E-mail", value: "email" },
+          { title: "Telefoon", value: "phone" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "whatsapp",
+    }),
+
     defineField({
       name: "consent",
       title: "Toestemming",
       type: "boolean",
-      validation: (Rule) => Rule.required(),
+      initialValue: false,
     }),
   ],
+
   preview: {
-    select: { title: "name", subject: "subject", status: "status" },
-    prepare({ title, subject, status }) {
-      return {
-        title: title ? String(title) : "Contactbericht",
-        subtitle: `${subject ?? ""} • ${status ?? ""}`.trim(),
-      };
-    },
+    select: { title: "name", subtitle: "email" },
   },
 });
