@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { siteConfig } from "@/config/site";
@@ -9,6 +9,11 @@ import { siteConfig } from "@/config/site";
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  // ✅ voorkom dubbel: items met hidden=true niet tonen in menu (bv. /boek)
+  const navItems = useMemo(() => {
+    return (siteConfig.nav ?? []).filter((i) => !i.hidden);
+  }, []);
 
   // sluit menu bij navigatie
   useEffect(() => {
@@ -38,7 +43,7 @@ export default function SiteHeader() {
 
         {/* DESKTOP NAV */}
         <nav className="hidden items-center gap-6 md:flex">
-          {siteConfig.nav.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -50,11 +55,11 @@ export default function SiteHeader() {
 
           {/* Desktop CTA */}
           <Link
-            href="/boek"
+            href={siteConfig.cta.href}
             className="ml-2 inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-semibold text-white transition"
             style={{ background: "var(--accent-strong)" }}
           >
-            Boek een shoot
+            {siteConfig.cta.label}
           </Link>
         </nav>
 
@@ -107,12 +112,15 @@ export default function SiteHeader() {
             </div>
 
             <nav className="mt-6 grid gap-2">
-              {siteConfig.nav.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className="rounded-xl px-4 py-3 text-[var(--text)]"
-                  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+                  style={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                  }}
                 >
                   {item.label}
                 </Link>
@@ -122,11 +130,11 @@ export default function SiteHeader() {
             {/* Mobiele CTA */}
             <div className="mt-6">
               <Link
-                href="/boek"
+                href={siteConfig.cta.href}
                 className="inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white"
                 style={{ background: "var(--accent-strong)" }}
               >
-                Boek een shoot
+                {siteConfig.cta.label}
               </Link>
             </div>
           </div>
