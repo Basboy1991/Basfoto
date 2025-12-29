@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Mail, Phone, MessageCircle } from "lucide-react";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { contactPageQuery, contactPageSeoQuery } from "@/lib/sanity.queries";
@@ -31,6 +32,7 @@ export default async function ContactPage() {
 
   return (
     <article className="mx-auto max-w-5xl">
+      {/* HEADER */}
       <header className="max-w-3xl">
         <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
           {title}
@@ -56,8 +58,9 @@ export default async function ContactPage() {
         </div>
       </header>
 
+      {/* CONTENT */}
       <div className="mt-10 grid gap-6 md:grid-cols-5">
-        {/* Links: info cards */}
+        {/* LINKS: DIRECT CONTACT */}
         <aside className="md:col-span-2">
           <div
             className="rounded-3xl bg-[var(--surface-2)] p-5"
@@ -71,58 +74,48 @@ export default async function ContactPage() {
               <strong>{siteConfig.contact.responseTime}</strong>
             </p>
 
-            {/* ✅ HIER: 3 icon cards */}
-            <div className="mt-5 grid grid-cols-3 gap-3">
-              {/* EMAIL */}
+            {/* ICON BUTTONS */}
+            <div className="mt-4 flex gap-3">
               <a
                 href={`mailto:${siteConfig.contact.email}`}
-                className="group flex flex-col items-center justify-center rounded-2xl bg-white/60 p-4 text-center transition hover:bg-white"
-                style={{ border: "1px solid var(--border)" }}
                 aria-label="Stuur een e-mail"
-                title={siteConfig.contact.email}
+                title="E-mail"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                style={{ border: "1px solid var(--border)" }}
               >
-                <span className="text-2xl">✉️</span>
-                <span className="mt-2 text-xs font-medium text-[var(--text)]">
-                  E-mail
-                </span>
+                <Mail size={20} color="var(--text)" />
               </a>
 
-              {/* PHONE */}
               <a
                 href={`tel:${siteConfig.contact.phone.replace(/\s/g, "")}`}
-                className="group flex flex-col items-center justify-center rounded-2xl bg-white/60 p-4 text-center transition hover:bg-white"
+                aria-label="Bel"
+                title="Telefoon"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
                 style={{ border: "1px solid var(--border)" }}
-                aria-label="Bel direct"
-                title={siteConfig.contact.phone}
               >
-                <span className="text-2xl">📞</span>
-                <span className="mt-2 text-xs font-medium text-[var(--text)]">
-                  Bellen
-                </span>
+                <Phone size={20} color="var(--text)" />
               </a>
 
-              {/* WHATSAPP */}
               <a
                 href={`https://wa.me/${siteConfig.contact.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex flex-col items-center justify-center rounded-2xl bg-white/60 p-4 text-center transition hover:bg-white"
-                style={{ border: "1px solid var(--border)" }}
                 aria-label="Stuur een WhatsApp"
                 title="WhatsApp"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                style={{ border: "1px solid var(--border)" }}
               >
-                <span className="text-2xl">💬</span>
-                <span className="mt-2 text-xs font-medium text-[var(--text)]">
-                  WhatsApp
-                </span>
+                <MessageCircle size={20} color="var(--text)" />
               </a>
             </div>
           </div>
         </aside>
 
-        {/* Rechts: form */}
+        {/* RECHTS: FORM */}
         <section className="md:col-span-3">
-          <h2 className="sr-only">{page?.formTitle ?? "Stuur een bericht"}</h2>
+          <h2 className="sr-only">
+            {page?.formTitle ?? "Stuur een bericht"}
+          </h2>
           <ContactForm
             successTitle={page?.successTitle}
             successText={page?.successText}
