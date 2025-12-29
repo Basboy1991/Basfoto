@@ -1,8 +1,10 @@
+// app/api/contact/route.ts
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getSanityWriteClient } from "@/lib/sanity.write";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 type ContactPayload = {
   name: string;
@@ -10,6 +12,7 @@ type ContactPayload = {
   phone?: string;
   subject?: string;
   message: string;
+  preferredContact?: "whatsapp" | "email" | "phone";
   consent?: boolean;
   company?: string; // honeypot
 };
@@ -36,12 +39,13 @@ export async function POST(req: Request) {
     const phone = String(body.phone ?? "").trim();
     const subject = String(body.subject ?? "").trim();
     const message = String(body.message ?? "").trim();
+    const preferredContact = (body.preferredContact ?? "whatsapp") as ContactPayload["preferredContact"];
     const consent = Boolean(body.consent);
 
     const errors: Record<string, string> = {};
     if (!name) errors.name = "Naam is verplicht.";
     if (!email || !isValidEmail(email)) errors.email = "Vul een geldig e-mailadres in.";
-    if (!message) errors.message = "Bericht is verplicht.";
+    if (!message || message.length < 5) errors.message = "Bericht is te kort.";
     if (!consent) errors.consent = "Toestemming is verplicht.";
 
     if (Object.keys(errors).length) {
@@ -59,20 +63,21 @@ export async function POST(req: Request) {
       phone: phone || undefined,
       subject: subject || undefined,
       message,
+      preferredContact,
       consent,
     });
 
     // 2) email (optioneel)
     const resendKey = process.env.RESEND_API_KEY;
-    const toEmail = process.env.BOOKING_TO_EMAIL;   // of CONTACT_TO_EMAIL
-    const fromEmail = process.env.BOOKING_FROM_EMAIL; // of CONTACT_FROM_EMAIL
+
+    // ✅ liever CONTACT_* env vars (maar fallback naar BOOKING_* voor compat)
+    const toEmail = process.env.CONTACT_TO_EMAIL || process.env.BOOKING_TO_EMAIL;
+    const fromEmail = process.env.CONTACT_FROM_EMAIL || process.env.BOOKING_FROM_EMAIL;
 
     if (resendKey && toEmail && fromEmail) {
       const resend = new Resend(resendKey);
 
-      const mailSubject = subject
-        ? `Nieuw contactbericht – ${subject}`
-        : `Nieuw contactbericht`;
+      const mailSubject = subject ? `Nieuw contactbericht – ${subject}` : `Nieuw contactbericht`;
 
       const html = `
         <div style="font-family: system-ui, sans-serif; line-height:1.5">
@@ -81,6 +86,7 @@ export async function POST(req: Request) {
             <li><strong>Naam:</strong> ${esc(name)}</li>
             <li><strong>Email:</strong> ${esc(email)}</li>
             ${phone ? `<li><strong>Telefoon:</strong> ${esc(phone)}</li>` : ""}
+            <li><strong>Voorkeur:</strong> ${esc(String(preferredContact))}</li>
             ${subject ? `<li><strong>Onderwerp:</strong> ${esc(subject)}</li>` : ""}
           </ul>
           <h3>Bericht</h3>
@@ -93,9 +99,11 @@ export async function POST(req: Request) {
       await resend.emails.send({
         from: fromEmail,
         to: toEmail,
-        reply_to: email,
         subject: mailSubject,
         html,
+
+        // ✅ dit is de “meest veilige” key in JS libs
+        replyTo: email,
       });
     }
 
