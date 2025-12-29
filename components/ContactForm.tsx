@@ -4,7 +4,13 @@ import { useState } from "react";
 
 type Status = "idle" | "sending" | "success" | "error";
 
-export default function ContactForm() {
+export default function ContactForm({
+  successTitle,
+  successText,
+}: {
+  successTitle?: string;
+  successText?: string;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -23,9 +29,9 @@ export default function ContactForm() {
       phone: String(form.get("phone") ?? "").trim(),
       subject: String(form.get("subject") ?? "").trim(),
       message: String(form.get("message") ?? "").trim(),
+      preferredContact: String(form.get("preferredContact") ?? "whatsapp"),
       consent: form.get("consent") === "on",
-      // honeypot
-      company: String(form.get("company") ?? "").trim(),
+      company: String(form.get("company") ?? "").trim(), // honeypot
     };
 
     try {
@@ -50,7 +56,7 @@ export default function ContactForm() {
       formEl.reset();
     } catch (err: any) {
       setStatus("error");
-      setError(err?.message ?? "Er ging iets mis.");
+      setError(err?.message ?? "Er ging iets mis. Probeer opnieuw.");
     }
   }
 
@@ -59,112 +65,148 @@ export default function ContactForm() {
       className="rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
       style={{ border: "1px solid var(--border)" }}
     >
-      <div className="text-center">
-        <h2 className="text-lg font-semibold text-[var(--text)]">Stuur een bericht</h2>
-        <p className="mt-1 text-sm italic text-[var(--text-soft)]">
-          Ik reageer meestal dezelfde dag.
-        </p>
-      </div>
-
-      <form onSubmit={onSubmit} className="mt-5 grid gap-3">
-        {/* honeypot */}
-        <input
-          name="company"
-          tabIndex={-1}
-          autoComplete="off"
-          className="hidden"
-          aria-hidden="true"
-        />
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
-            <input
-              name="name"
-              required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="Je naam"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
-            <input
-              name="email"
-              type="email"
-              required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="jij@mail.nl"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
-            <input
-              name="phone"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="06…"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[var(--text)]">Onderwerp</label>
-            <input
-              name="subject"
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
-              placeholder="Bijv. gezinsfotoshoot"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-[var(--text)]">Bericht *</label>
-          <textarea
-            name="message"
-            required
-            rows={4}
-            className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
-            style={{ border: "1px solid var(--border)" }}
-            placeholder="Vertel kort wat je zoekt + voorkeur datum/locatie…"
-          />
-        </div>
-
-        <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
-          <input type="checkbox" name="consent" required className="mt-1" />
-          <span>Ik geef toestemming om contact op te nemen. *</span>
-        </label>
-
-        <button
-          type="submit"
-          disabled={status === "sending"}
-          className="mt-1 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
-          style={{ background: "var(--accent-strong)" }}
+      {status === "success" ? (
+        <div
+          className="rounded-2xl bg-white/60 p-5 text-center"
+          style={{ border: "1px solid var(--border)" }}
+          role="status"
+          aria-live="polite"
         >
-          {status === "sending" ? "Versturen…" : "Verstuur bericht"}
-        </button>
+          <p className="text-lg font-semibold text-[var(--text)]">
+            {successTitle ?? "Gelukt! 🎉"}
+          </p>
+          <p className="mt-2 text-sm text-[var(--text-soft)]">
+            {successText ?? "Dankjewel voor je bericht. Ik neem snel contact met je op."}
+          </p>
 
-        {status === "success" ? (
-          <div
-            className="rounded-2xl bg-white/60 p-3 text-center text-sm"
-            style={{ border: "1px solid var(--border)" }}
+          <button
+            type="button"
+            onClick={() => {
+              setStatus("idle");
+              setError(null);
+            }}
+            className="mt-5 inline-flex rounded-full px-6 py-3 text-sm font-semibold"
+            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
           >
-            ✅ Verstuurd! Ik neem snel contact met je op.
-          </div>
-        ) : null}
+            Nieuw bericht sturen
+          </button>
+        </div>
+      ) : (
+        <>
+          <form onSubmit={onSubmit} className="grid gap-3">
+            {/* honeypot */}
+            <input
+              name="company"
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"
+              aria-hidden="true"
+            />
 
-        {status === "error" ? (
-          <div
-            className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            {error ?? "Er ging iets mis."}
-          </div>
-        ) : null}
-      </form>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
+                <input
+                  name="name"
+                  required
+                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                  style={{ border: "1px solid var(--border)" }}
+                  placeholder="Je naam"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                  style={{ border: "1px solid var(--border)" }}
+                  placeholder="jij@mail.nl"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
+                <input
+                  name="phone"
+                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                  style={{ border: "1px solid var(--border)" }}
+                  placeholder="06…"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-[var(--text)]">Onderwerp</label>
+                <input
+                  name="subject"
+                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                  style={{ border: "1px solid var(--border)" }}
+                  placeholder="Bijv. gezinsshoot"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-[var(--text)]">Bericht *</label>
+              <textarea
+                name="message"
+                required
+                rows={5}
+                className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                style={{ border: "1px solid var(--border)" }}
+                placeholder="Vertel kort wat je zoekt (datum/locatie/wensen)…"
+              />
+              <p className="mt-2 text-xs text-[var(--text-soft)]">
+                Tip: kijk ook even bij de{" "}
+                <a href="/faq" className="underline underline-offset-4">
+                  veelgestelde vragen
+                </a>{" "}
+                — daar staan al veel antwoorden.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-[var(--text)]">Voorkeur</label>
+              <select
+                name="preferredContact"
+                defaultValue="whatsapp"
+                className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">E-mail</option>
+                <option value="phone">Telefoon</option>
+              </select>
+            </div>
+
+            <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
+              <input type="checkbox" name="consent" required className="mt-1" />
+              <span>Ik geef toestemming om contact op te nemen. *</span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              className="mt-1 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
+              style={{ background: "var(--accent-strong)" }}
+            >
+              {status === "sending" ? "Versturen…" : "Verstuur bericht"}
+            </button>
+
+            {status === "error" ? (
+              <div
+                className="rounded-2xl bg-white/60 p-3 text-center text-sm text-red-700"
+                style={{ border: "1px solid var(--border)" }}
+                role="alert"
+              >
+                {error ?? "Er ging iets mis."}
+              </div>
+            ) : null}
+          </form>
+        </>
+      )}
     </section>
   );
 }
