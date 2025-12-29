@@ -16,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildMetadataFromSeo(seo, {
     pathname: "/contact",
     fallbackTitle: "Contact | Bas Fotografie",
-    fallbackDescription: "Neem contact op voor vragen of het plannen van een fotoshoot in Westland en omgeving.",
+    fallbackDescription:
+      "Neem contact op voor vragen of het plannen van een fotoshoot in Westland en omgeving.",
   });
 }
 
@@ -31,7 +32,9 @@ export default async function ContactPage() {
   return (
     <article className="mx-auto max-w-5xl">
       <header className="max-w-3xl">
-        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">{title}</h1>
+        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
+          {title}
+        </h1>
         <p className="mt-3 text-sm italic text-[var(--text-soft)]">{intro}</p>
 
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
@@ -60,36 +63,58 @@ export default async function ContactPage() {
             className="rounded-3xl bg-[var(--surface-2)] p-5"
             style={{ border: "1px solid var(--border)" }}
           >
-            <p className="text-sm font-semibold text-[var(--text)]">Direct contact</p>
+            <p className="text-sm font-semibold text-[var(--text)]">
+              Direct contact
+            </p>
             <p className="mt-2 text-sm text-[var(--text-soft)]">
-              Meestal reactie: <strong>{siteConfig.contact.responseTime}</strong>
+              Meestal reactie:{" "}
+              <strong>{siteConfig.contact.responseTime}</strong>
             </p>
 
-            <div className="mt-4 grid gap-2 text-sm">
+            {/* ✅ HIER: 3 icon cards */}
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {/* EMAIL */}
               <a
                 href={`mailto:${siteConfig.contact.email}`}
-                className="rounded-2xl bg-white/60 px-4 py-3"
+                className="group flex flex-col items-center justify-center rounded-2xl bg-white/60 p-4 text-center transition hover:bg-white"
                 style={{ border: "1px solid var(--border)" }}
+                aria-label="Stuur een e-mail"
+                title={siteConfig.contact.email}
               >
-                ✉️ {siteConfig.contact.email}
+                <span className="text-2xl">✉️</span>
+                <span className="mt-2 text-xs font-medium text-[var(--text)]">
+                  E-mail
+                </span>
               </a>
 
+              {/* PHONE */}
               <a
                 href={`tel:${siteConfig.contact.phone.replace(/\s/g, "")}`}
-                className="rounded-2xl bg-white/60 px-4 py-3"
+                className="group flex flex-col items-center justify-center rounded-2xl bg-white/60 p-4 text-center transition hover:bg-white"
                 style={{ border: "1px solid var(--border)" }}
+                aria-label="Bel direct"
+                title={siteConfig.contact.phone}
               >
-                📞 {siteConfig.contact.phone}
+                <span className="text-2xl">📞</span>
+                <span className="mt-2 text-xs font-medium text-[var(--text)]">
+                  Bellen
+                </span>
               </a>
 
+              {/* WHATSAPP */}
               <a
                 href={`https://wa.me/${siteConfig.contact.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-2xl bg-white/60 px-4 py-3"
+                className="group flex flex-col items-center justify-center rounded-2xl bg-white/60 p-4 text-center transition hover:bg-white"
                 style={{ border: "1px solid var(--border)" }}
+                aria-label="Stuur een WhatsApp"
+                title="WhatsApp"
               >
-                💬 WhatsApp
+                <span className="text-2xl">💬</span>
+                <span className="mt-2 text-xs font-medium text-[var(--text)]">
+                  WhatsApp
+                </span>
               </a>
             </div>
           </div>
@@ -98,7 +123,10 @@ export default async function ContactPage() {
         {/* Rechts: form */}
         <section className="md:col-span-3">
           <h2 className="sr-only">{page?.formTitle ?? "Stuur een bericht"}</h2>
-          <ContactForm successTitle={page?.successTitle} successText={page?.successText} />
+          <ContactForm
+            successTitle={page?.successTitle}
+            successText={page?.successText}
+          />
         </section>
       </div>
     </article>
