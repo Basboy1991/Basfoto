@@ -1,4 +1,3 @@
-// sanity/schemaTypes/faqPage.ts
 import { defineField, defineType } from "sanity";
 
 export default defineType({
@@ -8,58 +7,22 @@ export default defineType({
   fields: [
     defineField({
       name: "title",
-      title: "Titel",
+      title: "Paginatitel",
       type: "string",
       initialValue: "Veelgestelde vragen",
-      validation: (Rule) => Rule.required().min(3),
-    }),
-
-    // SEO velden (zelfde patroon als sitePage/homePage)
-    defineField({
-      name: "seoTitle",
-      title: "SEO titel",
-      type: "string",
-      description: "Titel voor Google (optioneel).",
-      validation: (Rule) =>
-        Rule.max(70).warning("Houd SEO titel liefst < 60-70 tekens."),
-    }),
-    defineField({
-      name: "seoDescription",
-      title: "SEO beschrijving",
-      type: "text",
-      rows: 3,
-      validation: (Rule) =>
-        Rule.max(170).warning("Houd meta description liefst rond 150-160 tekens."),
-    }),
-    defineField({
-      name: "seoImage",
-      title: "SEO / Social image (OG image)",
-      type: "image",
-      options: { hotspot: true },
-    }),
-    defineField({
-      name: "canonicalUrl",
-      title: "Canonical URL (optioneel)",
-      type: "url",
-    }),
-    defineField({
-      name: "noIndex",
-      title: "Niet indexeren (noindex)",
-      type: "boolean",
-      initialValue: false,
+      validation: (Rule) => Rule.required(),
     }),
 
     defineField({
       name: "intro",
-      title: "Intro",
-      type: "text",
-      rows: 3,
-      description: "Korte intro boven de vragen.",
+      title: "Intro (optioneel)",
+      type: "string",
+      description: "Korte inleidende tekst boven de vragen",
     }),
 
     defineField({
       name: "items",
-      title: "Vragen",
+      title: "Vragen & antwoorden",
       type: "array",
       of: [
         defineField({
@@ -71,50 +34,52 @@ export default defineType({
               name: "question",
               title: "Vraag",
               type: "string",
-              validation: (Rule) => Rule.required().min(3),
+              validation: (Rule) => Rule.required(),
             }),
             defineField({
               name: "answer",
               title: "Antwoord",
               type: "array",
-              of: [
-                {
-                  type: "block",
-                  styles: [
-                    { title: "Normaal", value: "normal" },
-                    { title: "Kop 3", value: "h3" },
-                  ],
-                  lists: [
-                    { title: "Bullet", value: "bullet" },
-                    { title: "Nummering", value: "number" },
-                  ],
-                  marks: {
-                    decorators: [
-                      { title: "Vet", value: "strong" },
-                      { title: "Cursief", value: "em" },
-                    ],
-                  },
-                },
-              ],
-              validation: (Rule) => Rule.required().min(1),
+              of: [{ type: "block" }],
+              validation: (Rule) => Rule.required(),
             }),
           ],
-          preview: {
-            select: { title: "question" },
-            prepare({ title }) {
-              return { title: title ?? "FAQ item" };
-            },
-          },
         }),
       ],
-      validation: (Rule) => Rule.required().min(1),
+      validation: (Rule) =>
+        Rule.min(1).error("Voeg minimaal één vraag toe"),
+    }),
+
+    /* =========================
+       SEO
+       ========================= */
+    defineField({
+      name: "seoTitle",
+      title: "SEO titel",
+      type: "string",
+    }),
+    defineField({
+      name: "seoDescription",
+      title: "SEO beschrijving",
+      type: "text",
+      rows: 2,
+    }),
+    defineField({
+      name: "seoImage",
+      title: "SEO afbeelding",
+      type: "image",
+      options: { hotspot: true },
+    }),
+    defineField({
+      name: "canonicalUrl",
+      title: "Canonical URL",
+      type: "url",
+    }),
+    defineField({
+      name: "noIndex",
+      title: "Niet indexeren (noindex)",
+      type: "boolean",
+      initialValue: false,
     }),
   ],
-
-  preview: {
-    select: { title: "title" },
-    prepare({ title }) {
-      return { title: title ?? "FAQ pagina" };
-    },
-  },
 });
