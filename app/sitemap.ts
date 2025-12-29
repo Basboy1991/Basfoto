@@ -34,8 +34,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/portfolio`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${base}/pakketten`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/boek`, changeFrequency: "weekly", priority: 0.8 },
-  ];
-
+  
+{ url: `${base}/faq`, changeFrequency: "monthly", priority: 0.6 },
+];
   const [pages, albums] = await Promise.all([
     sanityClient.fetch<Array<{ slug: string; _updatedAt?: string }>>(
       sitePagesForSitemapQuery
