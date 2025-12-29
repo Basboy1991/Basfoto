@@ -94,34 +94,50 @@ export default async function FaqPage() {
         />
       ) : null}
 
-      <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
-        {faq.title ?? "Veelgestelde vragen"}
-      </h1>
+      <header className="mb-8">
+        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
+          {faq.title ?? "Veelgestelde vragen"}
+        </h1>
 
-      {faq.intro ? (
-        <p className="mt-3 text-sm italic text-[var(--text-soft)]">{faq.intro}</p>
-      ) : null}
+        {faq.intro ? (
+          <p className="mt-3 text-sm italic text-[var(--text-soft)]">{faq.intro}</p>
+        ) : null}
+
+        {/* Kleine helper link (UX) */}
+        <p className="mt-4 text-sm text-[var(--text-soft)]">
+          Liever direct vragen?{" "}
+          <Link href="/contact" className="underline underline-offset-4">
+            Ga naar contact
+          </Link>
+          .
+        </p>
+      </header>
 
       {/* FAQ items */}
       {items.length ? (
-        <div className="mt-8 grid gap-3">
+        <div className="grid gap-3">
           {items.map((item: any, idx: number) => (
             <details
-              key={item._key ?? idx}
-              className="group rounded-2xl bg-white/60 p-5"
+              key={item._key ?? `${idx}-${String(item.question ?? "")}`}
+              className="group rounded-2xl bg-white/60 p-5 transition-all"
               style={{ border: "1px solid var(--border)" }}
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-black/30">
                 <span className="text-base font-semibold text-[var(--text)]">
                   {item.question}
                 </span>
-                <span className="select-none text-[var(--text-soft)] transition group-open:rotate-180">
+                <span className="select-none text-[var(--text-soft)] transition-transform duration-200 group-open:rotate-180">
                   ▼
                 </span>
               </summary>
 
-              <div className="prose prose-zinc mt-4 max-w-none">
-                <PortableText value={item.answer} components={portableTextComponents} />
+              {/* ✅ Smooth accordion animatie */}
+              <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-open:grid-rows-[1fr]">
+                <div className="overflow-hidden">
+                  <div className="prose prose-zinc mt-4 max-w-none">
+                    <PortableText value={item.answer} components={portableTextComponents} />
+                  </div>
+                </div>
               </div>
             </details>
           ))}
@@ -134,24 +150,26 @@ export default async function FaqPage() {
 
       {/* CTA */}
       <div
-        className="mt-10 rounded-2xl bg-[var(--surface-2)] p-6 text-center"
+        className="mt-12 rounded-2xl bg-[var(--surface-2)] p-6 text-center"
         style={{ border: "1px solid var(--border)" }}
       >
         <p className="text-sm text-[var(--text-soft)]">Staat je vraag er niet tussen?</p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-center">
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             href="/contact"
             className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white"
             style={{ background: "var(--accent-strong)" }}
           >
-            Neem contact op
+            Stel je vraag via contact
           </Link>
+
           <Link
             href="/boek"
             className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold"
             style={{ border: "1px solid var(--border)", color: "var(--text)" }}
           >
-            Boek een shoot
+            Boek direct een shoot
           </Link>
         </div>
       </div>
