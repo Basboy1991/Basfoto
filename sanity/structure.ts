@@ -23,23 +23,23 @@ export const structure = (S: any) =>
             .title("Pagina’s")
             .items([
               // Homepage (singleton)
-              S.listItem()
-                .title("Homepage")
-                .icon(HomeIcon)
-                .child(S.document().schemaType("homePage").documentId("homePage")),
+S.listItem()
+  .title("Homepage")
+  .icon(HomeIcon)
+  .child(S.document().schemaType("homePage").documentId("homePage")),
 
-              // Contact (singleton)
-              S.listItem()
-                .title("Contactpagina")
-                .icon(DocumentIcon)
-                .child(S.document().schemaType("contactPage").documentId("contactPage")),
+// Contact (singleton)
+S.listItem()
+  .title("Contactpagina")
+  .icon(DocumentIcon)
+  .child(S.document().schemaType("contactPage").documentId("contactPage")),
 
-              // FAQ (singleton)
-              S.listItem()
-                .title("FAQ")
-                .icon(DocumentIcon)
-                .child(S.document().schemaType("faqPage").documentId("faqPage")),
-
+// FAQ (singleton)
+S.listItem()
+  .title("FAQ")
+  .icon(DocumentIcon)
+  .child(S.document().schemaType("faqPage").documentId("faqPage")),
+     
               S.divider(),
 
               // Overige losse pagina's
