@@ -41,19 +41,18 @@ export default function ContactForm({
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(
-          data?.error ?? "Er ging iets mis. Probeer het later opnieuw."
-        );
+        const msg = data?.error ?? "Er ging iets mis. Probeer het later opnieuw.";
+        throw new Error(msg);
       }
 
       setStatus("success");
       formEl.reset();
     } catch (err: any) {
       setStatus("error");
-      setError(err.message);
+      setError(err?.message ?? "Er ging iets mis. Probeer het later opnieuw.");
     }
   }
 
@@ -66,6 +65,8 @@ export default function ContactForm({
         <div
           className="rounded-2xl bg-white/60 p-5 text-center"
           style={{ border: "1px solid var(--border)" }}
+          role="status"
+          aria-live="polite"
         >
           <p className="text-lg font-semibold text-[var(--text)]">
             {successTitle ?? "Bericht verzonden 🎉"}
@@ -110,66 +111,61 @@ export default function ContactForm({
 
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium text-[var(--text)]">
-                Naam *
-              </label>
+              <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
               <input
                 name="name"
                 required
                 className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
                 style={{ border: "1px solid var(--border)" }}
+                placeholder="Je naam"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-[var(--text)]">
-                E-mail *
-              </label>
+              <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
               <input
                 name="email"
                 type="email"
                 required
                 className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
                 style={{ border: "1px solid var(--border)" }}
+                placeholder="jij@mail.nl"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-[var(--text)]">
-                Telefoon
-              </label>
+              <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
               <input
                 name="phone"
                 className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
                 style={{ border: "1px solid var(--border)" }}
+                placeholder="06…"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-[var(--text)]">
-                Onderwerp
-              </label>
+              <label className="text-sm font-medium text-[var(--text)]">Onderwerp</label>
               <input
                 name="subject"
                 className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
                 style={{ border: "1px solid var(--border)" }}
+                placeholder="Bijv. gezinsshoot"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Bericht *
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Bericht *</label>
             <textarea
               name="message"
               required
               rows={5}
               className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
               style={{ border: "1px solid var(--border)" }}
+              placeholder="Vertel kort wat je zoekt (datum/locatie/wensen)…"
             />
             <p className="mt-2 text-xs text-[var(--text-soft)]">
-              Tip: bekijk ook de{" "}
+              Tip: kijk ook even bij de{" "}
               <a href="/faq" className="underline underline-offset-4">
                 veelgestelde vragen
               </a>
@@ -178,9 +174,7 @@ export default function ContactForm({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[var(--text)]">
-              Voorkeur
-            </label>
+            <label className="text-sm font-medium text-[var(--text)]">Voorkeur</label>
             <select
               name="preferredContact"
               defaultValue="whatsapp"
@@ -201,4 +195,13 @@ export default function ContactForm({
           <button
             type="submit"
             disabled={status === "sending"}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-full px-7 py-4
+            className="mt-2 inline-flex w-full items-center justify-center rounded-full px-7 py-4 text-sm font-semibold text-white transition disabled:opacity-60"
+            style={{ background: "var(--accent-strong)" }}
+          >
+            {status === "sending" ? "Versturen…" : "Verstuur bericht"}
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
