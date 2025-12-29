@@ -290,3 +290,28 @@ export const faqPageSeoQuery = /* groq */ `
     noIndex
   }
 `;
+
+/* =========================
+   CONTACT
+========================= */
+
+export const contactPageQuery = /* groq */ `
+  *[_type == "contactPage"][0]{
+    title,
+    intro,
+    formTitle,
+    successTitle,
+    successText
+  }
+`;
+
+export const contactPageSeoQuery = /* groq */ `
+  *[_type == "contactPage"][0]{
+    title,
+    seoTitle,
+    seoDescription,
+    seoImage,
+    canonicalUrl,
+    noIndex
+  }
+`;
