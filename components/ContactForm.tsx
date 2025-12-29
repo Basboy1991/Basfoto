@@ -1,16 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 type Status = "idle" | "sending" | "success" | "error";
-
-type FieldErrors = Partial<
-  Record<"name" | "email" | "phone" | "subject" | "message" | "consent", string>
->;
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 export default function ContactForm({
   successTitle,
@@ -20,31 +12,14 @@ export default function ContactForm({
   successText?: string;
 }) {
   const [status, setStatus] = useState<Status>("idle");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-
-  const hasErrors = useMemo(() => Object.keys(fieldErrors).length > 0, [fieldErrors]);
-
-  function validate(payload: any) {
-    const errors: FieldErrors = {};
-
-    if (!payload.name) errors.name = "Naam is verplicht.";
-    if (!payload.email || !isValidEmail(payload.email))
-      errors.email = "Vul een geldig e-mailadres in.";
-    if (!payload.message || payload.message.length < 5)
-      errors.message = "Bericht is te kort.";
-    if (!payload.consent) errors.consent = "Toestemming is verplicht.";
-
-    return errors;
-  }
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formEl = e.currentTarget;
 
     setStatus("sending");
-    setFormError(null);
-    setFieldErrors({});
+    setError(null);
 
     const form = new FormData(formEl);
 
@@ -59,48 +34,28 @@ export default function ContactForm({
       company: String(form.get("company") ?? "").trim(), // honeypot
     };
 
-    const localErrors = validate(payload);
-    if (Object.keys(localErrors).length) {
-      setStatus("error");
-      setFieldErrors(localErrors);
-      setFormError("Controleer de velden met een rode rand.");
-      return;
-    }
-
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        cache: "no-store",
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => null);
+      const data = await res.json();
 
       if (!res.ok) {
-        const apiErrors: FieldErrors | undefined = data?.errors;
-        if (apiErrors && typeof apiErrors === "object") {
-          setFieldErrors(apiErrors);
-          setFormError("Controleer de velden met een rode rand.");
-        } else {
-          setFormError(data?.error ?? "Er ging iets mis. Probeer opnieuw.");
-        }
-        setStatus("error");
-        return;
+        throw new Error(
+          data?.error ?? "Er ging iets mis. Probeer het later opnieuw."
+        );
       }
 
       setStatus("success");
       formEl.reset();
     } catch (err: any) {
       setStatus("error");
-      setFormError(err?.message ?? "Er ging iets mis. Probeer opnieuw.");
+      setError(err.message);
     }
   }
-
-  const inputBase =
-    "mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm outline-none";
-  const borderOk = { border: "1px solid var(--border)" } as const;
-  const borderBad = { border: "1px solid rgba(220, 38, 38, .55)" } as const;
 
   return (
     <section
@@ -111,22 +66,20 @@ export default function ContactForm({
         <div
           className="rounded-2xl bg-white/60 p-5 text-center"
           style={{ border: "1px solid var(--border)" }}
-          role="status"
-          aria-live="polite"
         >
           <p className="text-lg font-semibold text-[var(--text)]">
-            {successTitle ?? "Gelukt! 🎉"}
+            {successTitle ?? "Bericht verzonden 🎉"}
           </p>
           <p className="mt-2 text-sm text-[var(--text-soft)]">
-            {successText ?? "Dankjewel voor je bericht. Ik neem snel contact met je op."}
+            {successText ??
+              "Dankjewel voor je bericht. Ik neem zo snel mogelijk contact met je op."}
           </p>
 
           <button
             type="button"
             onClick={() => {
               setStatus("idle");
-              setFormError(null);
-              setFieldErrors({});
+              setError(null);
             }}
             className="mt-5 inline-flex rounded-full px-6 py-3 text-sm font-semibold"
             style={{ border: "1px solid var(--border)", color: "var(--text)" }}
@@ -135,53 +88,117 @@ export default function ContactForm({
           </button>
         </div>
       ) : (
-        <>
-          <form onSubmit={onSubmit} className="grid gap-3" noValidate>
-            {/* honeypot */}
-            <input
-              name="company"
-              tabIndex={-1}
-              autoComplete="off"
-              className="hidden"
-              aria-hidden="true"
+        <form onSubmit={onSubmit} className="grid gap-3">
+          {/* honeypot */}
+          <input
+            name="company"
+            tabIndex={-1}
+            autoComplete="off"
+            className="hidden"
+            aria-hidden="true"
+          />
+
+          {status === "error" && error ? (
+            <div
+              className="rounded-2xl bg-white/60 p-3 text-sm text-red-700"
+              style={{ border: "1px solid var(--border)" }}
+              role="alert"
+            >
+              {error}
+            </div>
+          ) : null}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-medium text-[var(--text)]">
+                Naam *
+              </label>
+              <input
+                name="name"
+                required
+                className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                style={{ border: "1px solid var(--border)" }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-[var(--text)]">
+                E-mail *
+              </label>
+              <input
+                name="email"
+                type="email"
+                required
+                className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                style={{ border: "1px solid var(--border)" }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-[var(--text)]">
+                Telefoon
+              </label>
+              <input
+                name="phone"
+                className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                style={{ border: "1px solid var(--border)" }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-[var(--text)]">
+                Onderwerp
+              </label>
+              <input
+                name="subject"
+                className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+                style={{ border: "1px solid var(--border)" }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Bericht *
+            </label>
+            <textarea
+              name="message"
+              required
+              rows={5}
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              style={{ border: "1px solid var(--border)" }}
             />
+            <p className="mt-2 text-xs text-[var(--text-soft)]">
+              Tip: bekijk ook de{" "}
+              <a href="/faq" className="underline underline-offset-4">
+                veelgestelde vragen
+              </a>
+              .
+            </p>
+          </div>
 
-            {formError ? (
-              <div
-                className="rounded-2xl bg-white/60 p-3 text-center text-sm"
-                style={{ border: "1px solid var(--border)", color: "rgb(185 28 28)" }}
-                role="alert"
-              >
-                {formError}
-              </div>
-            ) : null}
+          <div>
+            <label className="text-sm font-medium text-[var(--text)]">
+              Voorkeur
+            </label>
+            <select
+              name="preferredContact"
+              defaultValue="whatsapp"
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm"
+              style={{ border: "1px solid var(--border)" }}
+            >
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">E-mail</option>
+              <option value="phone">Telefoon</option>
+            </select>
+          </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
-                <input
-                  name="name"
-                  className={inputBase}
-                  style={fieldErrors.name ? borderBad : borderOk}
-                  placeholder="Je naam"
-                  aria-invalid={!!fieldErrors.name}
-                />
-                {fieldErrors.name ? (
-                  <p className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                    {fieldErrors.name}
-                  </p>
-                ) : null}
-              </div>
+          <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
+            <input type="checkbox" name="consent" required className="mt-1" />
+            <span>Ik geef toestemming om contact op te nemen. *</span>
+          </label>
 
-              <div>
-                <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
-                <input
-                  name="email"
-                  type="email"
-                  className={inputBase}
-                  style={fieldErrors.email ? borderBad : borderOk}
-                  placeholder="jij@mail.nl"
-                  aria-invalid={!!fieldErrors.email}
-                />
-                {fieldErrors.email ? (
-                  <p className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="mt-2 inline-flex w-full items-center justify-center rounded-full px-7 py-4
