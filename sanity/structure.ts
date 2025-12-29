@@ -22,11 +22,23 @@ export const structure = (S: any) =>
           S.list()
             .title("Pagina’s")
             .items([
+              // Singletons / vaste pagina's
               S.documentTypeListItem("homePage").title("Homepage").icon(HomeIcon),
-S.documentTypeListItem("contactPage").title("Contactpagina").icon(DocumentIcon),
-S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
 
-     
+              // ✅ Contact is GEEN contactPage schema, maar een sitePage met slug "contact"
+              S.listItem()
+                .title("Contactpagina")
+                .icon(DocumentIcon)
+                .child(
+                  S.documentTypeList("sitePage")
+                    .title("Contactpagina")
+                    .filter('_type == "sitePage" && slug.current == "contact"')
+                    .defaultOrdering([{ field: "_updatedAt", direction: "desc" }])
+                ),
+
+              // FAQ (eigen schema)
+              S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
+
               S.divider(),
 
               // Overige losse pagina's
@@ -80,9 +92,7 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                           S.documentTypeList("bookingRequest")
                             .title("Nieuwe boekingen")
                             .filter('_type == "bookingRequest" && status == "new"')
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
 
                       S.listItem()
@@ -90,12 +100,8 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                         .child(
                           S.documentTypeList("bookingRequest")
                             .title("Bevestigde boekingen")
-                            .filter(
-                              '_type == "bookingRequest" && status == "confirmed"'
-                            )
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .filter('_type == "bookingRequest" && status == "confirmed"')
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
 
                       S.listItem()
@@ -103,12 +109,8 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                         .child(
                           S.documentTypeList("bookingRequest")
                             .title("Geannuleerde boekingen")
-                            .filter(
-                              '_type == "bookingRequest" && status == "cancelled"'
-                            )
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .filter('_type == "bookingRequest" && status == "cancelled"')
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
 
                       S.divider(),
@@ -118,9 +120,7 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                         .child(
                           S.documentTypeList("bookingRequest")
                             .title("Alle boekingen")
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
                     ])
                 ),
@@ -139,9 +139,7 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                           S.documentTypeList("contactRequest")
                             .title("Nieuwe berichten")
                             .filter('_type == "contactRequest" && status == "new"')
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
 
                       S.listItem()
@@ -149,12 +147,8 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                         .child(
                           S.documentTypeList("contactRequest")
                             .title("Afgehandeld")
-                            .filter(
-                              '_type == "contactRequest" && status == "done"'
-                            )
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .filter('_type == "contactRequest" && status == "done"')
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
 
                       S.divider(),
@@ -164,9 +158,7 @@ S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
                         .child(
                           S.documentTypeList("contactRequest")
                             .title("Alle contactberichten")
-                            .defaultOrdering([
-                              { field: "_createdAt", direction: "desc" },
-                            ])
+                            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
                         ),
                     ])
                 ),
