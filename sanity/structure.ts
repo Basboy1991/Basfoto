@@ -22,23 +22,10 @@ export const structure = (S: any) =>
           S.list()
             .title("Pagina’s")
             .items([
-              // Homepage (singleton)
-S.listItem()
-  .title("Homepage")
-  .icon(HomeIcon)
-  .child(S.document().schemaType("homePage").documentId("homePage")),
+              S.documentTypeListItem("homePage").title("Homepage").icon(HomeIcon),
+S.documentTypeListItem("contactPage").title("Contactpagina").icon(DocumentIcon),
+S.documentTypeListItem("faqPage").title("FAQ").icon(DocumentIcon),
 
-// Contact (singleton)
-S.listItem()
-  .title("Contactpagina")
-  .icon(DocumentIcon)
-  .child(S.document().schemaType("contactPage").documentId("contactPage")),
-
-// FAQ (singleton)
-S.listItem()
-  .title("FAQ")
-  .icon(DocumentIcon)
-  .child(S.document().schemaType("faqPage").documentId("faqPage")),
      
               S.divider(),
 
