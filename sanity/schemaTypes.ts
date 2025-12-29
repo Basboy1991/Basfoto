@@ -1,32 +1,32 @@
 // sanity/schemaTypes.ts
 import sitePage from "./schemaTypes/sitePage";
-import album from "./schemaTypes/album";
 import homePage from "./schemaTypes/homePage";
 import portfolioItem from "./schemaTypes/portfolioItem";
+import album from "./schemaTypes/album";
 import packageType from "./schemaTypes/package";
 import availabilitySettings from "./schemaTypes/availabilitySettings";
 import bookingRequest from "./schemaTypes/bookingRequest";
 
-// ✅ nieuw
-import contactPage from "./schemaTypes/contactPage";
+// NIEUW (alleen laten staan als deze bestanden echt bestaan)
 import contactRequest from "./schemaTypes/contactRequest";
 import faqPage from "./schemaTypes/faqPage";
 
 export const schemaTypes = [
-  // Pagina’s / content
+  // Pages / content
   homePage,
-  contactPage,
-  faqPage,
   sitePage,
+  faqPage,
 
-  // Content
+  // Portfolio
   portfolioItem,
   album,
   packageType,
-  availabilitySettings,
 
-  // Berichten
+  // Booking
+  availabilitySettings,
   bookingRequest,
+
+  // Messages
   contactRequest,
 ];
 
