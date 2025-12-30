@@ -1,20 +1,17 @@
+// app/faq/page.tsx
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
-import dynamicImport from "next/dynamic";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { faqPageQuery, faqPageSeoQuery } from "@/lib/sanity.queries";
 import { buildMetadataFromSeo } from "@/lib/seo";
 
-const FaqAccordion = dynamicImport(() => import("@/components/FaqAccordion"), {
-  ssr: false,
-  loading: () => <FaqAccordionSkeleton />,
-});
+import FaqAccordionLazy from "@/components/FaqAccordionLazy";
 
-/** PortableText -> plain text (voor JSON-LD Answer.text) */
+/** PortableText → plain text (voor JSON-LD Answer.text) */
 function ptToPlainText(blocks: any[] = []) {
   return blocks
     .map((b) => {
@@ -26,23 +23,6 @@ function ptToPlainText(blocks: any[] = []) {
     .join("\n")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function FaqAccordionSkeleton() {
-  return (
-    <div className="grid gap-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-2xl bg-white/60 p-5"
-          style={{ border: "1px solid var(--border)" }}
-        >
-          <div className="h-4 w-3/4 rounded bg-black/10" />
-          <div className="mt-3 h-3 w-1/2 rounded bg-black/5" />
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -59,6 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FaqPage() {
   const faq = await sanityClient.fetch(faqPageQuery);
 
+  // Geen content in Sanity
   if (!faq) {
     return (
       <section className="mx-auto max-w-3xl">
@@ -69,6 +50,7 @@ export default async function FaqPage() {
           FAQ content ontbreekt nog in Sanity. Voeg een document toe van type{" "}
           <strong>FAQ pagina</strong>.
         </p>
+
         <Link
           href="/contact"
           className="mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white"
@@ -84,6 +66,7 @@ export default async function FaqPage() {
     (i: any) => String(i?.question ?? "").trim() && (i?.answer?.length ?? 0) > 0
   );
 
+  // ✅ JSON-LD voor Google rich results
   const faqJsonLd =
     items.length > 0
       ? {
@@ -102,6 +85,7 @@ export default async function FaqPage() {
 
   return (
     <article className="mx-auto max-w-3xl">
+      {/* Structured data */}
       {faqJsonLd ? (
         <Script
           id="faq-jsonld"
@@ -120,28 +104,31 @@ export default async function FaqPage() {
         ) : null}
 
         <p className="mt-4 text-sm text-[var(--text-soft)]">
-          Liever direct vragen?{" "}
+          Staat je vraag er niet bij?{" "}
           <Link href="/contact" className="underline underline-offset-4">
-            Ga naar contact
+            Neem contact op
           </Link>
           .
         </p>
       </header>
 
-      {/* ✅ Lazy loaded accordion */}
+      {/* FAQ accordion (lazy loaded) */}
       {items.length ? (
-        <FaqAccordion items={items} />
+        <FaqAccordionLazy items={items} />
       ) : (
         <p className="mt-6 text-sm text-[var(--text-soft)]">
           Er staan nog geen vragen in de FAQ. Voeg items toe in Sanity.
         </p>
       )}
 
+      {/* CTA */}
       <div
         className="mt-12 rounded-2xl bg-[var(--surface-2)] p-6 text-center"
         style={{ border: "1px solid var(--border)" }}
       >
-        <p className="text-sm text-[var(--text-soft)]">Staat je vraag er niet tussen?</p>
+        <p className="text-sm text-[var(--text-soft)]">
+          Staat je vraag er niet tussen?
+        </p>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
