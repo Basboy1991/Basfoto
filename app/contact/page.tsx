@@ -52,13 +52,13 @@ export default async function ContactPage() {
             Bekijk veelgestelde vragen
           </Link>
 
-          <Link
-            href="/boek"
-            className="inline-flex items-center justify-center rounded-full px-5 py-2 font-semibold text-white"
-            style={{ background: "var(--accent-strong)" }}
-          >
-            Boek een shoot
-          </Link>
+         <Link
+  href="/boek"
+  className="inline-flex items-center justify-center rounded-full px-5 py-2 font-semibold text-white/90"
+  style={{ background: "var(--accent-strong)" }}
+>
+  Boek een shoot
+</Link>
         </div>
       </header>
 
