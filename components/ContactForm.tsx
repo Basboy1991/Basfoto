@@ -6,7 +6,7 @@ type Status = "idle" | "sending" | "success" | "error";
 
 type FieldErrors = Partial<
   Record<
-    "name" | "email" | "phone" | "subject" | "message" | "consent" | "preferredContact",
+    "name" | "email" | "phone" | "subject" | "message" | "preferredContact" | "consent",
     string
   >
 >;
@@ -24,11 +24,9 @@ export default function ContactForm({
 
   const hasErrors = useMemo(() => Object.keys(fieldErrors).length > 0, [fieldErrors]);
 
-  function inputClass(hasFieldError?: boolean) {
-    return [
-      "mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm outline-none transition",
-      hasFieldError ? "ring-2 ring-red-500/60" : "focus-visible:ring-2 focus-visible:ring-black/20",
-    ].join(" ");
+  function clearErrors() {
+    setFormError(null);
+    setFieldErrors({});
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -36,8 +34,7 @@ export default function ContactForm({
     const formEl = e.currentTarget;
 
     setStatus("sending");
-    setFormError(null);
-    setFieldErrors({});
+    clearErrors();
 
     const form = new FormData(formEl);
 
@@ -60,19 +57,20 @@ export default function ContactForm({
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => null);
+      const data = (await res.json().catch(() => null)) as any;
 
       if (!res.ok) {
-        // 400: veldfouten
-        if (res.status === 400 && data?.errors) {
+        // 400: veld errors
+        if (data?.errors && typeof data.errors === "object") {
           setFieldErrors(data.errors as FieldErrors);
           setStatus("error");
-          setFormError("Controleer de gemarkeerde velden.");
+          setFormError("Controleer je invoer en probeer opnieuw.");
           return;
         }
 
-        // fallback
-        throw new Error(data?.error ?? "Er ging iets mis. Probeer het later opnieuw.");
+        setStatus("error");
+        setFormError(data?.error ?? "Er ging iets mis. Probeer het later opnieuw.");
+        return;
       }
 
       setStatus("success");
@@ -83,6 +81,16 @@ export default function ContactForm({
     }
   }
 
+  const inputBase =
+    "mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-black/30";
+  const borderBase = { border: "1px solid var(--border)" } as const;
+
+  function fieldStyle(name: keyof FieldErrors) {
+    return fieldErrors[name]
+      ? { border: "1px solid rgba(220,38,38,.6)" } // rood randje bij error
+      : borderBase;
+  }
+
   return (
     <section
       className="rounded-3xl bg-[var(--surface-2)] p-5 md:p-6"
@@ -90,7 +98,7 @@ export default function ContactForm({
     >
       {status === "success" ? (
         <div
-          className="rounded-2xl bg-white/60 p-6 text-center"
+          className="rounded-2xl bg-white/60 p-5 text-center"
           style={{ border: "1px solid var(--border)" }}
           role="status"
           aria-live="polite"
@@ -99,15 +107,14 @@ export default function ContactForm({
             {successTitle ?? "Bericht verzonden 🎉"}
           </p>
           <p className="mt-2 text-sm text-[var(--text-soft)]">
-            {successText ?? "Dankjewel! Ik neem zo snel mogelijk contact met je op."}
+            {successText ?? "Dankjewel voor je bericht. Ik neem zo snel mogelijk contact met je op."}
           </p>
 
           <button
             type="button"
             onClick={() => {
               setStatus("idle");
-              setFormError(null);
-              setFieldErrors({});
+              clearErrors();
             }}
             className="mt-5 inline-flex rounded-full px-6 py-3 text-sm font-semibold"
             style={{ border: "1px solid var(--border)", color: "var(--text)" }}
@@ -126,11 +133,11 @@ export default function ContactForm({
             aria-hidden="true"
           />
 
-          {/* form error banner */}
+          {/* algemene fout */}
           {status === "error" && formError ? (
             <div
-              className="rounded-2xl bg-white/60 p-3 text-sm"
-              style={{ border: "1px solid var(--border)", color: "rgb(185 28 28)" }}
+              className="rounded-2xl bg-white/60 p-3 text-sm text-red-700"
+              style={{ border: "1px solid var(--border)" }}
               role="alert"
             >
               {formError}
@@ -143,16 +150,13 @@ export default function ContactForm({
               <input
                 name="name"
                 required
-                className={inputClass(!!fieldErrors.name)}
-                style={{ border: "1px solid var(--border)" }}
+                className={inputBase}
+                style={fieldStyle("name")}
                 placeholder="Je naam"
-                aria-invalid={!!fieldErrors.name}
-                aria-describedby={fieldErrors.name ? "err-name" : undefined}
+                onChange={() => fieldErrors.name && setFieldErrors((p) => ({ ...p, name: undefined }))}
               />
               {fieldErrors.name ? (
-                <p id="err-name" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                  {fieldErrors.name}
-                </p>
+                <p className="mt-1 text-xs text-red-700">{fieldErrors.name}</p>
               ) : null}
             </div>
 
@@ -162,16 +166,13 @@ export default function ContactForm({
                 name="email"
                 type="email"
                 required
-                className={inputClass(!!fieldErrors.email)}
-                style={{ border: "1px solid var(--border)" }}
+                className={inputBase}
+                style={fieldStyle("email")}
                 placeholder="jij@mail.nl"
-                aria-invalid={!!fieldErrors.email}
-                aria-describedby={fieldErrors.email ? "err-email" : undefined}
+                onChange={() => fieldErrors.email && setFieldErrors((p) => ({ ...p, email: undefined }))}
               />
               {fieldErrors.email ? (
-                <p id="err-email" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                  {fieldErrors.email}
-                </p>
+                <p className="mt-1 text-xs text-red-700">{fieldErrors.email}</p>
               ) : null}
             </div>
 
@@ -179,16 +180,13 @@ export default function ContactForm({
               <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
               <input
                 name="phone"
-                className={inputClass(!!fieldErrors.phone)}
-                style={{ border: "1px solid var(--border)" }}
+                className={inputBase}
+                style={fieldStyle("phone")}
                 placeholder="06…"
-                aria-invalid={!!fieldErrors.phone}
-                aria-describedby={fieldErrors.phone ? "err-phone" : undefined}
+                onChange={() => fieldErrors.phone && setFieldErrors((p) => ({ ...p, phone: undefined }))}
               />
               {fieldErrors.phone ? (
-                <p id="err-phone" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                  {fieldErrors.phone}
-                </p>
+                <p className="mt-1 text-xs text-red-700">{fieldErrors.phone}</p>
               ) : null}
             </div>
 
@@ -196,16 +194,15 @@ export default function ContactForm({
               <label className="text-sm font-medium text-[var(--text)]">Onderwerp</label>
               <input
                 name="subject"
-                className={inputClass(!!fieldErrors.subject)}
-                style={{ border: "1px solid var(--border)" }}
+                className={inputBase}
+                style={fieldStyle("subject")}
                 placeholder="Bijv. gezinsshoot"
-                aria-invalid={!!fieldErrors.subject}
-                aria-describedby={fieldErrors.subject ? "err-subject" : undefined}
+                onChange={() =>
+                  fieldErrors.subject && setFieldErrors((p) => ({ ...p, subject: undefined }))
+                }
               />
               {fieldErrors.subject ? (
-                <p id="err-subject" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                  {fieldErrors.subject}
-                </p>
+                <p className="mt-1 text-xs text-red-700">{fieldErrors.subject}</p>
               ) : null}
             </div>
           </div>
@@ -216,25 +213,24 @@ export default function ContactForm({
               name="message"
               required
               rows={5}
-              className={inputClass(!!fieldErrors.message)}
-              style={{ border: "1px solid var(--border)" }}
+              className={inputBase}
+              style={fieldStyle("message")}
               placeholder="Vertel kort wat je zoekt (datum/locatie/wensen)…"
-              aria-invalid={!!fieldErrors.message}
-              aria-describedby={fieldErrors.message ? "err-message" : "hint-faq"}
+              onChange={() =>
+                fieldErrors.message && setFieldErrors((p) => ({ ...p, message: undefined }))
+              }
             />
             {fieldErrors.message ? (
-              <p id="err-message" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                {fieldErrors.message}
-              </p>
-            ) : (
-              <p id="hint-faq" className="mt-2 text-xs text-[var(--text-soft)]">
-                Tip: kijk ook even bij de{" "}
-                <a href="/faq" className="underline underline-offset-4">
-                  veelgestelde vragen
-                </a>
-                .
-              </p>
-            )}
+              <p className="mt-1 text-xs text-red-700">{fieldErrors.message}</p>
+            ) : null}
+
+            <p className="mt-2 text-xs text-[var(--text-soft)]">
+              Tip: kijk ook even bij de{" "}
+              <a href="/faq" className="underline underline-offset-4">
+                veelgestelde vragen
+              </a>
+              .
+            </p>
           </div>
 
           <div>
@@ -242,19 +238,19 @@ export default function ContactForm({
             <select
               name="preferredContact"
               defaultValue="whatsapp"
-              className={inputClass(!!fieldErrors.preferredContact)}
-              style={{ border: "1px solid var(--border)" }}
-              aria-invalid={!!fieldErrors.preferredContact}
-              aria-describedby={fieldErrors.preferredContact ? "err-preferred" : undefined}
+              className={inputBase}
+              style={fieldStyle("preferredContact")}
+              onChange={() =>
+                fieldErrors.preferredContact &&
+                setFieldErrors((p) => ({ ...p, preferredContact: undefined }))
+              }
             >
               <option value="whatsapp">WhatsApp</option>
               <option value="email">E-mail</option>
               <option value="phone">Telefoon</option>
             </select>
             {fieldErrors.preferredContact ? (
-              <p id="err-preferred" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-                {fieldErrors.preferredContact}
-              </p>
+              <p className="mt-1 text-xs text-red-700">{fieldErrors.preferredContact}</p>
             ) : null}
           </div>
 
@@ -263,20 +259,17 @@ export default function ContactForm({
               type="checkbox"
               name="consent"
               required
-              className={fieldErrors.consent ? "mt-1 ring-2 ring-red-500/60" : "mt-1"}
-              aria-invalid={!!fieldErrors.consent}
-              aria-describedby={fieldErrors.consent ? "err-consent" : undefined}
+              className="mt-1"
+              onChange={() => fieldErrors.consent && setFieldErrors((p) => ({ ...p, consent: undefined }))}
             />
             <span>Ik geef toestemming om contact op te nemen. *</span>
           </label>
           {fieldErrors.consent ? (
-            <p id="err-consent" className="-mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
-              {fieldErrors.consent}
-            </p>
+            <p className="-mt-2 text-xs text-red-700">{fieldErrors.consent}</p>
           ) : null}
 
-          {/* fallback microcopy */}
-          {hasErrors && status !== "sending" && status !== "success" && !formError ? (
+          {/* microcopy als er errors zijn maar geen banner (bijv alleen veld errors) */}
+          {hasErrors && status !== "sending" && !formError ? (
             <p className="text-center text-xs text-[var(--text-soft)]">
               Controleer de velden met een rode rand.
             </p>
