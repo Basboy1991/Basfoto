@@ -1,135 +1,120 @@
+// app/contact/page.tsx
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import Script from "next/script";
+import { Mail, Phone, MessageCircle } from "lucide-react";
 
 import { sanityClient } from "@/lib/sanity.client";
-import { faqPageQuery, faqPageSeoQuery } from "@/lib/sanity.queries";
+import { contactPageQuery, contactPageSeoQuery } from "@/lib/sanity.queries";
 import { buildMetadataFromSeo } from "@/lib/seo";
+import { siteConfig } from "@/config/site";
 
-import { PortableText } from "@portabletext/react";
-import { portableTextComponents } from "@/lib/portableTextComponents";
-import FaqAccordion from "@/components/FaqAccordion";
-
-/** PortableText -> plain text (voor JSON-LD Answer.text) */
-function ptToPlainText(blocks: any[] = []) {
-  return blocks
-    .map((b) => {
-      if (b?._type !== "block") return "";
-      return (b.children ?? [])
-        .map((c: any) => (c?._type === "span" ? c.text ?? "" : ""))
-        .join("");
-    })
-    .join("\n")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import ContactForm from "@/components/ContactForm";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const seo = await sanityClient.fetch(faqPageSeoQuery);
+  const seo = await sanityClient.fetch(contactPageSeoQuery);
 
   return buildMetadataFromSeo(seo, {
-    pathname: "/faq",
-    fallbackTitle: "FAQ | Bas Fotografie",
+    pathname: "/contact",
+    fallbackTitle: "Contact | Bas Fotografie",
     fallbackDescription:
-      "Veelgestelde vragen over fotoshoots, voorbereiding, locaties, kleding en levering.",
+      "Neem contact op voor vragen of het plannen van een fotoshoot in Westland en omgeving.",
   });
 }
 
-export default async function FaqPage() {
-  const faq = await sanityClient.fetch(faqPageQuery);
+function cleanTel(phone: string) {
+  return phone.replace(/\s/g, "").replace(/-/g, "");
+}
 
-  if (!faq) {
-    return (
-      <section className="mx-auto max-w-3xl">
-        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
-          Veelgestelde vragen
-        </h1>
-        <p className="mt-4 text-[var(--text-soft)]">
-          FAQ content ontbreekt nog in Sanity. Voeg een document toe van type{" "}
-          <strong>FAQ pagina</strong>.
-        </p>
-        <Link
-          href="/contact"
-          className="mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white"
-          style={{ background: "var(--accent-strong)" }}
-        >
-          Stel je vraag via contact
-        </Link>
-      </section>
-    );
-  }
+export default async function ContactPage() {
+  const page = await sanityClient.fetch(contactPageQuery);
 
-  const items = (faq.items ?? []).filter(
-    (i: any) => String(i?.question ?? "").trim() && (i?.answer?.length ?? 0) > 0
-  );
+  const title = page?.title ?? "Contact";
+  const intro =
+    page?.intro ??
+    "Heb je een vraag, wil je sparren over een shoot of alvast een datum prikken? Stuur gerust een bericht.";
 
-  const faqJsonLd =
-    items.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: items.map((i: any) => ({
-            "@type": "Question",
-            name: String(i.question).trim(),
-            acceptedAnswer: { "@type": "Answer", text: ptToPlainText(i.answer) },
-          })),
-        }
-      : null;
+  const email = siteConfig.contact.email;
+  const phone = siteConfig.contact.phone;
+  const whatsapp = siteConfig.contact.whatsapp;
 
   return (
-    <article className="mx-auto max-w-3xl">
-      {faqJsonLd ? (
-        <Script
-          id="faq-jsonld"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-        />
-      ) : null}
+    <article className="mx-auto max-w-5xl">
+      <header className="max-w-3xl">
+        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">{title}</h1>
+        <p className="mt-3 text-sm italic text-[var(--text-soft)]">{intro}</p>
 
-      <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
-        {faq.title ?? "Veelgestelde vragen"}
-      </h1>
-
-      {faq.intro ? (
-        <p className="mt-3 text-sm italic text-[var(--text-soft)]">{faq.intro}</p>
-      ) : null}
-
-      {items.length ? (
-        <FaqAccordion
-          items={items}
-          renderAnswer={(value) => (
-            <PortableText value={value} components={portableTextComponents} />
-          )}
-        />
-      ) : (
-        <p className="mt-6 text-sm text-[var(--text-soft)]">
-          Er staan nog geen vragen in de FAQ. Voeg items toe in Sanity.
-        </p>
-      )}
-
-      <div
-        className="mt-10 rounded-2xl bg-[var(--surface-2)] p-6 text-center"
-        style={{ border: "1px solid var(--border)" }}
-      >
-        <p className="text-sm text-[var(--text-soft)]">Staat je vraag er niet tussen?</p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <div className="mt-4 flex flex-wrap gap-2 text-sm">
           <Link
-            href="/contact"
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white"
-            style={{ background: "var(--accent-strong)" }}
+            href="/faq"
+            className="inline-flex items-center justify-center rounded-full px-5 py-2 font-semibold"
+            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
           >
-            Neem contact op
+            Bekijk veelgestelde vragen
           </Link>
+
           <Link
             href="/boek"
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold"
-            style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+            className="inline-flex items-center justify-center rounded-full px-5 py-2 font-semibold text-white"
+            style={{ background: "var(--accent-strong)" }}
           >
             Boek een shoot
           </Link>
         </div>
+      </header>
+
+      <div className="mt-10 grid gap-6 md:grid-cols-5">
+        {/* Links: direct contact */}
+        <aside className="md:col-span-2">
+          <div
+            className="rounded-3xl bg-[var(--surface-2)] p-5"
+            style={{ border: "1px solid var(--border)" }}
+          >
+            <p className="text-sm font-semibold text-[var(--text)]">Direct contact</p>
+            <p className="mt-2 text-sm text-[var(--text-soft)]">
+              Meestal reactie: <strong>{siteConfig.contact.responseTime}</strong>
+            </p>
+
+            {/* ✅ 3 uniforme icon buttons (zonder tekst) */}
+            <div className="mt-4 flex items-center gap-3">
+              <a
+                href={`mailto:${email}`}
+                aria-label="Mail"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <Mail size={20} color="var(--text)" />
+              </a>
+
+              <a
+                href={`tel:${cleanTel(phone)}`}
+                aria-label="Bel"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <Phone size={20} color="var(--text)" />
+              </a>
+
+              <a
+                href={`https://wa.me/${whatsapp}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <MessageCircle size={20} color="var(--text)" />
+              </a>
+            </div>
+          </div>
+        </aside>
+
+        {/* Rechts: form */}
+        <section className="md:col-span-3">
+          <h2 className="sr-only">{page?.formTitle ?? "Stuur een bericht"}</h2>
+          <ContactForm successTitle={page?.successTitle} successText={page?.successText} />
+        </section>
       </div>
     </article>
   );
