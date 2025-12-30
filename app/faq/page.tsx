@@ -53,7 +53,7 @@ export default async function FaqPage() {
 
         <Link
           href="/contact"
-          className="mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white"
+          className="mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white/90"
           style={{ background: "var(--accent-strong)" }}
         >
           Stel je vraag via contact
@@ -121,24 +121,22 @@ export default async function FaqPage() {
         </p>
       )}
 
-      {/* CTA */}
-   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
-  <Link
-    href="/contact"
-    className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white/90"
-    style={{ background: "var(--accent-strong)" }}
-  >
-    Stel je vraag via contact
-  </Link>
+      {/* CTA card */}
+      <div
+        className="mt-12 rounded-2xl bg-[var(--surface-2)] p-6 text-center"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <p className="text-sm text-[var(--text-soft)]">Staat je vraag er niet tussen?</p>
 
-  <Link
-    href="/boek"
-    className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold"
-    style={{ border: "1px solid var(--border)", color: "var(--text)" }}
-  >
-    Boek direct een shoot
-  </Link>
-</div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/contact"
+            className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white/90"
+            style={{ background: "var(--accent-strong)" }}
+          >
+            Stel je vraag via contact
+          </Link>
+
           <Link
             href="/boek"
             className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold"
