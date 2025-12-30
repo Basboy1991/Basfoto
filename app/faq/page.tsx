@@ -132,12 +132,13 @@ export default async function FaqPage() {
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            href="/contact"
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white"
-            style={{ background: "var(--accent-strong)" }}
-          >
-            Stel je vraag via contact
-          </Link>
+   <Link
+  href="/contact"
+  className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white/90"
+  style={{ background: "var(--accent-strong)" }}
+>
+  Stel je vraag via contact
+</Link>
 
           <Link
             href="/boek"
