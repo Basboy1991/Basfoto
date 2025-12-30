@@ -1,157 +1,155 @@
-
 @import "tailwindcss";
 
 /* =========================
-THEMA TOKENS (Warm editorial + saliegroen)
-========================= /
+   THEMA TOKENS (Warm editorial + saliegroen)
+   ========================= */
 :root {
-/ Achtergronden */
---bg: #fafaf8;
---surface: #ffffff;
---surface-2: #f4f4f1;
+  /* Achtergronden */
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface-2: #f4f4f1;
 
-/* Tekst */
---text: #2e2e2b;
---text-soft: #6b6b66;
+  /* Tekst */
+  --text: #2e2e2b;
+  --text-soft: #6b6b66;
 
-/* Borders (super subtiel) */
---border: rgba(0, 0, 0, 0.06);
+  /* Borders (super subtiel) */
+  --border: rgba(0, 0, 0, 0.06);
 
-/* Accent (salie) */
---accent: #8faea0;
---accent-soft: #e6ede4;
---accent-strong: #7ea294;
+  /* Accent (salie) */
+  --accent: #8faea0;
+  --accent-soft: #e6ede4;
+  --accent-strong: #7ea294;
 
-/* Shadows (subtiel) */
---shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
---shadow-md: 0 10px 30px rgba(0, 0, 0, 0.08);
+  /* Shadows (subtiel) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 /* =========================
-BASIS TYPOGRAFIE
-========================= */
+   BASIS TYPOGRAFIE
+   ========================= */
 html {
-background: var(--bg);
-color: var(--text);
-font-family:
-var(--font-sans),
-system-ui,
--apple-system,
-BlinkMacSystemFont,
-"Segoe UI",
-Roboto,
-Arial,
-sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    sans-serif;
 }
 
 body {
-background: var(--bg);
-color: var(--text);
-line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
 }
 
 h1,
 h2,
 h3,
 h4 {
-font-family: var(--font-serif), Georgia, "Times New Roman", serif;
-letter-spacing: -0.02em;
-color: var(--text);
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 p {
-color: var(--text-soft);
+  color: var(--text-soft);
 }
 
 a {
-color: inherit;
-text-decoration: none;
+  color: inherit;
+  text-decoration: none;
 }
 
 a:hover {
-color: var(--text);
+  color: var(--text);
 }
 
 ::selection {
-background: rgba(143, 174, 160, 0.35);
+  background: rgba(143, 174, 160, 0.35);
 }
 
 /* =========================
-PROSE (Sanity content)
-========================= */
+   PROSE (Sanity content)
+   ========================= */
 .prose {
-max-width: none;
+  max-width: none;
 }
 
 .prose p {
-color: var(--text-soft);
+  color: var(--text-soft);
 }
 
 .prose h1,
 .prose h2,
 .prose h3 {
-color: var(--text);
+  color: var(--text);
 }
 
 /* =========================
-KEN BURNS (subtiel)
-========================= */
+   KEN BURNS (subtiel)
+   ========================= */
 @keyframes kenburns {
-0% {
-transform: scale(1) translate(0, 0);
-}
-100% {
-transform: scale(1.04) translate(-1%, -1%);
-}
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.04) translate(-1%, -1%);
+  }
 }
 
 .kenburns {
-animation: kenburns 12s ease-in-out forwards;
-will-change: transform;
+  animation: kenburns 12s ease-in-out forwards;
+  will-change: transform;
 }
 
 /* =========================
-Helpers (premium consistentie)
-========================= */
+   HELPERS (premium consistentie)
+   ========================= */
 
-/* Zachte kaartstijl (gebruik je op portfolio/reviews/sections) /
+/* Zachte kaartstijl */
 .soft-card {
-background: var(--surface-2);
-border: 1px solid var(--border);
-border-radius: 1.5rem; / 24px */
-box-shadow: var(--shadow-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem; /* 24px */
+  box-shadow: var(--shadow-sm);
 }
 
-/* Primary button (optioneel, handig als utility) */
+/* Primary button (utility) */
 .button-primary {
-background: var(--accent);
-color: white;
-border-radius: 9999px;
-transition:
-background 0.25s ease,
-transform 0.25s ease,
-box-shadow 0.25s ease,
-opacity 0.25s ease;
+  background: var(--accent);
+  color: white;
+  border-radius: 9999px;
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease;
 }
 
 .button-primary:hover {
-background: var(--accent-strong);
-transform: translateY(-1px);
-box-shadow: var(--shadow-md);
+  background: var(--accent-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* Subtiele focus ring (toegankelijk + premium) */
+/* Subtiele focus ring */
 :focus-visible {
-outline: none;
-box-shadow: 0 0 0 3px rgba(143, 174, 160, 0.35);
-border-radius: 0.75rem;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(143, 174, 160, 0.35);
+  border-radius: 0.75rem;
 }
 
 /* =========================
-   BUTTONS (Primary / Secondary / Disabled)
+   BUTTONS
    ========================= */
 
-/* Basis button (voor <a>, <button>, <span>) */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -174,9 +172,7 @@ border-radius: 0.75rem;
   user-select: none;
 }
 
-/* =========================
-   PRIMARY (groen gevuld)
-   ========================= */
+/* Primary */
 .btn-primary {
   background: var(--accent-strong);
   color: rgba(255, 255, 255, 0.92);
@@ -189,9 +185,7 @@ border-radius: 0.75rem;
   box-shadow: var(--shadow-md);
 }
 
-/* =========================
-   SECONDARY (outline)
-   ========================= */
+/* Secondary */
 .btn-secondary {
   background: transparent;
   color: var(--text);
@@ -204,9 +198,7 @@ border-radius: 0.75rem;
   box-shadow: var(--shadow-sm);
 }
 
-/* =========================
-   DISABLED
-   ========================= */
+/* Disabled */
 .btn:disabled,
 .btn[aria-disabled="true"] {
   opacity: 0.55;
