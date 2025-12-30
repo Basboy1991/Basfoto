@@ -16,9 +16,7 @@ export default function FaqAccordion({ items }: { items: Item[] }) {
   const safeItems = useMemo(
     () =>
       (items ?? []).filter(
-        (i) =>
-          String(i?.question ?? "").trim() &&
-          (i?.answer?.length ?? 0) > 0
+        (i) => String(i?.question ?? "").trim() && (i?.answer?.length ?? 0) > 0
       ),
     [items]
   );
@@ -54,15 +52,14 @@ export default function FaqAccordion({ items }: { items: Item[] }) {
 
             <div
               className={`grid transition-all duration-300 ease-out ${
-                open ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0"
+                open
+                  ? "grid-rows-[1fr] opacity-100 mt-4"
+                  : "grid-rows-[0fr] opacity-0"
               }`}
             >
               <div className="overflow-hidden">
                 <div className="prose prose-zinc max-w-none">
-                  <PortableText
-                    value={item.answer}
-                    components={portableTextComponents}
-                  />
+                  <PortableText value={item.answer} components={portableTextComponents} />
                 </div>
               </div>
             </div>
