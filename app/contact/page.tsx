@@ -1,9 +1,7 @@
-// app/contact/page.tsx
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail, Phone, MessageCircle } from "lucide-react";
 
 import { sanityClient } from "@/lib/sanity.client";
 import { contactPageQuery, contactPageSeoQuery } from "@/lib/sanity.queries";
@@ -11,6 +9,7 @@ import { buildMetadataFromSeo } from "@/lib/seo";
 import { siteConfig } from "@/config/site";
 
 import ContactForm from "@/components/ContactForm";
+import { Mail, Phone, MessageCircle } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await sanityClient.fetch(contactPageSeoQuery);
@@ -23,10 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-function cleanTel(phone: string) {
-  return phone.replace(/\s/g, "").replace(/-/g, "");
-}
-
 export default async function ContactPage() {
   const page = await sanityClient.fetch(contactPageQuery);
 
@@ -35,9 +30,12 @@ export default async function ContactPage() {
     page?.intro ??
     "Heb je een vraag, wil je sparren over een shoot of alvast een datum prikken? Stuur gerust een bericht.";
 
-  const email = siteConfig.contact.email;
-  const phone = siteConfig.contact.phone;
-  const whatsapp = siteConfig.contact.whatsapp;
+  const telHref = `tel:${siteConfig.contact.phone.replace(/\s/g, "")}`;
+  const mailHref = `mailto:${siteConfig.contact.email}`;
+  const waHref = `https://wa.me/${siteConfig.contact.whatsapp}`;
+
+  const iconBtn =
+    "group inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/60 transition outline-none focus-visible:ring-2 focus-visible:ring-black/25 hover:bg-white/80";
 
   return (
     <article className="mx-auto max-w-5xl">
@@ -76,35 +74,37 @@ export default async function ContactPage() {
               Meestal reactie: <strong>{siteConfig.contact.responseTime}</strong>
             </p>
 
-            {/* ✅ 3 uniforme icon buttons (zonder tekst) */}
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-4 flex gap-3">
               <a
-                href={`mailto:${email}`}
-                aria-label="Mail"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                href={mailHref}
+                className={iconBtn}
                 style={{ border: "1px solid var(--border)" }}
+                aria-label="Stuur een e-mail"
+                title="E-mail"
               >
-                <Mail size={20} color="var(--text)" />
+                <Mail className="h-5 w-5 text-[var(--text)] opacity-90 group-hover:opacity-100" />
               </a>
 
               <a
-                href={`tel:${cleanTel(phone)}`}
+                href={telHref}
+                className={iconBtn}
+                style={{ border: "1px solid var(--border)" }}
                 aria-label="Bel"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
-                style={{ border: "1px solid var(--border)" }}
+                title="Bellen"
               >
-                <Phone size={20} color="var(--text)" />
+                <Phone className="h-5 w-5 text-[var(--text)] opacity-90 group-hover:opacity-100" />
               </a>
 
               <a
-                href={`https://wa.me/${whatsapp}`}
+                href={waHref}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="WhatsApp"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition hover:bg-white/80"
+                className={iconBtn}
                 style={{ border: "1px solid var(--border)" }}
+                aria-label="WhatsApp"
+                title="WhatsApp"
               >
-                <MessageCircle size={20} color="var(--text)" />
+                <MessageCircle className="h-5 w-5 text-[var(--text)] opacity-90 group-hover:opacity-100" />
               </a>
             </div>
           </div>
