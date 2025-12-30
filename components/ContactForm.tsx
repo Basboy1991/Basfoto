@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 type Status = "idle" | "sending" | "success" | "error";
 
 type FieldErrors = Partial<
-  Record<"name" | "email" | "message" | "consent" | "form", string>
+  Record<
+    "name" | "email" | "phone" | "subject" | "message" | "consent" | "preferredContact",
+    string
+  >
 >;
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 export default function ContactForm({
   successTitle,
@@ -23,38 +22,13 @@ export default function ContactForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  // refs for focusing on errors
-  const nameRef = useRef<HTMLInputElement | null>(null);
-  const emailRef = useRef<HTMLInputElement | null>(null);
-  const messageRef = useRef<HTMLTextAreaElement | null>(null);
-  const consentRef = useRef<HTMLInputElement | null>(null);
+  const hasErrors = useMemo(() => Object.keys(fieldErrors).length > 0, [fieldErrors]);
 
-  const hasErrors = useMemo(
-    () => Boolean(Object.keys(fieldErrors).length) || Boolean(formError),
-    [fieldErrors, formError]
-  );
-
-  function focusFirstError(errors: FieldErrors) {
-    if (errors.name) return nameRef.current?.focus();
-    if (errors.email) return emailRef.current?.focus();
-    if (errors.message) return messageRef.current?.focus();
-    if (errors.consent) return consentRef.current?.focus();
-  }
-
-  function validateClient(payload: {
-    name: string;
-    email: string;
-    message: string;
-    consent: boolean;
-  }) {
-    const errors: FieldErrors = {};
-    if (!payload.name) errors.name = "Naam is verplicht.";
-    if (!payload.email || !isValidEmail(payload.email))
-      errors.email = "Vul een geldig e-mailadres in.";
-    if (!payload.message || payload.message.trim().length < 5)
-      errors.message = "Bericht is te kort (minimaal 5 tekens).";
-    if (!payload.consent) errors.consent = "Toestemming is verplicht.";
-    return errors;
+  function inputClass(hasFieldError?: boolean) {
+    return [
+      "mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm outline-none transition",
+      hasFieldError ? "ring-2 ring-red-500/60" : "focus-visible:ring-2 focus-visible:ring-black/20",
+    ].join(" ");
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -78,21 +52,6 @@ export default function ContactForm({
       company: String(form.get("company") ?? "").trim(), // honeypot
     };
 
-    // client-side validation first (snelle feedback)
-    const clientErrors = validateClient({
-      name: payload.name,
-      email: payload.email,
-      message: payload.message,
-      consent: payload.consent,
-    });
-
-    if (Object.keys(clientErrors).length > 0) {
-      setStatus("error");
-      setFieldErrors(clientErrors);
-      focusFirstError(clientErrors);
-      return;
-    }
-
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -101,40 +60,28 @@ export default function ContactForm({
         body: JSON.stringify(payload),
       });
 
-      const data: any = await res.json().catch(() => null);
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        // API kan: { ok:false, errors:{...} } of { ok:false, error:"..." }
-        const serverFieldErrors: FieldErrors = data?.errors ?? {};
-        const msg =
-          data?.error ??
-          (serverFieldErrors && Object.keys(serverFieldErrors).length
-            ? "Controleer de velden en probeer opnieuw."
-            : "Er ging iets mis. Probeer het later opnieuw.");
-
-        setStatus("error");
-        setFormError(msg);
-
-        if (serverFieldErrors && Object.keys(serverFieldErrors).length) {
-          setFieldErrors(serverFieldErrors);
-          focusFirstError(serverFieldErrors);
+        // 400: veldfouten
+        if (res.status === 400 && data?.errors) {
+          setFieldErrors(data.errors as FieldErrors);
+          setStatus("error");
+          setFormError("Controleer de gemarkeerde velden.");
+          return;
         }
-        return;
+
+        // fallback
+        throw new Error(data?.error ?? "Er ging iets mis. Probeer het later opnieuw.");
       }
 
       setStatus("success");
       formEl.reset();
-      setFormError(null);
-      setFieldErrors({});
     } catch (err: any) {
       setStatus("error");
       setFormError(err?.message ?? "Er ging iets mis. Probeer het later opnieuw.");
     }
   }
-
-  const inputBase =
-    "mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-black/20";
-  const errorRing = "ring-2 ring-red-500/40";
 
   return (
     <section
@@ -143,7 +90,7 @@ export default function ContactForm({
     >
       {status === "success" ? (
         <div
-          className="rounded-2xl bg-white/60 p-5 text-center"
+          className="rounded-2xl bg-white/60 p-6 text-center"
           style={{ border: "1px solid var(--border)" }}
           role="status"
           aria-live="polite"
@@ -152,11 +99,7 @@ export default function ContactForm({
             {successTitle ?? "Bericht verzonden 🎉"}
           </p>
           <p className="mt-2 text-sm text-[var(--text-soft)]">
-            {successText ??
-              "Dankjewel voor je bericht. Ik neem zo snel mogelijk contact met je op."}
-          </p>
-          <p className="mt-2 text-xs text-[var(--text-soft)]">
-            Je hoeft niets meer te doen — ik kom bij je terug.
+            {successText ?? "Dankjewel! Ik neem zo snel mogelijk contact met je op."}
           </p>
 
           <button
@@ -173,7 +116,7 @@ export default function ContactForm({
           </button>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="grid gap-3" noValidate>
+        <form onSubmit={onSubmit} className="grid gap-3">
           {/* honeypot */}
           <input
             name="company"
@@ -183,20 +126,14 @@ export default function ContactForm({
             aria-hidden="true"
           />
 
-          {status === "error" && (formError || hasErrors) ? (
+          {/* form error banner */}
+          {status === "error" && formError ? (
             <div
               className="rounded-2xl bg-white/60 p-3 text-sm"
-              style={{ border: "1px solid var(--border)" }}
+              style={{ border: "1px solid var(--border)", color: "rgb(185 28 28)" }}
               role="alert"
             >
-              <p className="font-semibold text-red-700">
-                {formError ?? "Controleer de velden en probeer opnieuw."}
-              </p>
-              {!formError && hasErrors ? (
-                <p className="mt-1 text-xs text-[var(--text-soft)]">
-                  Tip: velden met een rode rand hebben extra aandacht nodig.
-                </p>
-              ) : null}
+              {formError}
             </div>
           ) : null}
 
@@ -204,17 +141,16 @@ export default function ContactForm({
             <div>
               <label className="text-sm font-medium text-[var(--text)]">Naam *</label>
               <input
-                ref={nameRef}
                 name="name"
                 required
-                aria-invalid={Boolean(fieldErrors.name)}
-                aria-describedby={fieldErrors.name ? "err-name" : undefined}
-                className={`${inputBase} ${fieldErrors.name ? errorRing : ""}`}
+                className={inputClass(!!fieldErrors.name)}
                 style={{ border: "1px solid var(--border)" }}
                 placeholder="Je naam"
+                aria-invalid={!!fieldErrors.name}
+                aria-describedby={fieldErrors.name ? "err-name" : undefined}
               />
               {fieldErrors.name ? (
-                <p id="err-name" className="mt-1 text-xs text-red-700">
+                <p id="err-name" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
                   {fieldErrors.name}
                 </p>
               ) : null}
@@ -223,18 +159,17 @@ export default function ContactForm({
             <div>
               <label className="text-sm font-medium text-[var(--text)]">E-mail *</label>
               <input
-                ref={emailRef}
                 name="email"
                 type="email"
                 required
-                aria-invalid={Boolean(fieldErrors.email)}
-                aria-describedby={fieldErrors.email ? "err-email" : undefined}
-                className={`${inputBase} ${fieldErrors.email ? errorRing : ""}`}
+                className={inputClass(!!fieldErrors.email)}
                 style={{ border: "1px solid var(--border)" }}
                 placeholder="jij@mail.nl"
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? "err-email" : undefined}
               />
               {fieldErrors.email ? (
-                <p id="err-email" className="mt-1 text-xs text-red-700">
+                <p id="err-email" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
                   {fieldErrors.email}
                 </p>
               ) : null}
@@ -244,43 +179,56 @@ export default function ContactForm({
               <label className="text-sm font-medium text-[var(--text)]">Telefoon</label>
               <input
                 name="phone"
-                className={inputBase}
+                className={inputClass(!!fieldErrors.phone)}
                 style={{ border: "1px solid var(--border)" }}
                 placeholder="06…"
+                aria-invalid={!!fieldErrors.phone}
+                aria-describedby={fieldErrors.phone ? "err-phone" : undefined}
               />
+              {fieldErrors.phone ? (
+                <p id="err-phone" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
+                  {fieldErrors.phone}
+                </p>
+              ) : null}
             </div>
 
             <div>
               <label className="text-sm font-medium text-[var(--text)]">Onderwerp</label>
               <input
                 name="subject"
-                className={inputBase}
+                className={inputClass(!!fieldErrors.subject)}
                 style={{ border: "1px solid var(--border)" }}
                 placeholder="Bijv. gezinsshoot"
+                aria-invalid={!!fieldErrors.subject}
+                aria-describedby={fieldErrors.subject ? "err-subject" : undefined}
               />
+              {fieldErrors.subject ? (
+                <p id="err-subject" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
+                  {fieldErrors.subject}
+                </p>
+              ) : null}
             </div>
           </div>
 
           <div>
             <label className="text-sm font-medium text-[var(--text)]">Bericht *</label>
             <textarea
-              ref={messageRef}
               name="message"
               required
               rows={5}
-              aria-invalid={Boolean(fieldErrors.message)}
-              aria-describedby={fieldErrors.message ? "err-message" : "hint-message"}
-              className={`${inputBase} ${fieldErrors.message ? errorRing : ""}`}
+              className={inputClass(!!fieldErrors.message)}
               style={{ border: "1px solid var(--border)" }}
-              placeholder="Vertel kort wat je in gedachten hebt (datum, locatie of wensen)…"
+              placeholder="Vertel kort wat je zoekt (datum/locatie/wensen)…"
+              aria-invalid={!!fieldErrors.message}
+              aria-describedby={fieldErrors.message ? "err-message" : "hint-faq"}
             />
             {fieldErrors.message ? (
-              <p id="err-message" className="mt-1 text-xs text-red-700">
+              <p id="err-message" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
                 {fieldErrors.message}
               </p>
             ) : (
-              <p id="hint-message" className="mt-2 text-xs text-[var(--text-soft)]">
-                Twijfel je nog? Bekijk eerst de{" "}
+              <p id="hint-faq" className="mt-2 text-xs text-[var(--text-soft)]">
+                Tip: kijk ook even bij de{" "}
                 <a href="/faq" className="underline underline-offset-4">
                   veelgestelde vragen
                 </a>
@@ -294,34 +242,45 @@ export default function ContactForm({
             <select
               name="preferredContact"
               defaultValue="whatsapp"
-              className={inputBase}
+              className={inputClass(!!fieldErrors.preferredContact)}
               style={{ border: "1px solid var(--border)" }}
+              aria-invalid={!!fieldErrors.preferredContact}
+              aria-describedby={fieldErrors.preferredContact ? "err-preferred" : undefined}
             >
               <option value="whatsapp">WhatsApp</option>
               <option value="email">E-mail</option>
               <option value="phone">Telefoon</option>
             </select>
-          </div>
-
-          <div>
-            <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
-              <input
-                ref={consentRef}
-                type="checkbox"
-                name="consent"
-                required
-                aria-invalid={Boolean(fieldErrors.consent)}
-                aria-describedby={fieldErrors.consent ? "err-consent" : undefined}
-                className={`mt-1 ${fieldErrors.consent ? "outline outline-2 outline-red-500/40" : ""}`}
-              />
-              <span>Ik geef toestemming om contact op te nemen. *</span>
-            </label>
-            {fieldErrors.consent ? (
-              <p id="err-consent" className="mt-1 text-xs text-red-700">
-                {fieldErrors.consent}
+            {fieldErrors.preferredContact ? (
+              <p id="err-preferred" className="mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
+                {fieldErrors.preferredContact}
               </p>
             ) : null}
           </div>
+
+          <label className="flex items-start gap-3 text-sm text-[var(--text-soft)]">
+            <input
+              type="checkbox"
+              name="consent"
+              required
+              className={fieldErrors.consent ? "mt-1 ring-2 ring-red-500/60" : "mt-1"}
+              aria-invalid={!!fieldErrors.consent}
+              aria-describedby={fieldErrors.consent ? "err-consent" : undefined}
+            />
+            <span>Ik geef toestemming om contact op te nemen. *</span>
+          </label>
+          {fieldErrors.consent ? (
+            <p id="err-consent" className="-mt-1 text-xs" style={{ color: "rgb(185 28 28)" }}>
+              {fieldErrors.consent}
+            </p>
+          ) : null}
+
+          {/* fallback microcopy */}
+          {hasErrors && status !== "sending" && status !== "success" && !formError ? (
+            <p className="text-center text-xs text-[var(--text-soft)]">
+              Controleer de velden met een rode rand.
+            </p>
+          ) : null}
 
           <button
             type="submit"
@@ -331,10 +290,6 @@ export default function ContactForm({
           >
             {status === "sending" ? "Versturen…" : "Verstuur bericht"}
           </button>
-
-          <p className="text-center text-xs text-[var(--text-soft)]">
-            Door te versturen ga je akkoord dat ik je mag terugmailen/bellen/appen over je aanvraag.
-          </p>
         </form>
       )}
     </section>
