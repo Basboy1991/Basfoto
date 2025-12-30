@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PortableText } from "@portabletext/react";
 import { portableTextComponents } from "@/lib/portableTextComponents";
 
 type Item = {
   _key?: string;
-  question: string;
-  answer: any;
+  question?: string;
+  answer?: any[];
 };
 
 export default function FaqAccordion({ items }: { items: Item[] }) {
@@ -28,21 +28,21 @@ export default function FaqAccordion({ items }: { items: Item[] }) {
 
         return (
           <div
-            key={item._key ?? idx}
+            key={item._key ?? `${idx}-${String(item.question ?? "")}`}
             className="rounded-2xl bg-white/60 p-5"
             style={{ border: "1px solid var(--border)" }}
           >
             <button
               type="button"
               onClick={() => setOpenIndex(open ? null : idx)}
-              className="flex w-full items-center justify-between gap-4 text-left"
+              className="flex w-full items-center justify-between gap-4 text-left rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-black/30"
               aria-expanded={open}
             >
               <span className="text-base font-semibold text-[var(--text)]">
                 {item.question}
               </span>
               <span
-                className={`text-[var(--text-soft)] transition-transform ${
+                className={`select-none text-[var(--text-soft)] transition-transform duration-200 ${
                   open ? "rotate-180" : ""
                 }`}
               >
@@ -50,11 +50,10 @@ export default function FaqAccordion({ items }: { items: Item[] }) {
               </span>
             </button>
 
+            {/* smooth open/close */}
             <div
               className={`grid transition-all duration-300 ease-out ${
-                open
-                  ? "grid-rows-[1fr] opacity-100 mt-4"
-                  : "grid-rows-[0fr] opacity-0"
+                open ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0"
               }`}
             >
               <div className="overflow-hidden">
