@@ -103,7 +103,6 @@ export default async function FaqPage() {
           <p className="mt-3 text-sm italic text-[var(--text-soft)]">{faq.intro}</p>
         ) : null}
 
-        {/* Kleine helper link (UX) */}
         <p className="mt-4 text-sm text-[var(--text-soft)]">
           Liever direct vragen?{" "}
           <Link href="/contact" className="underline underline-offset-4">
@@ -116,31 +115,46 @@ export default async function FaqPage() {
       {/* FAQ items */}
       {items.length ? (
         <div className="grid gap-3">
-          {items.map((item: any, idx: number) => (
-            <details
-              key={item._key ?? `${idx}-${String(item.question ?? "")}`}
-              className="group rounded-2xl bg-white/60 p-5 transition-all"
-              style={{ border: "1px solid var(--border)" }}
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-black/30">
-                <span className="text-base font-semibold text-[var(--text)]">
-                  {item.question}
-                </span>
-                <span className="select-none text-[var(--text-soft)] transition-transform duration-200 group-open:rotate-180">
-                  ▼
-                </span>
-              </summary>
+          {items.map((item: any, idx: number) => {
+            const key = item._key ?? `${idx}-${String(item.question ?? "")}`;
 
-              {/* ✅ Smooth accordion animatie */}
-              <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-open:grid-rows-[1fr]">
-                <div className="overflow-hidden">
-                  <div className="prose prose-zinc mt-4 max-w-none">
-                    <PortableText value={item.answer} components={portableTextComponents} />
+            return (
+              <details
+                key={key}
+                // ✅ optioneel: eerste vraag open (haal "idx === 0" weg als je dat niet wilt)
+                open={idx === 0}
+                className="group rounded-2xl bg-white/60 p-5"
+                style={{ border: "1px solid var(--border)" }}
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-black/30">
+                  <span className="text-base font-semibold text-[var(--text)]">
+                    {item.question}
+                  </span>
+
+                  <span
+                    className="select-none text-[var(--text-soft)] transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden="true"
+                  >
+                    ▼
+                  </span>
+                </summary>
+
+                {/* ✅ Smooth accordion animatie: height + fade + slide */}
+                <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-open:grid-rows-[1fr]">
+                  <div className="overflow-hidden">
+                    <div className="mt-4 transition-all duration-300 ease-out opacity-0 translate-y-1 group-open:opacity-100 group-open:translate-y-0">
+                      <div className="prose prose-zinc max-w-none">
+                        <PortableText
+                          value={item.answer}
+                          components={portableTextComponents}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </details>
-          ))}
+              </details>
+            );
+          })}
         </div>
       ) : (
         <p className="mt-6 text-sm text-[var(--text-soft)]">
