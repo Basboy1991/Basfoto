@@ -38,7 +38,9 @@ export async function POST(req: Request) {
     const phone = String(body.phone ?? "").trim();
     const subject = String(body.subject ?? "").trim();
     const message = String(body.message ?? "").trim();
-    const preferredContact = (body.preferredContact ?? "whatsapp") as ContactPayload["preferredContact"];
+    const preferredContact = (body.preferredContact ?? "whatsapp") as NonNullable<
+      ContactPayload["preferredContact"]
+    >;
     const consent = Boolean(body.consent);
 
     const errors: Record<string, string> = {};
@@ -68,11 +70,14 @@ export async function POST(req: Request) {
 
     // 2) email (optioneel)
     const resendKey = process.env.RESEND_API_KEY;
+
+    // ✅ liever CONTACT_* env vars (fallback naar BOOKING_* als je die al had)
     const toEmail = process.env.CONTACT_TO_EMAIL || process.env.BOOKING_TO_EMAIL;
     const fromEmail = process.env.CONTACT_FROM_EMAIL || process.env.BOOKING_FROM_EMAIL;
 
     if (resendKey && toEmail && fromEmail) {
       const resend = new Resend(resendKey);
+
       const mailSubject = subject ? `Nieuw contactbericht – ${subject}` : `Nieuw contactbericht`;
 
       const html = `
@@ -97,7 +102,7 @@ export async function POST(req: Request) {
         to: toEmail,
         subject: mailSubject,
         html,
-        reply_to: email, // ✅ juiste key
+        reply_to: email, // ✅ Resend type-safe
       });
     }
 
