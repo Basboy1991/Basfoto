@@ -11,8 +11,6 @@ import { siteConfig } from "@/config/site";
 
 import ContactForm from "@/components/ContactForm";
 
-import { Mail, Phone, MessageCircle } from "lucide-react";
-
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await sanityClient.fetch(contactPageSeoQuery);
 
@@ -32,20 +30,10 @@ export default async function ContactPage() {
     page?.intro ??
     "Heb je een vraag, wil je sparren over een shoot of alvast een datum prikken? Stuur gerust een bericht.";
 
-  const responseTime =
-    siteConfig.contact.responseTime ?? "Meestal reactie dezelfde dag";
-
-  const mailto = `mailto:${siteConfig.contact.email}`;
-  const tel = `tel:${siteConfig.contact.phone.replace(/\s/g, "")}`;
-  const wa = `https://wa.me/${siteConfig.contact.whatsapp}`;
-
   return (
     <article className="mx-auto max-w-5xl">
-      {/* Header */}
       <header className="max-w-3xl">
-        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
-          {title}
-        </h1>
+        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">{title}</h1>
         <p className="mt-3 text-sm italic text-[var(--text-soft)]">{intro}</p>
 
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
@@ -62,70 +50,46 @@ export default async function ContactPage() {
       <div className="mt-10 grid gap-6 md:grid-cols-5">
         {/* Links: direct contact */}
         <aside className="md:col-span-2">
-          <div
-            className="rounded-3xl bg-[var(--surface-2)] p-5"
-            style={{ border: "1px solid var(--border)" }}
-          >
-            <p className="text-sm font-semibold text-[var(--text)]">
-              Direct contact
-            </p>
-
+          <div className="rounded-3xl bg-[var(--surface-2)] p-5" style={{ border: "1px solid var(--border)" }}>
+            <p className="text-sm font-semibold text-[var(--text)]">Direct contact</p>
             <p className="mt-2 text-sm text-[var(--text-soft)]">
-              Meestal reactie: <strong>{responseTime}</strong>
+              Meestal reactie: <strong>{siteConfig.contact.responseTime}</strong>
             </p>
 
-            {/* 3 uniforme icon buttons (zonder tekst) */}
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-4 grid gap-2 text-sm">
               <a
-                href={mailto}
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition"
+                href={`mailto:${siteConfig.contact.email}`}
+                className="rounded-2xl bg-white/60 px-4 py-3"
                 style={{ border: "1px solid var(--border)" }}
-                aria-label="Stuur een e-mail"
-                title="E-mail"
               >
-                <Mail size={20} color="var(--text)" />
-                <span className="sr-only">{siteConfig.contact.email}</span>
+                ✉️ {siteConfig.contact.email}
               </a>
 
               <a
-                href={tel}
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition"
+                href={`tel:${siteConfig.contact.phone.replace(/\s/g, "")}`}
+                className="rounded-2xl bg-white/60 px-4 py-3"
                 style={{ border: "1px solid var(--border)" }}
-                aria-label="Bel"
-                title="Telefoon"
               >
-                <Phone size={20} color="var(--text)" />
-                <span className="sr-only">{siteConfig.contact.phone}</span>
+                📞 {siteConfig.contact.phone}
               </a>
 
               <a
-                href={wa}
+                href={`https://wa.me/${siteConfig.contact.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 transition"
+                className="rounded-2xl bg-white/60 px-4 py-3"
                 style={{ border: "1px solid var(--border)" }}
-                aria-label="Chat via WhatsApp"
-                title="WhatsApp"
               >
-                <MessageCircle size={20} color="var(--text)" />
-                <span className="sr-only">WhatsApp</span>
+                💬 WhatsApp
               </a>
             </div>
-
-            {/* Kleine helpertekst */}
-            <p className="mt-4 text-xs text-[var(--text-soft)]">
-              Tip: voor snelle vragen werkt WhatsApp vaak het snelst.
-            </p>
           </div>
         </aside>
 
         {/* Rechts: form */}
         <section className="md:col-span-3">
           <h2 className="sr-only">{page?.formTitle ?? "Stuur een bericht"}</h2>
-          <ContactForm
-            successTitle={page?.successTitle}
-            successText={page?.successText}
-          />
+          <ContactForm successTitle={page?.successTitle} successText={page?.successText} />
         </section>
       </div>
     </article>
