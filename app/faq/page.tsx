@@ -20,7 +20,7 @@ function ptToPlainText(blocks: any[] = []) {
         .map((c: any) => (c?._type === "span" ? c.text ?? "" : ""))
         .join("");
     })
-    .join(" ")
+    .join("\n")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -39,23 +39,19 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FaqPage() {
   const faq = await sanityClient.fetch(faqPageQuery);
 
-  // Geen FAQ document in Sanity
+  // Geen content in Sanity
   if (!faq) {
     return (
       <section className="mx-auto max-w-3xl">
         <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
           Veelgestelde vragen
         </h1>
-
         <p className="mt-4 text-[var(--text-soft)]">
           FAQ content ontbreekt nog in Sanity. Voeg een document toe van type{" "}
           <strong>FAQ pagina</strong>.
         </p>
 
-        <Link
-          href="/contact"
-          className="btn btn-primary mt-6 inline-flex px-6 py-3 text-sm"
-        >
+        <Link href="/contact" className="btn btn-primary mt-6 px-6 py-3 text-sm">
           Stel je vraag via contact
         </Link>
       </section>
@@ -63,13 +59,10 @@ export default async function FaqPage() {
   }
 
   const items = (faq.items ?? []).filter(
-    (i: any) =>
-      String(i?.question ?? "").trim() &&
-      Array.isArray(i?.answer) &&
-      i.answer.length > 0
+    (i: any) => String(i?.question ?? "").trim() && (i?.answer?.length ?? 0) > 0
   );
 
-  // JSON-LD (FAQ rich results)
+  // ✅ JSON-LD voor Google rich results
   const faqJsonLd =
     items.length > 0
       ? {
@@ -89,25 +82,22 @@ export default async function FaqPage() {
   return (
     <article className="mx-auto max-w-3xl">
       {/* Structured data */}
-      {faqJsonLd && (
+      {faqJsonLd ? (
         <Script
           id="faq-jsonld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
-      )}
+      ) : null}
 
-      {/* Header */}
       <header className="mb-8">
         <h1 className="text-4xl font-semibold tracking-tight text-[var(--text)]">
           {faq.title ?? "Veelgestelde vragen"}
         </h1>
 
-        {faq.intro && (
-          <p className="mt-3 text-sm italic text-[var(--text-soft)]">
-            {faq.intro}
-          </p>
-        )}
+        {faq.intro ? (
+          <p className="mt-3 text-sm italic text-[var(--text-soft)]">{faq.intro}</p>
+        ) : null}
 
         <p className="mt-4 text-sm text-[var(--text-soft)]">
           Staat je vraag er niet bij?{" "}
@@ -119,35 +109,27 @@ export default async function FaqPage() {
       </header>
 
       {/* FAQ accordion (lazy loaded) */}
-      {items.length > 0 ? (
+      {items.length ? (
         <FaqAccordionLazy items={items} />
       ) : (
         <p className="mt-6 text-sm text-[var(--text-soft)]">
-          Er staan nog geen vragen in de FAQ.
+          Er staan nog geen vragen in de FAQ. Voeg items toe in Sanity.
         </p>
       )}
 
-      {/* CTA card */}
+      {/* CTA card (jouw block) */}
       <div
         className="mt-12 rounded-2xl bg-[var(--surface-2)] p-6 text-center"
         style={{ border: "1px solid var(--border)" }}
       >
-        <p className="text-sm text-[var(--text-soft)]">
-          Staat je vraag er niet tussen?
-        </p>
+        <p className="text-sm text-[var(--text-soft)]">Staat je vraag er niet tussen?</p>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/contact"
-            className="btn btn-primary px-6 py-3 text-sm"
-          >
+          <Link href="/contact" className="btn btn-primary px-6 py-3 text-sm">
             Stel je vraag via contact
           </Link>
 
-          <Link
-            href="/boek"
-            className="btn btn-secondary px-6 py-3 text-sm"
-          >
+          <Link href="/boek" className="btn btn-secondary px-6 py-3 text-sm">
             Boek direct een shoot
           </Link>
         </div>
